@@ -1,9 +1,10 @@
+import { useWorkspace } from '../providers/WorkspaceProvider';
 import { useEffect, useState, type FormEvent } from 'react';
 import { GuardApiError } from '../api/apiClient';
 import type { ReportApi } from '../api/reportApi';
 import type { WorkspaceApi } from '../api/workspaceApi';
 import type { TechnicalReportRecord } from '../types/report';
-import type { WorkspaceOrganization } from '../types/workspace';
+
 import ReportSnapshotView from './ReportSnapshotView';
 
 interface ReportCenterProps {
@@ -16,35 +17,15 @@ function readableError(error: unknown): string {
   return error instanceof Error ? error.message : 'Report-Aktion fehlgeschlagen.';
 }
 
-function formatDate(value: string): string {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString('de-DE');
-}
 
-export default function ReportCenter({ reportApi, workspaceApi }: ReportCenterProps) {
-  const [organizations, setOrganizations] = useState<WorkspaceOrganization[]>([]);
-  const [organizationId, setOrganizationId] = useState('');
+export default function ReportCenter({ reportApi }: ReportCenterProps) {
+  const { currentOrg } = useWorkspace();
+  const organizationId = currentOrg?.id || '';
   const [scanId, setScanId] = useState('');
   const [reports, setReports] = useState<TechnicalReportRecord[]>([]);
   const [selectedReport, setSelectedReport] = useState<TechnicalReportRecord | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    workspaceApi.listOrganizations()
-      .then((next) => {
-        if (cancelled) return;
-        setOrganizations(next);
-        setOrganizationId(next[0]?.id ?? '');
-      })
-      .catch((loadError) => {
-        if (!cancelled) setError(readableError(loadError));
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [workspaceApi]);
 
   useEffect(() => {
     let cancelled = false;
@@ -101,7 +82,12 @@ export default function ReportCenter({ reportApi, workspaceApi }: ReportCenterPr
   }
 
   if (selectedReport) {
-    return <ReportSnapshotView report={selectedReport} onClose={() => setSelectedReport(null)} />;
+    return (
+      <ReportSnapshotView 
+        report={selectedReport}
+        onClose={() => setSelectedReport(null)}
+      />
+    );
   }
 
   return (
@@ -123,27 +109,13 @@ export default function ReportCenter({ reportApi, workspaceApi }: ReportCenterPr
       )}
 
       <div className="grid gap-4 rounded-2xl border bg-card p-5 md:grid-cols-2">
-        <label className="space-y-1 text-sm">
-          <span>Workspace</span>
-          <select
-            className="w-full rounded-lg border bg-background px-3 py-2"
-            value={organizationId}
-            onChange={(event) => setOrganizationId(event.target.value)}
-            disabled={busy || organizations.length === 0}
-          >
-            {organizations.map((organization) => (
-              <option key={organization.id} value={organization.id}>{organization.name}</option>
-            ))}
-          </select>
-        </label>
-
         <form className="space-y-2" onSubmit={handleCreate}>
           <label className="block space-y-1 text-sm">
             <span>Abgeschlossene Scan-ID</span>
             <input
               className="w-full rounded-lg border bg-background px-3 py-2 font-mono text-xs"
               value={scanId}
-              onChange={(event) => setScanId(event.target.value)}
+              onChange={(e) => setScanId(e.target.value)}
               placeholder="00000000-0000-0000-0000-000000000000"
               pattern="[0-9a-fA-F-]{36}"
               maxLength={36}
@@ -189,7 +161,6 @@ export default function ReportCenter({ reportApi, workspaceApi }: ReportCenterPr
               <article key={report.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4">
                 <div className="min-w-0">
                   <div className="font-medium">Technical Screening · Schema v{report.schemaVersion}</div>
-                  <div className="text-xs text-muted-foreground">{formatDate(report.createdAt)}</div>
                   <div className="mt-1 max-w-2xl break-all font-mono text-[11px] text-muted-foreground">
                     {report.snapshotHash}
                   </div>

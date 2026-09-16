@@ -1,19 +1,18 @@
+import { useWorkspace } from '../providers/WorkspaceProvider';
 import { useEffect, useMemo, useState } from 'react';
 import { GuardApiError } from '../api/apiClient';
 import type { MonitoringApi } from '../api/monitoringApi';
 import type { WorkspaceApi } from '../api/workspaceApi';
-import type {
-  WorkspaceMonitor,
-  WorkspaceNotification,
-} from '../types/monitoring';
-import type {
-  WorkspaceOrganization,
-  WorkspaceTarget,
-} from '../types/workspace';
+import type { WorkspaceMonitor, WorkspaceNotification } from '../types/monitoring';
+import type { WorkspaceOrganization, WorkspaceTarget } from '../types/workspace';
 
 interface MonitoringCenterProps {
   monitoringApi: MonitoringApi;
   workspaceApi: WorkspaceApi;
+}
+
+function canManage(role?: WorkspaceOrganization['role']): boolean {
+  return role === 'owner' || role === 'admin';
 }
 
 function readableError(error: unknown): string {
@@ -21,19 +20,9 @@ function readableError(error: unknown): string {
   return error instanceof Error ? error.message : 'Monitoring-Aktion fehlgeschlagen.';
 }
 
-function formatDate(value: string | null | undefined): string {
-  if (!value) return '—';
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString('de-DE');
-}
-
-function canManage(role: WorkspaceOrganization['role'] | undefined): boolean {
-  return role === 'owner' || role === 'admin';
-}
-
 export default function MonitoringCenter({ monitoringApi, workspaceApi }: MonitoringCenterProps) {
-  const [organizations, setOrganizations] = useState<WorkspaceOrganization[]>([]);
-  const [organizationId, setOrganizationId] = useState('');
+  const { currentOrg: selectedOrganization } = useWorkspace();
+  const organizationId = selectedOrganization?.id || '';
   const [targets, setTargets] = useState<WorkspaceTarget[]>([]);
   const [monitors, setMonitors] = useState<WorkspaceMonitor[]>([]);
   const [notifications, setNotifications] = useState<WorkspaceNotification[]>([]);
@@ -42,32 +31,12 @@ export default function MonitoringCenter({ monitoringApi, workspaceApi }: Monito
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const selectedOrganization = useMemo(
-    () => organizations.find((organization) => organization.id === organizationId),
-    [organizations, organizationId],
-  );
   const verifiedWebsiteTargets = useMemo(
     () => targets.filter(
       (target) => target.type === 'website' && target.verificationState === 'verified',
     ),
     [targets],
   );
-
-  useEffect(() => {
-    let cancelled = false;
-    workspaceApi.listOrganizations()
-      .then((next) => {
-        if (cancelled) return;
-        setOrganizations(next);
-        setOrganizationId(next[0]?.id ?? '');
-      })
-      .catch((loadError) => {
-        if (!cancelled) setError(readableError(loadError));
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [workspaceApi]);
 
   useEffect(() => {
     let cancelled = false;
@@ -169,24 +138,6 @@ export default function MonitoringCenter({ monitoringApi, workspaceApi }: Monito
         </div>
       )}
 
-      {organizations.length > 0 && (
-        <label className="block max-w-xl space-y-1 text-sm">
-          <span>Workspace</span>
-          <select
-            className="w-full rounded-lg border bg-background px-3 py-2"
-            value={organizationId}
-            onChange={(event) => setOrganizationId(event.target.value)}
-            disabled={busy}
-          >
-            {organizations.map((organization) => (
-              <option key={organization.id} value={organization.id}>
-                {organization.name} · {organization.role}
-              </option>
-            ))}
-          </select>
-        </label>
-      )}
-
       {selectedOrganization && canManage(selectedOrganization.role) && (
         <div className="space-y-4 rounded-2xl border bg-card p-5">
           <div>
@@ -199,7 +150,7 @@ export default function MonitoringCenter({ monitoringApi, workspaceApi }: Monito
             <select
               className="rounded-lg border bg-background px-3 py-2 text-sm"
               value={targetId}
-              onChange={(event) => setTargetId(event.target.value)}
+              onChange={(e) => setTargetId(e.target.value)}
               disabled={busy}
             >
               <option value="">Verifiziertes Target auswählen…</option>
@@ -214,7 +165,7 @@ export default function MonitoringCenter({ monitoringApi, workspaceApi }: Monito
               max={10080}
               step={1}
               value={scheduleMinutes}
-              onChange={(event) => setScheduleMinutes(Number(event.target.value))}
+              onChange={(e) => setScheduleMinutes(Number(e.target.value))}
               aria-label="Monitoring-Intervall in Minuten"
               disabled={busy}
             />
@@ -241,23 +192,22 @@ export default function MonitoringCenter({ monitoringApi, workspaceApi }: Monito
               <div>
                 <div className="font-medium">{target?.displayName ?? monitor.targetId}</div>
                 <div className="text-muted-foreground">
-                  {monitor.moduleId} · alle {monitor.scheduleMinutes} min · nächster Slot {formatDate(monitor.nextRunAt)}
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <span className="rounded-full border px-2.5 py-1 text-xs">{monitor.status}</span>
                 {canManage(selectedOrganization?.role) && monitor.status === 'active' && (
-                  <button className="rounded-lg border px-3 py-1.5 text-xs" type="button" disabled={busy} onClick={() => changeStatus(monitor, 'paused')}>
+                  <button className="rounded-lg border px-3 py-1.5 text-xs disabled:opacity-50" onClick={() => changeStatus(monitor, 'paused')} disabled={busy}>
                     Pausieren
                   </button>
                 )}
                 {canManage(selectedOrganization?.role) && monitor.status === 'paused' && (
-                  <button className="rounded-lg border px-3 py-1.5 text-xs" type="button" disabled={busy} onClick={() => changeStatus(monitor, 'active')}>
+                  <button className="rounded-lg border px-3 py-1.5 text-xs disabled:opacity-50" onClick={() => changeStatus(monitor, 'active')} disabled={busy}>
                     Fortsetzen
                   </button>
                 )}
                 {canManage(selectedOrganization?.role) && monitor.status !== 'disabled' && (
-                  <button className="rounded-lg border px-3 py-1.5 text-xs" type="button" disabled={busy} onClick={() => changeStatus(monitor, 'disabled')}>
+                  <button className="rounded-lg border px-3 py-1.5 text-xs text-destructive disabled:opacity-50" onClick={() => changeStatus(monitor, 'disabled')} disabled={busy}>
                     Deaktivieren
                   </button>
                 )}
@@ -277,7 +227,6 @@ export default function MonitoringCenter({ monitoringApi, workspaceApi }: Monito
             Alle als gelesen markieren
           </button>
         </div>
-
         {notifications.length === 0 ? (
           <p className="text-sm text-muted-foreground">Keine Hinweise vorhanden.</p>
         ) : notifications.map((notification) => (
@@ -286,7 +235,6 @@ export default function MonitoringCenter({ monitoringApi, workspaceApi }: Monito
               <div>
                 <div className="font-medium">{notification.title}</div>
                 <div className="text-xs text-muted-foreground">
-                  {notification.type} · {notification.severity ?? 'system'} · {formatDate(notification.createdAt)}
                 </div>
               </div>
               <span className="rounded-full border px-2.5 py-1 text-xs">
@@ -295,7 +243,7 @@ export default function MonitoringCenter({ monitoringApi, workspaceApi }: Monito
             </div>
             <p className="text-muted-foreground">{notification.message}</p>
             {!notification.readAt && (
-              <button className="rounded-lg border px-3 py-1.5 text-xs" type="button" disabled={busy} onClick={() => markRead(notification)}>
+              <button className="rounded-lg border px-3 py-1.5 text-xs disabled:opacity-50" onClick={() => markRead(notification)} disabled={busy}>
                 Als gelesen markieren
               </button>
             )}

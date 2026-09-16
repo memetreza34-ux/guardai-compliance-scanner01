@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useWorkspace } from '../providers/WorkspaceProvider';
+import { useEffect, useState, type FormEvent } from 'react';
 import { GuardApiError } from '../api/apiClient';
 import type { AiGovernanceApi } from '../api/aiGovernanceApi';
 import type { WorkspaceApi } from '../api/workspaceApi';
@@ -12,7 +13,6 @@ import {
   type AiSystemDeclarationInput,
   type AiSystemProfile,
 } from '../types/aiGovernance';
-import type { WorkspaceOrganization } from '../types/workspace';
 
 interface AiGovernanceCenterProps {
   aiGovernanceApi: AiGovernanceApi;
@@ -37,81 +37,43 @@ const USE_CASES: Array<{ id: AiGovernanceUseCase; label: string }> = [
   { id: 'other', label: 'Sonstiger Einsatz' },
 ];
 
-const DECLARATION_FIELDS: Array<{
-  key: keyof AiGovernanceDeclarations;
-  label: string;
-}> = [
-  { key: 'interactsDirectlyWithPeople', label: 'Interagiert das System direkt mit Menschen?' },
-  { key: 'generatesSyntheticContent', label: 'Erzeugt das System synthetische Inhalte?' },
-  { key: 'aiLiteracyMeasuresDocumented', label: 'Sind Maßnahmen zur KI-Kompetenz dokumentiert?' },
-  { key: 'humanOversightControlsDocumented', label: 'Sind menschliche Aufsichts-/Kontrollmaßnahmen dokumentiert?' },
-  { key: 'interactionDisclosureDocumented', label: 'Ist eine Offenlegung der KI-Interaktion dokumentiert?' },
-  { key: 'syntheticContentDisclosureDocumented', label: 'Ist eine Offenlegung synthetischer Inhalte dokumentiert?' },
+const DECLARATION_FIELDS: Array<{ key: keyof AiGovernanceDeclarations; label: string }> = [
+  { key: 'interactsDirectlyWithPeople', label: 'Direkte Interaktion mit Menschen?' },
+  { key: 'generatesSyntheticContent', label: 'Erzeugt synthetische Inhalte?' },
+  { key: 'aiLiteracyMeasuresDocumented', label: 'AI-Literacy-Maßnahmen dokumentiert?' },
+  { key: 'humanOversightControlsDocumented', label: 'Menschliche Aufsicht dokumentiert?' },
+  { key: 'interactionDisclosureDocumented', label: 'Transparenzpflicht (Interaktion) dokumentiert?' },
+  { key: 'syntheticContentDisclosureDocumented', label: 'Transparenzpflicht (Inhalte) dokumentiert?' },
 ];
 
 function readableError(error: unknown): string {
   if (error instanceof GuardApiError) return `${error.message} (${error.code})`;
-  return error instanceof Error ? error.message : 'AI-Governance-Aktion fehlgeschlagen.';
+  return error instanceof Error ? error.message : 'Aktion fehlgeschlagen.';
 }
 
-function formatDate(value: string | null | undefined): string {
-  if (!value) return '—';
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString('de-DE');
-}
+export default function AiGovernanceCenter({ aiGovernanceApi }: AiGovernanceCenterProps) {
+  const { currentOrg: selectedOrganization } = useWorkspace();
+  const organizationId = selectedOrganization?.id || '';
 
-function documentationLabel(value: string): string {
-  if (value === 'documented_by_declaration') return 'Als dokumentiert angegeben';
-  if (value === 'not_documented_by_declaration') return 'Als nicht dokumentiert angegeben';
-  return 'Unklar / nicht angegeben';
-}
-
-function triStateLabel(value: AiGovernanceTriState): string {
-  if (value === 'yes') return 'Ja';
-  if (value === 'no') return 'Nein';
-  return 'Unklar';
-}
-
-export default function AiGovernanceCenter({ aiGovernanceApi, workspaceApi }: AiGovernanceCenterProps) {
-  const [organizations, setOrganizations] = useState<WorkspaceOrganization[]>([]);
-  const [organizationId, setOrganizationId] = useState('');
   const [systems, setSystems] = useState<AiSystemProfile[]>([]);
   const [reviews, setReviews] = useState<AiGovernanceReview[]>([]);
   const [selectedReview, setSelectedReview] = useState<AiGovernanceReview | null>(null);
+
   const [systemName, setSystemName] = useState('');
   const [providerName, setProviderName] = useState('');
   const [modelName, setModelName] = useState('');
   const [organizationRole, setOrganizationRole] = useState<AiSystemDeclarationInput['organizationRole']>('unknown');
   const [deploymentContext, setDeploymentContext] = useState<AiSystemDeclarationInput['deploymentContext']>('unknown');
-  const [useCases, setUseCases] = useState<AiGovernanceUseCase[]>([]);
+  const [selectedUseCases, setSelectedUseCases] = useState<Set<AiGovernanceUseCase>>(new Set());
   const [declarations, setDeclarations] = useState<AiGovernanceDeclarations>(DEFAULT_DECLARATIONS);
+
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const selectedOrganization = useMemo(
-    () => organizations.find((organization) => organization.id === organizationId),
-    [organizations, organizationId],
-  );
-
-  useEffect(() => {
-    let cancelled = false;
-    workspaceApi.listOrganizations()
-      .then((next) => {
-        if (cancelled) return;
-        setOrganizations(next);
-        setOrganizationId(next[0]?.id ?? '');
-      })
-      .catch((loadError) => {
-        if (!cancelled) setError(readableError(loadError));
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [workspaceApi]);
 
   useEffect(() => {
     let cancelled = false;
     setSelectedReview(null);
+
     if (!organizationId) {
       setSystems([]);
       setReviews([]);
@@ -136,7 +98,7 @@ export default function AiGovernanceCenter({ aiGovernanceApi, workspaceApi }: Ai
     };
   }, [aiGovernanceApi, organizationId]);
 
-  async function refresh() {
+  async function reload() {
     if (!organizationId) return;
     const [nextSystems, nextReviews] = await Promise.all([
       aiGovernanceApi.listSystems(organizationId),
@@ -146,11 +108,58 @@ export default function AiGovernanceCenter({ aiGovernanceApi, workspaceApi }: Ai
     setReviews(nextReviews);
   }
 
+  function toggleUseCase(useCase: AiGovernanceUseCase) {
+    setSelectedUseCases((current) => {
+      const next = new Set(current);
+      if (next.has(useCase)) {
+        next.delete(useCase);
+      } else {
+        next.add(useCase);
+      }
+      return next;
+    });
+  }
+
+  async function handleCreateSystem(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!organizationId) return;
+
+    setBusy(true);
+    setError(null);
+
+    const input: AiSystemDeclarationInput = {
+      systemName: systemName.trim(),
+      providerName: providerName.trim() || null,
+      modelName: modelName.trim() || null,
+      organizationRole,
+      deploymentContext,
+      useCases: Array.from(selectedUseCases),
+      declarations,
+    };
+
+    try {
+      await aiGovernanceApi.createSystem(organizationId, input);
+      setSystemName('');
+      setProviderName('');
+      setModelName('');
+      setOrganizationRole('unknown');
+      setDeploymentContext('unknown');
+      setSelectedUseCases(new Set());
+      setDeclarations(DEFAULT_DECLARATIONS);
+      await reload();
+    } catch (createError) {
+      setError(readableError(createError));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function runAction(action: () => Promise<void>) {
     setBusy(true);
     setError(null);
     try {
       await action();
+      await reload();
     } catch (actionError) {
       setError(readableError(actionError));
     } finally {
@@ -158,80 +167,54 @@ export default function AiGovernanceCenter({ aiGovernanceApi, workspaceApi }: Ai
     }
   }
 
-  function toggleUseCase(useCase: AiGovernanceUseCase) {
-    setUseCases((current) => current.includes(useCase)
-      ? current.filter((entry) => entry !== useCase)
-      : [...current, useCase]);
-  }
-
-  function resetForm() {
-    setSystemName('');
-    setProviderName('');
-    setModelName('');
-    setOrganizationRole('unknown');
-    setDeploymentContext('unknown');
-    setUseCases([]);
-    setDeclarations(DEFAULT_DECLARATIONS);
-  }
-
-  async function handleCreateSystem(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function handleArchiveSystem(systemId: string) {
     if (!organizationId) return;
-    await runAction(async () => {
-      await aiGovernanceApi.createSystem(organizationId, {
-        systemName,
-        organizationRole,
-        providerName: providerName.trim() || null,
-        modelName: modelName.trim() || null,
-        deploymentContext,
-        useCases,
-        declarations,
-      });
-      resetForm();
-      await refresh();
-    });
+    await runAction(async () => { await aiGovernanceApi.archiveSystem(organizationId, systemId) });
   }
 
-  async function createReview(system: AiSystemProfile) {
-    await runAction(async () => {
-      const created = await aiGovernanceApi.createReview(organizationId, system.id);
-      const detailed = await aiGovernanceApi.getReview(organizationId, created.id);
-      setSelectedReview(detailed);
-      await refresh();
-    });
+  async function handleCreateReview(systemId: string) {
+    if (!organizationId) return;
+    await runAction(async () => { await aiGovernanceApi.createReview(organizationId, systemId) });
   }
 
-  async function loadReview(review: AiGovernanceReview) {
-    await runAction(async () => {
-      setSelectedReview(await aiGovernanceApi.getReview(organizationId, review.id));
-    });
+  async function handleOpenReview(reviewId: string) {
+    if (!organizationId) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const review = await aiGovernanceApi.getReview(organizationId, reviewId);
+      setSelectedReview(review);
+    } catch (openError) {
+      setError(readableError(openError));
+    } finally {
+      setBusy(false);
+    }
   }
 
-  async function transitionReview(review: AiGovernanceReview, action: 'submit' | 'review' | 'reopen') {
-    await runAction(async () => {
-      await aiGovernanceApi.transitionReview(organizationId, review.id, action);
-      setSelectedReview(await aiGovernanceApi.getReview(organizationId, review.id));
-      await refresh();
-    });
-  }
-
-  async function archiveSystem(system: AiSystemProfile) {
-    await runAction(async () => {
-      await aiGovernanceApi.archiveSystem(organizationId, system.id);
-      if (selectedReview?.aiSystemId === system.id) setSelectedReview(null);
-      await refresh();
-    });
+  async function handleTransitionReview(reviewId: string, action: 'submit' | 'review' | 'reopen') {
+    if (!organizationId) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const review = await aiGovernanceApi.transitionReview(organizationId, reviewId, action);
+      setSelectedReview(review);
+      await reload();
+    } catch (transitionError) {
+      setError(readableError(transitionError));
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
     <section className="mx-auto w-full max-w-6xl space-y-6 px-4 py-8">
       <header className="space-y-2">
         <div className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-          AI Governance Guided Review
+          AI Governance & Compliance
         </div>
-        <h2 className="text-2xl font-semibold">Strukturierte AI-System-Evidenz & menschliche Prüfung</h2>
-        <p className="max-w-4xl text-sm text-muted-foreground">
-          Dieser Workflow dokumentiert Angaben zum AI-System und verknüpft Review-Punkte mit versionierten Quellen. GuardAI entscheidet hier weder die rechtliche Anwendbarkeit noch eine EU-AI-Act-Konformität und vergibt bewusst keinen Compliance-Score.
+        <h2 className="text-2xl font-semibold">AI-System-Inventar & Assessment</h2>
+        <p className="max-w-3xl text-sm text-muted-foreground">
+          Deklarieren Sie genutzte oder bereitgestellte AI-Systeme und generieren Sie einen Guided Review. Der Review ist eine geführte Checkliste basierend auf der Systemdeklaration. GuardAI trifft hier keine automatisierten Rechtsurteile oder Risikoeinstufungen, sondern verlangt die Bestätigung durch den Menschen (requires_human_review).
         </p>
       </header>
 
@@ -241,52 +224,52 @@ export default function AiGovernanceCenter({ aiGovernanceApi, workspaceApi }: Ai
         </div>
       )}
 
-      {organizations.length > 0 && (
-        <label className="block max-w-xl space-y-1 text-sm">
-          <span>Workspace</span>
-          <select
-            className="w-full rounded-lg border bg-background px-3 py-2"
-            value={organizationId}
-            onChange={(event) => setOrganizationId(event.target.value)}
-            disabled={busy}
-          >
-            {organizations.map((organization) => (
-              <option key={organization.id} value={organization.id}>
-                {organization.name} · {organization.role}
-              </option>
-            ))}
-          </select>
-        </label>
-      )}
-
       {selectedOrganization && canEditAiGovernance(selectedOrganization.role) && (
         <form className="space-y-5 rounded-2xl border bg-card p-5" onSubmit={handleCreateSystem}>
           <div>
             <h3 className="font-semibold">AI-System deklarieren</h3>
-            <p className="text-sm text-muted-foreground">
-              Nur strukturierte Metadaten. Keine Prompts, Modelloutputs, Kundentexte oder freie Rechtsbewertung eingeben.
-            </p>
+            <p className="text-sm text-muted-foreground">Erfassen Sie ein neues System für das Inventar.</p>
           </div>
-
           <div className="grid gap-3 md:grid-cols-3">
             <label className="space-y-1 text-sm">
               <span>Systemname</span>
-              <input className="w-full rounded-lg border bg-background px-3 py-2" value={systemName} onChange={(event) => setSystemName(event.target.value)} maxLength={160} required />
+              <input
+                className="w-full rounded-lg border bg-background px-3 py-2"
+                value={systemName}
+                onChange={(event) => setSystemName(event.target.value)}
+                required
+                disabled={busy}
+              />
             </label>
             <label className="space-y-1 text-sm">
               <span>Provider (optional)</span>
-              <input className="w-full rounded-lg border bg-background px-3 py-2" value={providerName} onChange={(event) => setProviderName(event.target.value)} maxLength={160} />
+              <input
+                className="w-full rounded-lg border bg-background px-3 py-2"
+                value={providerName}
+                onChange={(event) => setProviderName(event.target.value)}
+                disabled={busy}
+              />
             </label>
             <label className="space-y-1 text-sm">
               <span>Modell (optional)</span>
-              <input className="w-full rounded-lg border bg-background px-3 py-2" value={modelName} onChange={(event) => setModelName(event.target.value)} maxLength={160} />
+              <input
+                className="w-full rounded-lg border bg-background px-3 py-2"
+                value={modelName}
+                onChange={(event) => setModelName(event.target.value)}
+                disabled={busy}
+              />
             </label>
           </div>
 
           <div className="grid gap-3 md:grid-cols-2">
             <label className="space-y-1 text-sm">
               <span>Rolle der Organisation</span>
-              <select className="w-full rounded-lg border bg-background px-3 py-2" value={organizationRole} onChange={(event) => setOrganizationRole(event.target.value as AiSystemDeclarationInput['organizationRole'])}>
+              <select
+                className="w-full rounded-lg border bg-background px-3 py-2"
+                value={organizationRole}
+                onChange={(event) => setOrganizationRole(event.target.value as AiSystemDeclarationInput['organizationRole'])}
+                disabled={busy}
+              >
                 <option value="unknown">Unklar</option>
                 <option value="provider">Provider</option>
                 <option value="deployer">Deployer</option>
@@ -295,7 +278,12 @@ export default function AiGovernanceCenter({ aiGovernanceApi, workspaceApi }: Ai
             </label>
             <label className="space-y-1 text-sm">
               <span>Einsatzkontext</span>
-              <select className="w-full rounded-lg border bg-background px-3 py-2" value={deploymentContext} onChange={(event) => setDeploymentContext(event.target.value as AiSystemDeclarationInput['deploymentContext'])}>
+              <select
+                className="w-full rounded-lg border bg-background px-3 py-2"
+                value={deploymentContext}
+                onChange={(event) => setDeploymentContext(event.target.value as AiSystemDeclarationInput['deploymentContext'])}
+                disabled={busy}
+              >
                 <option value="unknown">Unklar</option>
                 <option value="internal">Intern</option>
                 <option value="customer-facing">Kundenkontakt</option>
@@ -310,7 +298,12 @@ export default function AiGovernanceCenter({ aiGovernanceApi, workspaceApi }: Ai
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {USE_CASES.map((useCase) => (
                 <label key={useCase.id} className="flex items-center gap-2 rounded-lg border p-3 text-sm">
-                  <input type="checkbox" checked={useCases.includes(useCase.id)} onChange={() => toggleUseCase(useCase.id)} />
+                  <input
+                    type="checkbox"
+                    checked={selectedUseCases.has(useCase.id)}
+                    onChange={() => toggleUseCase(useCase.id)}
+                    disabled={busy}
+                  />
                   <span>{useCase.label}</span>
                 </label>
               ))}
@@ -329,6 +322,7 @@ export default function AiGovernanceCenter({ aiGovernanceApi, workspaceApi }: Ai
                     ...current,
                     [field.key]: event.target.value as AiGovernanceTriState,
                   }))}
+                  disabled={busy}
                 >
                   <option value="unknown">Unklar</option>
                   <option value="yes">Ja</option>
@@ -338,7 +332,11 @@ export default function AiGovernanceCenter({ aiGovernanceApi, workspaceApi }: Ai
             ))}
           </fieldset>
 
-          <button className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50" type="submit" disabled={busy}>
+          <button
+            className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+            type="submit"
+            disabled={busy}
+          >
             {busy ? 'Bitte warten…' : 'AI-System speichern'}
           </button>
         </form>
@@ -369,12 +367,22 @@ export default function AiGovernanceCenter({ aiGovernanceApi, workspaceApi }: Ai
               </div>
               <div className="flex flex-wrap gap-2">
                 {canEditAiGovernance(selectedOrganization?.role) && (
-                  <button className="rounded-lg border px-3 py-2 text-xs font-medium disabled:opacity-50" type="button" disabled={busy} onClick={() => createReview(system)}>
+                  <button
+                    className="rounded-lg border px-3 py-1.5 text-xs disabled:opacity-50"
+                    type="button"
+                    disabled={busy}
+                    onClick={() => handleCreateReview(system.id)}
+                  >
                     Guided Review erzeugen
                   </button>
                 )}
                 {canReviewAiGovernance(selectedOrganization?.role) && (
-                  <button className="rounded-lg border px-3 py-2 text-xs font-medium disabled:opacity-50" type="button" disabled={busy} onClick={() => archiveSystem(system)}>
+                  <button
+                    className="rounded-lg border border-destructive/30 px-3 py-1.5 text-xs text-destructive disabled:opacity-50"
+                    type="button"
+                    disabled={busy}
+                    onClick={() => handleArchiveSystem(system.id)}
+                  >
                     Archivieren
                   </button>
                 )}
@@ -396,9 +404,14 @@ export default function AiGovernanceCenter({ aiGovernanceApi, workspaceApi }: Ai
                 <span className="rounded-full border px-2 py-1 text-xs">Menschliche Prüfung erforderlich</span>
               </div>
               <div className="text-xs text-muted-foreground">
-                Registry: {review.sourceRegistryId}@{review.sourceRegistryVersion} · erstellt {formatDate(review.createdAt)}
+                System Snapshot: {review.systemSnapshot.systemName}
               </div>
-              <button className="rounded-lg border px-3 py-2 text-xs font-medium disabled:opacity-50" type="button" disabled={busy} onClick={() => loadReview(review)}>
+              <button
+                className="w-full rounded-lg bg-muted px-3 py-1.5 text-xs font-medium disabled:opacity-50"
+                type="button"
+                disabled={busy}
+                onClick={() => handleOpenReview(review.id)}
+              >
                 Review öffnen
               </button>
             </article>
@@ -422,7 +435,6 @@ export default function AiGovernanceCenter({ aiGovernanceApi, workspaceApi }: Ai
             <article key={item.itemKey} className="space-y-2 rounded-xl border p-4 text-sm">
               <div className="font-medium">{item.itemKey}</div>
               <div className="grid gap-1 text-xs text-muted-foreground">
-                <span>Dokumentationsstatus: {documentationLabel(item.documentationState)}</span>
                 <span>Anwendbarkeit: menschlich zu prüfen</span>
                 <span>Trigger: {item.trigger}</span>
               </div>
@@ -445,27 +457,40 @@ export default function AiGovernanceCenter({ aiGovernanceApi, workspaceApi }: Ai
 
           <div className="flex flex-wrap gap-2">
             {canEditAiGovernance(selectedOrganization?.role) && ['draft', 'reopened'].includes(selectedReview.status) && (
-              <button className="rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground disabled:opacity-50" type="button" disabled={busy} onClick={() => transitionReview(selectedReview, 'submit')}>
+              <button
+                className="rounded-lg bg-primary px-4 py-2 text-xs font-medium text-primary-foreground disabled:opacity-50"
+                type="button"
+                disabled={busy}
+                onClick={() => handleTransitionReview(selectedReview.id, 'submit')}
+              >
                 Zur menschlichen Prüfung einreichen
               </button>
             )}
             {canReviewAiGovernance(selectedOrganization?.role) && selectedReview.status === 'submitted' && (
-              <button className="rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground disabled:opacity-50" type="button" disabled={busy} onClick={() => transitionReview(selectedReview, 'review')}>
+              <button
+                className="rounded-lg border px-4 py-2 text-xs font-medium disabled:opacity-50"
+                type="button"
+                disabled={busy}
+                onClick={() => handleTransitionReview(selectedReview.id, 'review')}
+              >
                 Als geprüft markieren
               </button>
             )}
             {canReviewAiGovernance(selectedOrganization?.role) && selectedReview.status === 'reviewed' && (
-              <button className="rounded-lg border px-3 py-2 text-xs font-medium disabled:opacity-50" type="button" disabled={busy} onClick={() => transitionReview(selectedReview, 'reopen')}>
+              <button
+                className="rounded-lg border px-4 py-2 text-xs font-medium disabled:opacity-50"
+                type="button"
+                disabled={busy}
+                onClick={() => handleTransitionReview(selectedReview.id, 'reopen')}
+              >
                 Review wieder öffnen
               </button>
             )}
           </div>
-
-          <div className="grid gap-1 text-xs text-muted-foreground">
-            <span>Eingereicht: {formatDate(selectedReview.submittedAt)}</span>
-            <span>Geprüft: {formatDate(selectedReview.reviewedAt)}</span>
+          
+          <div className="grid gap-1 text-xs text-muted-foreground mt-4">
             {Object.entries(selectedReview.systemSnapshot.declarations).map(([key, value]) => (
-              <span key={key}>{key}: {triStateLabel(value)}</span>
+               <div key={key}>{key}: {value as string}</div>
             ))}
           </div>
         </div>

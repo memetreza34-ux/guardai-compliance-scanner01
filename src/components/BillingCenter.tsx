@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useWorkspace } from '../providers/WorkspaceProvider';
+import { useEffect, useState } from 'react';
 import { GuardApiError } from '../api/apiClient';
 import {
   createBillingIdempotencyKey,
@@ -24,39 +25,17 @@ function formatDate(value: string | null): string {
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString('de-DE');
 }
 
-function isBillingAdmin(role: WorkspaceOrganization['role']): boolean {
+function isBillingAdmin(role?: WorkspaceOrganization['role']): boolean {
   return role === 'owner' || role === 'admin';
 }
 
-export default function BillingCenter({ billingApi, workspaceApi }: BillingCenterProps) {
-  const [organizations, setOrganizations] = useState<WorkspaceOrganization[]>([]);
-  const [organizationId, setOrganizationId] = useState('');
+export default function BillingCenter({ billingApi }: BillingCenterProps) {
+  const { currentOrg: selectedOrganization } = useWorkspace();
+  const organizationId = selectedOrganization?.id || '';
   const [status, setStatus] = useState<BillingStatus | null>(null);
   const [selectedPlan, setSelectedPlan] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const selectedOrganization = useMemo(
-    () => organizations.find((organization) => organization.id === organizationId),
-    [organizations, organizationId],
-  );
-
-  useEffect(() => {
-    let cancelled = false;
-    workspaceApi.listOrganizations()
-      .then((next) => {
-        if (cancelled) return;
-        const billingOrganizations = next.filter((organization) => isBillingAdmin(organization.role));
-        setOrganizations(billingOrganizations);
-        setOrganizationId(billingOrganizations[0]?.id ?? '');
-      })
-      .catch((loadError) => {
-        if (!cancelled) setError(readableError(loadError));
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [workspaceApi]);
 
   useEffect(() => {
     let cancelled = false;
@@ -117,28 +96,12 @@ export default function BillingCenter({ billingApi, workspaceApi }: BillingCente
         </div>
       )}
 
-      {organizations.length === 0 ? (
+      {!isBillingAdmin(selectedOrganization?.role) ? (
         <div className="rounded-2xl border p-5 text-sm text-muted-foreground">
           Billing ist nur für Owner/Admin eines Workspaces sichtbar.
         </div>
       ) : (
         <div className="space-y-5 rounded-2xl border bg-card p-5">
-          <label className="block max-w-xl space-y-1 text-sm">
-            <span>Workspace</span>
-            <select
-              className="w-full rounded-lg border bg-background px-3 py-2"
-              value={organizationId}
-              onChange={(event) => setOrganizationId(event.target.value)}
-              disabled={busy}
-            >
-              {organizations.map((organization) => (
-                <option key={organization.id} value={organization.id}>
-                  {organization.name} · {organization.role}
-                </option>
-              ))}
-            </select>
-          </label>
-
           {status && selectedOrganization && (
             <>
               <div className="grid gap-3 sm:grid-cols-4">
@@ -152,7 +115,9 @@ export default function BillingCenter({ billingApi, workspaceApi }: BillingCente
                 </div>
                 <div className="rounded-xl border p-3">
                   <div className="text-xs text-muted-foreground">Periode</div>
-                  <div className="font-semibold">{formatDate(status.periodEnd)}</div>
+                  <div className="font-semibold text-xs mt-1">
+                    {formatDate(status.periodEnd)}
+                  </div>
                 </div>
                 <div className="rounded-xl border p-3">
                   <div className="text-xs text-muted-foreground">Provider</div>
@@ -181,7 +146,7 @@ export default function BillingCenter({ billingApi, workspaceApi }: BillingCente
                     <select
                       className="w-full rounded-lg border bg-background px-3 py-2"
                       value={selectedPlan}
-                      onChange={(event) => setSelectedPlan(event.target.value)}
+                      onChange={(e) => setSelectedPlan(e.target.value)}
                       disabled={busy}
                     >
                       <option value="">Plan auswählen…</option>

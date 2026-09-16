@@ -1,15 +1,10 @@
+import { useWorkspace } from '../providers/WorkspaceProvider';
 import { useEffect, useMemo, useState } from 'react';
 import { GuardApiError } from '../api/apiClient';
 import type { GitHubIntegrationApi } from '../api/githubIntegrationApi';
 import type { WorkspaceApi } from '../api/workspaceApi';
-import type {
-  GitHubInstallation,
-  GitHubRepositorySummary,
-} from '../types/githubIntegration';
-import type {
-  WorkspaceOrganization,
-  WorkspaceTarget,
-} from '../types/workspace';
+import type { GitHubInstallation, GitHubRepositorySummary } from '../types/githubIntegration';
+import type { WorkspaceOrganization, WorkspaceTarget } from '../types/workspace';
 
 interface GitHubIntegrationManagerProps {
   githubApi: GitHubIntegrationApi;
@@ -33,38 +28,18 @@ function repositoryIdFromTarget(target: WorkspaceTarget): number | null {
 }
 
 export default function GitHubIntegrationManager({ githubApi, workspaceApi }: GitHubIntegrationManagerProps) {
-  const [organizations, setOrganizations] = useState<WorkspaceOrganization[]>([]);
-  const [organizationId, setOrganizationId] = useState('');
+  const { currentOrg: selectedOrganization } = useWorkspace();
+  const organizationId = selectedOrganization?.id || '';
   const [installation, setInstallation] = useState<GitHubInstallation | null>(null);
   const [repositories, setRepositories] = useState<GitHubRepositorySummary[]>([]);
   const [targets, setTargets] = useState<WorkspaceTarget[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const selectedOrganization = useMemo(
-    () => organizations.find((organization) => organization.id === organizationId),
-    [organizations, organizationId],
-  );
   const targetRepositoryIds = useMemo(
     () => new Set(targets.map(repositoryIdFromTarget).filter((value): value is number => value !== null)),
     [targets],
   );
-
-  useEffect(() => {
-    let cancelled = false;
-    workspaceApi.listOrganizations()
-      .then((next) => {
-        if (cancelled) return;
-        setOrganizations(next);
-        setOrganizationId(next[0]?.id ?? '');
-      })
-      .catch((loadError) => {
-        if (!cancelled) setError(readableError(loadError));
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [workspaceApi]);
 
   useEffect(() => {
     let cancelled = false;
@@ -74,6 +49,7 @@ export default function GitHubIntegrationManager({ githubApi, workspaceApi }: Gi
       setTargets([]);
       return undefined;
     }
+
     Promise.all([
       githubApi.getStatus(organizationId),
       workspaceApi.listTargets(organizationId),
@@ -86,6 +62,7 @@ export default function GitHubIntegrationManager({ githubApi, workspaceApi }: Gi
       .catch((loadError) => {
         if (!cancelled) setError(readableError(loadError));
       });
+
     return () => {
       cancelled = true;
     };
@@ -146,24 +123,6 @@ export default function GitHubIntegrationManager({ githubApi, workspaceApi }: Gi
         </div>
       )}
 
-      {organizations.length > 0 && (
-        <label className="block max-w-xl space-y-1 text-sm">
-          <span>Workspace</span>
-          <select
-            className="w-full rounded-lg border bg-background px-3 py-2"
-            value={organizationId}
-            onChange={(event) => setOrganizationId(event.target.value)}
-            disabled={busy}
-          >
-            {organizations.map((organization) => (
-              <option key={organization.id} value={organization.id}>
-                {organization.name} · {organization.role}
-              </option>
-            ))}
-          </select>
-        </label>
-      )}
-
       <div className="space-y-4 rounded-2xl border bg-card p-5">
         {installation ? (
           <>
@@ -181,7 +140,6 @@ export default function GitHubIntegrationManager({ githubApi, workspaceApi }: Gi
                 <div className="font-semibold">{installation.repositorySelection ?? 'unbekannt'}</div>
               </div>
             </div>
-
             {installation.status === 'active' ? (
               <button
                 className="rounded-lg border px-4 py-2 text-sm font-medium disabled:opacity-50"

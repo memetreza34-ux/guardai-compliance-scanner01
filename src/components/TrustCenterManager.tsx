@@ -1,16 +1,16 @@
-import { useEffect, useMemo, useState } from 'react';
-import { API_BASE_URL, API_VERSION_PREFIX, GuardApiError } from '../api/apiClient';
+import { useWorkspace } from '../providers/WorkspaceProvider';
+import { useEffect, useState } from 'react';
+import { GuardApiError } from '../api/apiClient';
 import type { ReportApi } from '../api/reportApi';
 import type { TrustApi } from '../api/trustApi';
-import type { WorkspaceApi } from '../api/workspaceApi';
 import type { TechnicalReportRecord } from '../types/report';
 import type { TrustPublicationRecord } from '../types/trust';
 import type { WorkspaceOrganization } from '../types/workspace';
+import { API_BASE_URL, API_VERSION_PREFIX } from '../api/apiClient';
 
 interface TrustCenterManagerProps {
   reportApi: ReportApi;
   trustApi: TrustApi;
-  workspaceApi: WorkspaceApi;
 }
 
 function readableError(error: unknown): string {
@@ -31,36 +31,14 @@ function canPublish(role: WorkspaceOrganization['role'] | undefined): boolean {
 export default function TrustCenterManager({
   reportApi,
   trustApi,
-  workspaceApi,
 }: TrustCenterManagerProps) {
-  const [organizations, setOrganizations] = useState<WorkspaceOrganization[]>([]);
-  const [organizationId, setOrganizationId] = useState('');
+  const { currentOrg: selectedOrganization } = useWorkspace();
+  const organizationId = selectedOrganization?.id || '';
   const [reports, setReports] = useState<TechnicalReportRecord[]>([]);
   const [reportId, setReportId] = useState('');
   const [publications, setPublications] = useState<TrustPublicationRecord[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const selectedOrganization = useMemo(
-    () => organizations.find((organization) => organization.id === organizationId),
-    [organizations, organizationId],
-  );
-
-  useEffect(() => {
-    let cancelled = false;
-    workspaceApi.listOrganizations()
-      .then((next) => {
-        if (cancelled) return;
-        setOrganizations(next);
-        setOrganizationId(next[0]?.id ?? '');
-      })
-      .catch((loadError) => {
-        if (!cancelled) setError(readableError(loadError));
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [workspaceApi]);
 
   useEffect(() => {
     let cancelled = false;
@@ -145,35 +123,19 @@ export default function TrustCenterManager({
       )}
 
       <div className="grid gap-4 rounded-2xl border bg-card p-5 md:grid-cols-2">
-        <label className="space-y-1 text-sm">
-          <span>Workspace</span>
-          <select
-            className="w-full rounded-lg border bg-background px-3 py-2"
-            value={organizationId}
-            onChange={(event) => setOrganizationId(event.target.value)}
-            disabled={busy || organizations.length === 0}
-          >
-            {organizations.map((organization) => (
-              <option key={organization.id} value={organization.id}>
-                {organization.name} · {organization.role}
-              </option>
-            ))}
-          </select>
-        </label>
-
         <div className="space-y-2">
           <label className="block space-y-1 text-sm">
             <span>Immutable Report-Snapshot</span>
             <select
               className="w-full rounded-lg border bg-background px-3 py-2"
               value={reportId}
-              onChange={(event) => setReportId(event.target.value)}
-              disabled={busy || !canPublish(selectedOrganization?.role)}
+              onChange={(e) => setReportId(e.target.value)}
+              disabled={busy}
             >
               <option value="">Report auswählen…</option>
               {reports.map((report) => (
                 <option key={report.id} value={report.id}>
-                  {formatDate(report.createdAt)} · {report.snapshot.target.displayName}
+                  {report.snapshotHash}
                 </option>
               ))}
             </select>
@@ -181,7 +143,7 @@ export default function TrustCenterManager({
           <button
             className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
             type="button"
-            disabled={busy || !reportId || !canPublish(selectedOrganization?.role)}
+            disabled={busy || !reportId}
             onClick={publish}
           >
             Öffentlich veröffentlichen
@@ -227,7 +189,7 @@ export default function TrustCenterManager({
                     <div>
                       <div className="font-medium">{report?.snapshot.target.displayName ?? publication.targetId}</div>
                       <div className="text-xs text-muted-foreground">
-                        {publication.status} · veröffentlicht {formatDate(publication.publishedAt)}
+                        {formatDate(publication.createdAt)}
                       </div>
                     </div>
                     {publication.status === 'published' && canPublish(selectedOrganization?.role) && (
@@ -241,7 +203,6 @@ export default function TrustCenterManager({
                       </button>
                     )}
                   </div>
-
                   <div className="grid gap-3 text-xs md:grid-cols-2">
                     <label className="space-y-1">
                       <span className="text-muted-foreground">Public Trust URL</span>
@@ -252,7 +213,6 @@ export default function TrustCenterManager({
                       <input className="w-full rounded-lg border bg-muted px-3 py-2" readOnly value={badgeUrl} />
                     </label>
                   </div>
-
                   {publication.status === 'published' && (
                     <div className="space-y-2 rounded-xl bg-muted p-3">
                       <img src={badgeUrl} alt="GuardAI technical screening" width="360" height="48" />
