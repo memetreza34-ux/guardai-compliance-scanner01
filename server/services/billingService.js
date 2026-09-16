@@ -1,0 +1,283 @@
+const { config } = require('../config');
+const { resolveStripePriceId } = require('../domain/billingConfig');
+const {
+  normalizeCheckoutIdempotencyKey,
+  stripeIdempotencyKey,
+} = require('../domain/billingCheckout');
+const { normalizeStripeSubscription } = require('../domain/billingState');
+const { sha256Hex } = require('../lib/evidenceIntegrity');
+const { HttpError } = require('../lib/httpError');
+
+const ACTIVE_OR_RECOVERABLE_STATUSES = new Set([
+  'incomplete',
+  'trialing',
+  'active',
+  'past_due',
+  'unpaid',
+  'paused',
+]);
+
+const RECONCILABLE_EVENTS = new Set([
+  'checkout.session.completed',
+  'customer.subscription.created',
+  'customer.subscription.updated',
+  'customer.subscription.deleted',
+  'invoice.paid',
+  'invoice.payment_failed',
+]);
+
+function stripeObjectId(value) {
+  return typeof value === 'string' ? value : value?.id;
+}
+
+function subscriptionIdFromStripeEvent(event) {
+  const object = event?.data?.object;
+  if (!object || typeof object !== 'object') return null;
+
+  if (event.type === 'checkout.session.completed') {
+    return stripeObjectId(object.subscription) || null;
+  }
+  if (event.type.startsWith('customer.subscription.')) {
+    return stripeObjectId(object.id) || null;
+  }
+  if (event.type.startsWith('invoice.')) {
+    return (
+      stripeObjectId(object.subscription) ||
+      stripeObjectId(object.parent?.subscription_details?.subscription) ||
+      null
+    );
+  }
+  return null;
+}
+
+function checkoutSessionIdFromEvent(event) {
+  if (event?.type !== 'checkout.session.completed') return null;
+  const id = stripeObjectId(event?.data?.object?.id);
+  return typeof id === 'string' && id.startsWith('cs_') ? id : null;
+}
+
+function providerCreatedAt(event) {
+  if (!Number.isInteger(event?.created) || event.created <= 0) return null;
+  return new Date(event.created * 1000).toISOString();
+}
+
+function assertStripeEventMode(event, expectedLivemode) {
+  if (typeof event?.livemode !== 'boolean') {
+    throw new HttpError(400, 'Stripe webhook event mode is missing.', 'BILLING_WEBHOOK_MODE_INVALID');
+  }
+  if (event.livemode !== expectedLivemode) {
+    throw new HttpError(
+      409,
+      'Stripe webhook event mode does not match this GuardAI billing environment.',
+      'BILLING_WEBHOOK_MODE_MISMATCH',
+    );
+  }
+}
+
+function createBillingService({
+  billingRepository,
+  organizationAuthorization,
+  stripeProvider,
+  runtimeConfig = config,
+}) {
+  if (!billingRepository) throw new TypeError('Billing service requires Billing repository.');
+  if (!organizationAuthorization || typeof organizationAuthorization.requireRole !== 'function') {
+    throw new TypeError('Billing service requires Organization authorization.');
+  }
+  if (!stripeProvider) throw new TypeError('Billing service requires Stripe provider.');
+
+  async function getStatus({ organizationId, userId }) {
+    await organizationAuthorization.requireRole(organizationId, userId, 'admin');
+    const subscription = await billingRepository.getSubscriptionForOrganization(organizationId);
+    if (!subscription) {
+      throw new HttpError(404, 'Organization subscription state was not found.', 'SUBSCRIPTION_NOT_FOUND');
+    }
+    return {
+      provider: subscription.provider,
+      plan: subscription.plan,
+      status: subscription.status,
+      cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
+      periodEnd: subscription.periodEnd,
+      billingEnabled: runtimeConfig.billingProvider === 'stripe',
+      availablePlans: Object.keys(runtimeConfig.stripePlanPriceMap || {}).sort(),
+    };
+  }
+
+  async function createCheckout({
+    organizationId,
+    userId,
+    email,
+    plan,
+    idempotencyKey,
+  }) {
+    await organizationAuthorization.requireRole(organizationId, userId, 'admin');
+    stripeProvider.assertStripeConfigured();
+    const requestKey = normalizeCheckoutIdempotencyKey(idempotencyKey);
+    const priceId = resolveStripePriceId(runtimeConfig.stripePlanPriceMap, plan);
+
+    let subscription = await billingRepository.getSubscriptionForOrganization(organizationId);
+    if (!subscription) {
+      throw new HttpError(404, 'Organization subscription state was not found.', 'SUBSCRIPTION_NOT_FOUND');
+    }
+    if (
+      subscription.providerSubscriptionId &&
+      ACTIVE_OR_RECOVERABLE_STATUSES.has(subscription.status)
+    ) {
+      throw new HttpError(
+        409,
+        'Organization already has a Stripe subscription that must be managed before starting another checkout.',
+        'SUBSCRIPTION_ALREADY_EXISTS',
+      );
+    }
+
+    const claim = await billingRepository.claimCheckoutRequest({
+      organizationId,
+      userId,
+      idempotencyKey: requestKey,
+      plan,
+    });
+
+    if (claim.replay) {
+      const session = await stripeProvider.retrieveCheckoutSession(claim.request.providerSessionId);
+      return { ...session, idempotentReplay: true };
+    }
+
+    let customerId = subscription.providerCustomerId;
+    if (!customerId) {
+      customerId = await stripeProvider.createCustomer({
+        organizationId,
+        email,
+        idempotencyKey: stripeIdempotencyKey({
+          organizationId,
+          plan,
+          requestKey,
+          operation: 'customer',
+        }),
+      });
+      subscription = await billingRepository.attachStripeCustomer({ organizationId, customerId });
+      customerId = subscription.providerCustomerId;
+    }
+
+    const checkout = await stripeProvider.createSubscriptionCheckout({
+      organizationId,
+      plan,
+      priceId,
+      customerId,
+      idempotencyKey: stripeIdempotencyKey({
+        organizationId,
+        plan,
+        requestKey,
+        operation: 'checkout',
+      }),
+    });
+
+    await billingRepository.completeCheckoutRequest({
+      organizationId,
+      idempotencyKey: requestKey,
+      sessionId: checkout.sessionId,
+      expiresAt: checkout.expiresAt,
+    });
+
+    return { ...checkout, idempotentReplay: claim.resume === true };
+  }
+
+  async function processStripeWebhook({ rawBody, signatureHeader }) {
+    stripeProvider.assertStripeConfigured();
+    const event = stripeProvider.constructWebhookEvent(rawBody, signatureHeader);
+    if (typeof event?.id !== 'string' || typeof event?.type !== 'string') {
+      throw new HttpError(400, 'Stripe webhook event is invalid.', 'BILLING_WEBHOOK_EVENT_INVALID');
+    }
+    assertStripeEventMode(event, runtimeConfig.stripeLivemode === true);
+
+    const claim = await billingRepository.claimWebhookEvent({
+      eventId: event.id,
+      eventType: event.type,
+      providerCreatedAt: providerCreatedAt(event),
+      livemode: event.livemode,
+      payloadHash: sha256Hex(rawBody),
+    });
+
+    if (!claim.claimed) {
+      return {
+        duplicate: true,
+        final: claim.final,
+        status: claim.status,
+      };
+    }
+
+    try {
+      if (!RECONCILABLE_EVENTS.has(event.type)) {
+        await billingRepository.finalizeWebhookEvent({ eventId: event.id, status: 'ignored' });
+        return { duplicate: false, ignored: true, status: 'ignored' };
+      }
+
+      const subscriptionId = subscriptionIdFromStripeEvent(event);
+      if (!subscriptionId) {
+        await billingRepository.finalizeWebhookEvent({ eventId: event.id, status: 'ignored' });
+        return { duplicate: false, ignored: true, status: 'ignored' };
+      }
+
+      const stripeSubscription = await stripeProvider.retrieveSubscription(subscriptionId);
+      const normalized = normalizeStripeSubscription(
+        stripeSubscription,
+        runtimeConfig.stripePlanPriceMap,
+      );
+      const organizationId = await billingRepository.findOrganizationByStripeCustomer(
+        normalized.providerCustomerId,
+      );
+      if (!organizationId) {
+        throw new HttpError(
+          409,
+          'Stripe Customer is not linked to a GuardAI Organization.',
+          'BILLING_CUSTOMER_NOT_LINKED',
+        );
+      }
+
+      const subscription = await billingRepository.reconcileStripeSubscription({
+        organizationId,
+        normalizedSubscription: normalized,
+      });
+      const checkoutSessionId = checkoutSessionIdFromEvent(event);
+      if (checkoutSessionId) {
+        await billingRepository.markCheckoutCompleted(checkoutSessionId);
+      }
+      await billingRepository.finalizeWebhookEvent({
+        eventId: event.id,
+        status: 'processed',
+        organizationId,
+      });
+
+      return {
+        duplicate: false,
+        ignored: false,
+        status: 'processed',
+        organizationId,
+        plan: subscription.plan,
+        subscriptionStatus: subscription.status,
+      };
+    } catch (error) {
+      await billingRepository.finalizeWebhookEvent({
+        eventId: event.id,
+        status: 'failed',
+        error,
+      });
+      throw error;
+    }
+  }
+
+  return {
+    createCheckout,
+    getStatus,
+    processStripeWebhook,
+  };
+}
+
+module.exports = {
+  ACTIVE_OR_RECOVERABLE_STATUSES,
+  assertStripeEventMode,
+  checkoutSessionIdFromEvent,
+  createBillingService,
+  providerCreatedAt,
+  RECONCILABLE_EVENTS,
+  subscriptionIdFromStripeEvent,
+};
