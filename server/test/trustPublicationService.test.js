@@ -15,6 +15,7 @@ function reportRecord() {
       requestedModules: ['security'],
       scoringProfileId: 'security-mvp',
       scoringProfileVersion: 1,
+      scoringProfileDefinitionHash: 'a'.repeat(64),
       targetSnapshot: {
         id: '22222222-2222-4222-8222-222222222222',
         type: 'website',

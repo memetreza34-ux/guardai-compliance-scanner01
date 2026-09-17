@@ -8,7 +8,8 @@ const SHUTDOWN_TIMEOUT_MS = 10000;
 function startServer() {
   assertSafeRuntimeConfiguration();
   const app = createApp();
-  const server = app.listen(config.port, () => {
+  const http = require('http');
+  const server = http.createServer(app).listen(config.port, () => {
     console.log(`GuardAI API listening on port ${config.port}`);
   });
 

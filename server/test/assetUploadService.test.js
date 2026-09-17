@@ -104,7 +104,7 @@ function createHarness(options = {}) {
     storageProvider,
     malwareScanner,
     parserProvider,
-    limits: {
+    enabled: true, limits: {
       maxUploadBytes: 10 * 1024 * 1024,
       uploadSessionTtlSeconds: 900,
       maxExtractedTextChars: 30000,

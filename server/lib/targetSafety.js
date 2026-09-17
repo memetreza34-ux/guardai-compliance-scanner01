@@ -3,6 +3,7 @@ const net = require('node:net');
 const { HttpError } = require('./httpError');
 
 function normalizeHttpUrl(rawUrl) {
+  if (rawUrl.includes('://') && !/^https?:\/\//i.test(rawUrl)) { throw new HttpError(400, 'Target must be a valid HTTP or HTTPS URL.'); }
   const value = /^https?:\/\//i.test(rawUrl) ? rawUrl : `https://${rawUrl}`;
   let parsed;
 

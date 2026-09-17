@@ -16,7 +16,7 @@ function normalizeProviders(nextProviders) {
 
 function configureAssetRuntimeProviders(nextProviders) {
   if (locked || configured) {
-    throw new Error('Asset runtime providers can only be configured once during process boot.');
+    throw new Error('Asset runtime providers can only be configured once during process boot, or have already been locked by a reader.');
   }
   providers = normalizeProviders(nextProviders);
   configured = true;

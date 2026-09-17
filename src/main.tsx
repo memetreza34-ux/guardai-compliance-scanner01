@@ -1,7 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
-import { App } from './App.tsx';
+import { AppRoutes } from './AppRoutes.tsx';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
 import BillingReturnPage from './components/BillingReturnPage';
 import GitHubIntegrationCallbackPage from './components/GitHubIntegrationCallbackPage';
@@ -28,7 +28,7 @@ const rootView = publicTrustMatch
       ? <PublicContactPage />
       : githubCallback
         ? <GitHubIntegrationCallbackPage />
-        : <App />;
+        : <AppRoutes />;
 
 createRoot(rootElement).render(
   <StrictMode>

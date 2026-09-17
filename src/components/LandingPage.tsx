@@ -14,8 +14,8 @@ import { UrlInputHero } from './UrlInputHero';
 import type { ScanOptions } from '../types/scanOptions';
 
 interface LandingPageProps {
-  onStartScan: (target: string | File, options: ScanOptions) => void | Promise<void>;
-  isScanning: boolean;
+  onStartScan?: (target: string | File, options: ScanOptions) => void | Promise<void>;
+  isScanning?: boolean;
 }
 
 function FaqItem({ question, answer }: { question: string; answer: string }) {
@@ -43,7 +43,12 @@ function FaqItem({ question, answer }: { question: string; answer: string }) {
   );
 }
 
-export function LandingPage({ onStartScan, isScanning }: LandingPageProps) {
+import { useNavigate } from "react-router-dom";
+
+export function LandingPage({ onStartScan, isScanning = false }: LandingPageProps = {}) {
+  const navigate = useNavigate();
+  const handleStartScan = onStartScan || (() => { navigate("/login"); });
+
   const featureCards = [
     {
       icon: Lock,
@@ -79,7 +84,7 @@ export function LandingPage({ onStartScan, isScanning }: LandingPageProps) {
 
   return (
     <div className="animate-in fade-in duration-500">
-      <UrlInputHero onStartScan={onStartScan} isScanning={isScanning} />
+      <UrlInputHero onStartScan={handleStartScan} isScanning={isScanning} />
 
       <section className="py-14 border-y border-border bg-muted/20">
         <div className="max-w-6xl mx-auto px-4">

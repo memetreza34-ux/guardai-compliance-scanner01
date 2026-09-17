@@ -7,9 +7,9 @@ import { Badge } from './ui/badge';
 import type { ScanOptions, SelectableWebScanOption } from '../types/scanOptions';
 import { DEFAULT_SCAN_OPTIONS, FILE_SCAN_OPTIONS } from '../types/scanOptions';
 
-interface UrlInputHeroProps {
-  onStartScan: (target: string | File, options: ScanOptions) => void | Promise<void>;
-  isScanning: boolean;
+export interface UrlInputHeroProps {
+  onStartScan?: (target: string | File, options: ScanOptions) => void | Promise<void>;
+  isScanning?: boolean;
 }
 
 const MAX_CLIENT_FILE_BYTES = 10 * 1024 * 1024;
@@ -20,7 +20,7 @@ function hasAllowedExtension(fileName: string): boolean {
   return ALLOWED_FILE_EXTENSIONS.some((extension) => lowerName.endsWith(extension));
 }
 
-export const UrlInputHero: React.FC<UrlInputHeroProps> = ({ onStartScan, isScanning }) => {
+export const UrlInputHero: React.FC<UrlInputHeroProps> = ({ onStartScan, isScanning = false }) => {
   const [inputUrl, setInputUrl] = useState('');
   const [mode, setMode] = useState<'web' | 'file'>('web');
   const [scanOptions, setScanOptions] = useState<ScanOptions>(DEFAULT_SCAN_OPTIONS);
@@ -48,7 +48,7 @@ export const UrlInputHero: React.FC<UrlInputHeroProps> = ({ onStartScan, isScann
     }
 
     setLocalError(null);
-    void onStartScan(value, { ...scanOptions, fileMode: false });
+    if (onStartScan) void onStartScan(value, { ...scanOptions, fileMode: false });
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -68,7 +68,7 @@ export const UrlInputHero: React.FC<UrlInputHeroProps> = ({ onStartScan, isScann
     }
 
     setLocalError(null);
-    void onStartScan(file, FILE_SCAN_OPTIONS);
+    if (onStartScan) void onStartScan(file, FILE_SCAN_OPTIONS);
     event.target.value = '';
   };
 

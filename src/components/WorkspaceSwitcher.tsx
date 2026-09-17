@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, Building2, Plus, Settings } from 'lucide-react';
+import { ChevronDown, Building2,} from 'lucide-react';
 import { Button } from './ui/button';
 import { useWorkspace } from '../providers/WorkspaceProvider';
 
@@ -51,21 +51,11 @@ export function WorkspaceSwitcher() {
                   }`}
                 >
                   <Building2 className="w-4 h-4" />
-                  <span className="truncate">{org.name}</span>
+                  <span className="truncate flex-1 text-left">{org.name}</span><span className="text-[10px] uppercase tracking-wider opacity-60">{org.role}</span>
                 </button>
               ))}
             </div>
 
-            <div className="border-t border-border p-1">
-              <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-muted transition-colors">
-                <Settings className="w-4 h-4" />
-                Workspace Settings
-              </button>
-              <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-muted transition-colors">
-                <Plus className="w-4 h-4" />
-                Create New Team
-              </button>
-            </div>
           </div>
         </>
       )}

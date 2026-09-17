@@ -6,10 +6,11 @@ import { createWorkspaceApi } from '../../api/workspaceApi';
 import { createFindingApi } from '../../api/findingApi';
 import type { WorkspaceTarget } from '../../types/workspace';
 import type { WorkspaceFindingSummary } from '../../types/findingLifecycle';
+import WorkspaceOnboarding from '../../components/WorkspaceOnboarding';
 
 export default function DashboardPage() {
   const { session } = useAuth();
-  const { currentOrg, isLoading: orgLoading, error: orgError } = useWorkspace();
+  const { organizations, currentOrg, isLoading: orgLoading, error: orgError } = useWorkspace();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -18,7 +19,12 @@ export default function DashboardPage() {
 
   useEffect(() => {
     async function loadData() {
-      if (!session?.access_token || !currentOrg) return;
+      if (!session?.access_token || !currentOrg) {
+        if (!orgLoading) {
+           setLoading(false);
+        }
+        return;
+      }
       
       try {
         setLoading(true);
@@ -43,7 +49,7 @@ export default function DashboardPage() {
     }
     
     loadData();
-  }, [session, currentOrg]);
+  }, [session, currentOrg, orgLoading]);
 
   if (orgLoading || loading) {
     return <div className="animate-pulse flex items-center justify-center p-12 text-slate-400">Loading dashboard data...</div>;
@@ -58,8 +64,19 @@ export default function DashboardPage() {
     );
   }
 
+  if (organizations.length === 0) {
+    return (
+      <div className="max-w-6xl mx-auto">
+        <div className="mb-6">
+          <h1 className="text-2xl font-semibold text-slate-100 tracking-tight">Welcome to GuardAI</h1>
+          <p className="text-sm text-slate-400 mt-1">Create an organization to get started.</p>
+        </div>
+        <WorkspaceOnboarding api={createWorkspaceApi(async () => session!.access_token)} />
+      </div>
+    );
+  }
+
   const openFindings = findings.filter(f => f.status === 'open');
-  const criticalFindings = openFindings.filter(() => false);
   const verifiedTargets = targets.filter(t => t.verificationState === 'verified');
 
   return (
@@ -93,7 +110,9 @@ export default function DashboardPage() {
             <AlertTriangle className="w-4 h-4 text-amber-500" />
             Critical Findings
           </div>
-          <div className="text-3xl font-semibold text-slate-100">{criticalFindings.length}</div>
+          <div className="text-3xl font-semibold text-slate-100 text-slate-500 text-sm font-normal">
+            Unavailable
+          </div>
         </div>
       </div>
       

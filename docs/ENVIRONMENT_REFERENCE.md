@@ -9,7 +9,7 @@ These values are bundled into browser code and are therefore public:
 ```text
 VITE_API_BASE_URL
 VITE_SUPABASE_URL
-VITE_SUPABASE_PUBLISHABLE_KEY
+VITE_SUPABASE_ANON_KEY
 ```
 
 Never place database passwords, Supabase secret/service-role keys, Stripe secrets, GitHub App private keys, webhook secrets, storage credentials or Gemini API keys in `VITE_*`.
@@ -29,7 +29,7 @@ Production uses HTTPS origins only.
 
 ```text
 SUPABASE_URL=
-SUPABASE_PUBLISHABLE_KEY=
+SUPABASE_ANON_KEY=
 DATABASE_URL=
 DATABASE_POOL_MAX=10
 ```

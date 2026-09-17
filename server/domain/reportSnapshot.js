@@ -1,5 +1,5 @@
 const { HttpError } = require('../lib/httpError');
-const { canonicalize, sha256Hex } = require('../lib/evidenceIntegrity');
+const { stableSerialize, sha256Hex } = require('../lib/evidenceIntegrity');
 
 const REPORT_SCHEMA_VERSION = 3;
 const REPORT_TYPE = 'technical-screening';
@@ -10,7 +10,7 @@ function isPlainObject(value) {
 }
 
 function calculateReportSnapshotHash(snapshot) {
-  return sha256Hex(canonicalize(snapshot));
+  return sha256Hex(stableSerialize(snapshot));
 }
 
 function assertReportSnapshotIntegrity(report) {
