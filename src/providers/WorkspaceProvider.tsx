@@ -9,6 +9,7 @@ interface WorkspaceContextType {
   setCurrentOrg: (org: WorkspaceOrganization) => void;
   isLoading: boolean;
   error: string | null;
+  refreshOrganizations: (preferredOrganizationId?: string) => Promise<void>;
 }
 
 const WorkspaceContext = createContext<WorkspaceContextType>({
@@ -17,6 +18,7 @@ const WorkspaceContext = createContext<WorkspaceContextType>({
   setCurrentOrg: () => {},
   isLoading: true,
   error: null,
+  refreshOrganizations: async () => {},
 });
 
 export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
@@ -26,44 +28,44 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  async function refreshOrganizations(preferredOrganizationId?: string) {
+    if (!session?.access_token) return;
+    try {
+      setIsLoading(true);
+      setError(null);
+      const api = createWorkspaceApi(async () => session.access_token);
+      const orgs = await api.listOrganizations();
+      setOrganizations(orgs);
+      if (orgs.length > 0) {
+        if (preferredOrganizationId) {
+          const pref = orgs.find(o => o.id === preferredOrganizationId);
+          setCurrentOrg(pref || orgs[0]);
+        } else {
+          setCurrentOrg(orgs[0]);
+        }
+      } else {
+        setCurrentOrg(null);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load workspace.');
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   useEffect(() => {
-    let mounted = true;
 
     async function loadWorkspace() {
       if (!session?.access_token) return;
-      try {
-        setIsLoading(true);
-        setError(null);
-        
-        const api = createWorkspaceApi(async () => session.access_token);
-        const orgs = await api.listOrganizations();
-        
-        if (!mounted) return;
-        
-        setOrganizations(orgs);
-        if (orgs.length > 0) {
-          setCurrentOrg(orgs[0]);
-        }
-      } catch (err) {
-        if (mounted) {
-          setError(err instanceof Error ? err.message : 'Failed to load workspace.');
-        }
-      } finally {
-        if (mounted) {
-          setIsLoading(false);
-        }
-      }
+      await refreshOrganizations();
     }
 
     loadWorkspace();
 
-    return () => {
-      mounted = false;
-    };
   }, [session?.access_token]);
 
   return (
-    <WorkspaceContext.Provider value={{ organizations, currentOrg, setCurrentOrg, isLoading, error }}>
+    <WorkspaceContext.Provider value={{ organizations, currentOrg, setCurrentOrg, isLoading, error, refreshOrganizations }}>
       {children}
     </WorkspaceContext.Provider>
   );

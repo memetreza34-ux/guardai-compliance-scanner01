@@ -71,7 +71,10 @@ function createParserSandboxServer({
     throw new TypeError('Parser sandbox output limit is invalid.');
   }
 
+  const sockets = new Set();
   const server = net.createServer((socket) => {
+    sockets.add(socket);
+    socket.on('close', () => sockets.delete(socket));
     let buffer = Buffer.alloc(0);
     let header = null;
     let expectedTotal = null;
@@ -157,6 +160,7 @@ function createParserSandboxServer({
       try { fs.chmodSync(socketPath, 0o660); } catch {}
     },
     async stop() {
+      for (const socket of sockets) { socket.destroy(); }
       await new Promise((resolve) => server.close(resolve));
       try { fs.rmSync(socketPath, { force: true }); } catch {}
     },

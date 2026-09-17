@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useWorkspace } from '../providers/WorkspaceProvider';
 import { GuardApiError } from '../api/apiClient';
 import {
   createScanIdempotencyKey,
@@ -39,8 +40,9 @@ function canRunScan(role: WorkspaceOrganization['role'] | undefined): boolean {
 }
 
 export default function WorkspaceOnboarding({ api }: WorkspaceOnboardingProps) {
-  const [organizations, setOrganizations] = useState<WorkspaceOrganization[]>([]);
-  const [organizationId, setOrganizationId] = useState('');
+  const { currentOrg, refreshOrganizations, organizations } = useWorkspace();
+
+  const organizationId = currentOrg?.id || '';
   const [organizationName, setOrganizationName] = useState('');
   const [targets, setTargets] = useState<WorkspaceTarget[]>([]);
   const [targetUrl, setTargetUrl] = useState('');
@@ -54,19 +56,10 @@ export default function WorkspaceOnboarding({ api }: WorkspaceOnboardingProps) {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const selectedOrganization = useMemo(
-    () => organizations.find((organization) => organization.id === organizationId),
-    [organizations, organizationId],
-  );
+  const selectedOrganization = currentOrg;
 
   async function loadOrganizations(selectId?: string) {
-    const next = await api.listOrganizations();
-    setOrganizations(next);
-    setOrganizationId((current) => {
-      if (selectId && next.some((organization) => organization.id === selectId)) return selectId;
-      if (current && next.some((organization) => organization.id === current)) return current;
-      return next[0]?.id ?? '';
-    });
+    await refreshOrganizations(selectId);
   }
 
   async function loadTargets(nextOrganizationId: string) {
@@ -78,22 +71,6 @@ export default function WorkspaceOnboarding({ api }: WorkspaceOnboardingProps) {
     setTargets(next);
   }
 
-  useEffect(() => {
-    let cancelled = false;
-    api.listOrganizations()
-      .then((next) => {
-        if (cancelled) return;
-        setOrganizations(next);
-        setOrganizationId(next[0]?.id ?? '');
-      })
-      .catch((loadError) => {
-        if (!cancelled) setError(errorMessage(loadError));
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [api]);
 
   useEffect(() => {
     let cancelled = false;
@@ -236,8 +213,8 @@ export default function WorkspaceOnboarding({ api }: WorkspaceOnboardingProps) {
               <select
                 className="w-full rounded-lg border bg-background px-3 py-2"
                 value={organizationId}
-                onChange={(event) => {
-                  setOrganizationId(event.target.value);
+                onChange={() => {
+                  // setOrganizationId(event.target.value);
                   setChallenge(null);
                   setScanResult(null);
                   setAuditEvents([]);

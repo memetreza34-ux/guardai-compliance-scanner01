@@ -16,6 +16,7 @@ export default function DashboardPage() {
   
   const [targets, setTargets] = useState<WorkspaceTarget[]>([]);
   const [findings, setFindings] = useState<WorkspaceFindingSummary[]>([]);
+  const [hasNextFindings, setHasNextFindings] = useState(false);
 
   useEffect(() => {
     async function loadData() {
@@ -36,11 +37,12 @@ export default function DashboardPage() {
         
         const [targetsRes, findingsRes] = await Promise.all([
           workspaceApi.listTargets(currentOrg.id),
-          findingApi.listFindings(currentOrg.id, { limit: 50 }) // assuming a reasonable limit for dashboard
+          findingApi.listFindings(currentOrg.id, { limit: 50, status: 'open' })
         ]);
         
         setTargets(targetsRes);
         setFindings(findingsRes.findings);
+        setHasNextFindings(!!findingsRes.nextCursor);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred loading dashboard data.');
       } finally {
@@ -76,7 +78,7 @@ export default function DashboardPage() {
     );
   }
 
-  const openFindings = findings.filter(f => f.status === 'open');
+  const openFindings = findings;
   const verifiedTargets = targets.filter(t => t.verificationState === 'verified');
 
   return (
@@ -102,7 +104,7 @@ export default function DashboardPage() {
             <ShieldCheck className="w-4 h-4" />
             Open Findings
           </div>
-          <div className="text-3xl font-semibold text-slate-100">{openFindings.length}</div>
+          {hasNextFindings ? <div className="text-3xl font-semibold text-slate-100">{openFindings.length}+</div> : <div className="text-3xl font-semibold text-slate-100">{openFindings.length}</div>}
         </div>
         
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm">

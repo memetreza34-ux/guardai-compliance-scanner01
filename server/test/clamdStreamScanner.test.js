@@ -43,7 +43,10 @@ test('ClamAV provider streams exact verified bytes with INSTREAM framing over Un
   const expected = Buffer.from('GuardAI exact stream bytes', 'utf8');
   let scanned = null;
 
+  const sockets = new Set();
   const server = net.createServer((socket) => {
+    sockets.add(socket);
+    socket.on('close', () => sockets.delete(socket));
     let buffer = Buffer.alloc(0);
     socket.on('data', (chunk) => {
       buffer = Buffer.concat([buffer, chunk]);
@@ -93,6 +96,7 @@ test('ClamAV provider streams exact verified bytes with INSTREAM framing over Un
     assert.equal(result.signatureVersion, '27381');
     assert.deepEqual(scanned, expected);
   } finally {
+    for (const socket of sockets) { socket.destroy(); }
     await new Promise((resolve) => server.close(resolve));
     await fs.rm(socketPath, { force: true });
   }
@@ -101,7 +105,10 @@ test('ClamAV provider streams exact verified bytes with INSTREAM framing over Un
 test('ClamAV provider rejects a stream whose bytes change after GuardAI verification', { skip: process.platform === 'win32' }, async () => {
   const socketPath = path.join(os.tmpdir(), `guardai-clamd-size-${process.pid}-${Date.now()}.sock`);
   await fs.rm(socketPath, { force: true });
+  const sockets = new Set();
   const server = net.createServer((socket) => {
+    sockets.add(socket);
+    socket.on('close', () => sockets.delete(socket));
     let buffer = Buffer.alloc(0);
     socket.on('data', (chunk) => {
       buffer = Buffer.concat([buffer, chunk]);
@@ -132,6 +139,7 @@ test('ClamAV provider rejects a stream whose bytes change after GuardAI verifica
       (error) => error.code === 'ASSET_UPLOAD_SIZE_EXCEEDED',
     );
   } finally {
+    for (const socket of sockets) { socket.destroy(); }
     await new Promise((resolve) => server.close(resolve));
     await fs.rm(socketPath, { force: true });
   }

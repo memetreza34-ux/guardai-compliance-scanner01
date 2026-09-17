@@ -9,7 +9,6 @@
     "npm": ">=11.16.0 <12"
   },
   "scripts": {
-    "postinstall": "cd server && npm install",
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
     "dev:server": "cd server && PORT=3001 node index.js",
     "dev:client": "vite",
