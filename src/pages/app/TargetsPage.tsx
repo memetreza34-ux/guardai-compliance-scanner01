@@ -4,8 +4,9 @@ import { useAuth } from '../../auth/AuthProvider';
 import { useWorkspace } from '../../providers/WorkspaceProvider';
 import { createWorkspaceApi } from '../../api/workspaceApi';
 import type { WorkspaceTarget } from '../../types/workspace';
-import { Target, CheckCircle2, Clock, XCircle, HelpCircle } from 'lucide-react';
+import { Target, CheckCircle2, Clock, XCircle, HelpCircle, RefreshCw } from 'lucide-react';
 import { GuardApiError } from '../../api/apiClient';
+import WorkspaceOnboarding from '../../components/WorkspaceOnboarding';
 
 function TargetStatusBadge({ state }: { state: WorkspaceTarget['verificationState'] }) {
   switch (state) {
@@ -22,7 +23,7 @@ function TargetStatusBadge({ state }: { state: WorkspaceTarget['verificationStat
 
 export default function TargetsPage() {
   const { session } = useAuth();
-  const { currentOrg } = useWorkspace();
+  const { currentOrg, isLoading: orgLoading } = useWorkspace();
   const navigate = useNavigate();
 
   const [targets, setTargets] = useState<WorkspaceTarget[]>([]);
@@ -34,9 +35,24 @@ export default function TargetsPage() {
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
+  // Expose a retry trigger for deliberate user actions
+  const [retryCount, setRetryCount] = useState(0);
+
   useEffect(() => {
     let cancelled = false;
-    
+
+    // Reset state immediately on context change to prevent stale leaks
+    setTargets([]);
+    setError(null);
+    setCreateError(null);
+    setTargetUrl('');
+    setTargetName('');
+
+    if (orgLoading) {
+      setLoading(true);
+      return;
+    }
+
     if (!session?.access_token || !currentOrg) {
       setLoading(false);
       return;
@@ -48,9 +64,14 @@ export default function TargetsPage() {
       try {
         const api = createWorkspaceApi(async () => session!.access_token);
         const list = await api.listTargets(currentOrg!.id);
-        if (!cancelled) setTargets(list);
+        if (!cancelled) {
+          setTargets(list);
+          setError(null);
+        }
       } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Fehler beim Laden der Targets.');
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'Fehler beim Laden der Targets.');
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -61,35 +82,60 @@ export default function TargetsPage() {
     return () => {
       cancelled = true;
     };
-  }, [session, currentOrg]);
+  }, [session, currentOrg, orgLoading, retryCount]);
 
-  const canCreate = currentOrg?.role === 'owner' || currentOrg?.role === 'admin';
+  if (orgLoading) {
+    return <div className="animate-pulse flex items-center justify-center p-12 text-slate-400">Loading workspace...</div>;
+  }
+
+  if (!currentOrg) {
+    return (
+      <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500">
+        <div>
+          <h1 className="text-2xl font-semibold text-slate-100 tracking-tight">Website Targets</h1>
+          <p className="text-sm text-slate-400 mt-1">Create a workspace to manage and verify your website targets.</p>
+        </div>
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-8 shadow-sm">
+          {session?.access_token ? <WorkspaceOnboarding api={createWorkspaceApi(async () => session.access_token)} /> : <p className="text-slate-400">Loading auth...</p>}
+        </div>
+      </div>
+    );
+  }
+
+  const canCreate = currentOrg.role === 'owner' || currentOrg.role === 'admin';
 
   async function handleCreateTarget(e: React.FormEvent) {
     e.preventDefault();
     if (!currentOrg || !session) return;
     
+    const activeOrgId = currentOrg.id;
+
     setCreating(true);
     setCreateError(null);
     try {
       const api = createWorkspaceApi(async () => session.access_token);
-      const newTarget = await api.createWebsiteTarget(currentOrg.id, {
+      const newTarget = await api.createWebsiteTarget(activeOrgId, {
         url: targetUrl,
         displayName: targetName || undefined
       });
-      navigate(`/app/targets/${newTarget.id}`);
-    } catch (err) {
-      if (err instanceof GuardApiError) {
-        setCreateError(`${err.message} (${err.code})`);
-      } else {
-        setCreateError(err instanceof Error ? err.message : 'Fehler beim Anlegen des Targets.');
+      
+      // Guard against race condition: only navigate if we are still in the same organization context
+      if (currentOrg.id === activeOrgId) {
+        navigate(`/app/targets/${newTarget.id}`);
       }
-      setCreating(false);
+    } catch (err) {
+      if (currentOrg.id === activeOrgId) {
+        if (err instanceof GuardApiError) {
+          setCreateError(`${err.message} (${err.code})`);
+        } else {
+          setCreateError(err instanceof Error ? err.message : 'Fehler beim Anlegen des Targets.');
+        }
+      }
+    } finally {
+      if (currentOrg.id === activeOrgId) {
+        setCreating(false);
+      }
     }
-  }
-
-  if (loading) {
-    return <div className="animate-pulse flex items-center justify-center p-12 text-slate-400">Loading targets...</div>;
   }
 
   return (
@@ -98,12 +144,6 @@ export default function TargetsPage() {
         <h1 className="text-2xl font-semibold text-slate-100 tracking-tight">Website Targets</h1>
         <p className="text-sm text-slate-400 mt-1">Manage domain ownership verification for your organization.</p>
       </div>
-
-      {error && (
-        <div role="alert" className="rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive-foreground">
-          {error}
-        </div>
-      )}
 
       {canCreate && (
         <section className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm">
@@ -148,35 +188,49 @@ export default function TargetsPage() {
         </section>
       )}
 
-      <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-sm">
-        {targets.length === 0 ? (
-          <div className="p-12 text-center">
-            <Target className="w-8 h-8 text-slate-600 mx-auto mb-3" />
-            <p className="text-slate-400 text-sm">No website targets found in this organization.</p>
-          </div>
-        ) : (
-          <div className="divide-y divide-slate-800/60">
-            {targets.map(target => (
-              <button
-                key={target.id}
-                onClick={() => navigate(`/app/targets/${target.id}`)}
-                className="w-full text-left p-4 hover:bg-slate-800/30 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-              >
-                <div>
-                  <h3 className="font-medium text-slate-200">{target.displayName}</h3>
-                  <p className="text-sm text-slate-500 mt-0.5 font-mono">{target.canonicalUrl}</p>
-                </div>
-                <div className="flex items-center gap-4">
-                  <TargetStatusBadge state={target.verificationState} />
-                  <div className="text-xs text-slate-500 whitespace-nowrap">
-                    Created {new Date(target.createdAt).toLocaleDateString()}
+      {loading ? (
+        <div className="animate-pulse flex items-center justify-center p-12 text-slate-400">Loading targets...</div>
+      ) : error ? (
+        <div role="alert" className="rounded-xl border border-destructive/40 bg-destructive/10 p-5 flex items-center justify-between">
+          <p className="text-sm text-destructive-foreground">{error}</p>
+          <button 
+            onClick={() => setRetryCount(c => c + 1)}
+            className="flex items-center gap-2 text-xs font-medium text-destructive-foreground hover:bg-destructive/20 px-3 py-1.5 rounded-md transition-colors"
+          >
+            <RefreshCw className="w-3.5 h-3.5" /> Retry
+          </button>
+        </div>
+      ) : (
+        <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-sm">
+          {targets.length === 0 ? (
+            <div className="p-12 text-center">
+              <Target className="w-8 h-8 text-slate-600 mx-auto mb-3" />
+              <p className="text-slate-400 text-sm">No website targets found in this organization.</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-800/60">
+              {targets.map(target => (
+                <button
+                  key={target.id}
+                  onClick={() => navigate(`/app/targets/${target.id}`)}
+                  className="w-full text-left p-4 hover:bg-slate-800/30 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                >
+                  <div>
+                    <h3 className="font-medium text-slate-200">{target.displayName}</h3>
+                    <p className="text-sm text-slate-500 mt-0.5 font-mono">{target.canonicalUrl}</p>
                   </div>
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+                  <div className="flex items-center gap-4">
+                    <TargetStatusBadge state={target.verificationState} />
+                    <div className="text-xs text-slate-500 whitespace-nowrap">
+                      Created {new Date(target.createdAt).toLocaleDateString()}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

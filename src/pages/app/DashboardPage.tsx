@@ -148,7 +148,7 @@ export default function DashboardPage() {
             <Target className="w-6 h-6 text-slate-400" />
           </div>
           <h2 className="text-lg font-semibold text-slate-200 mb-2">No Website Targets Yet</h2>
-          <p className="text-slate-400 mb-6 max-w-md mx-auto">Add your first website target to begin technical scanning and compliance monitoring.</p>
+          <p className="text-slate-400 mb-6 max-w-md mx-auto">Add your first website target to begin technical scanning and posture monitoring.</p>
           <button
             onClick={() => navigate('/app/targets')}
             className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-lg font-medium transition-colors"

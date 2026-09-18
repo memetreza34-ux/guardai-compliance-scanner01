@@ -6,3 +6,5 @@ coverage/
 *.log
 .env*
 !.env.example
+audit_*.json
+server/audit_*.json

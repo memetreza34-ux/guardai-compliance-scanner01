@@ -11,7 +11,7 @@ function normalizeAssetFileName(value) {
   if (typeof value !== 'string') {
     throw new HttpError(400, 'Asset file name is required.', 'ASSET_FILE_NAME_REQUIRED');
   }
-  // eslint-disable-next-line no-control-regex
+  // eslint-disable-next-line no-control-regex -- Stripping control characters from filename for safety
   const base = path.basename(value.trim()).replace(/[\u0000-\u001f\u007f]/g, '').replace(/\s+/g, ' ');
   if (base.length < 1 || base.length > 180) {
     throw new HttpError(400, 'Asset file name must contain 1 to 180 characters.', 'ASSET_FILE_NAME_INVALID');

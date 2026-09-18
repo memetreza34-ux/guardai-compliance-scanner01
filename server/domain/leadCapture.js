@@ -9,7 +9,7 @@ function normalizeLeadIdempotencyKey(value) {
     throw new HttpError(400, 'Lead Idempotency-Key is required.', 'LEAD_IDEMPOTENCY_KEY_REQUIRED');
   }
   const key = value.trim();
-  // eslint-disable-next-line no-control-regex
+  // eslint-disable-next-line no-control-regex -- Explicitly matching control characters to reject invalid idempotency keys
   if (key.length < 8 || key.length > 200 || /[\u0000-\u001f\u007f\s]/.test(key)) {
     throw new HttpError(400, 'Lead Idempotency-Key is invalid.', 'INVALID_LEAD_IDEMPOTENCY_KEY');
   }
@@ -36,7 +36,7 @@ function optionalText(value, maxLength, field) {
   if (typeof value !== 'string') {
     throw new HttpError(400, `${field} is invalid.`, 'INVALID_LEAD_INPUT');
   }
-  // eslint-disable-next-line no-control-regex
+  // eslint-disable-next-line no-control-regex -- Stripping null bytes and carriage returns for safety
   const normalized = value.replace(/[\u0000\r]/g, '').trim();
   if (normalized.length < 1 || normalized.length > maxLength) {
     throw new HttpError(400, `${field} is invalid.`, 'INVALID_LEAD_INPUT');

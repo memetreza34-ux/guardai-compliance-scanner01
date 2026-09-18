@@ -3,34 +3,59 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthProvider';
 import { useWorkspace } from '../../providers/WorkspaceProvider';
 import { createWorkspaceApi } from '../../api/workspaceApi';
-import type { WorkspaceTarget, TargetVerificationChallenge } from '../../types/workspace';
+import type { WorkspaceTarget } from '../../types/workspace';
+import { CheckCircle2, Clock, XCircle, ArrowLeft, Copy, Check, ShieldAlert } from 'lucide-react';
 import { GuardApiError } from '../../api/apiClient';
-import { ShieldAlert, CheckCircle2, Clock, XCircle, ArrowLeft, Copy, Check } from 'lucide-react';
 
-function formatDate(dateString: string) {
-  const d = new Date(dateString);
-  return Number.isNaN(d.getTime()) ? dateString : d.toLocaleString();
+interface ChallengeDetails {
+  dnsRecordName: string;
+  dnsRecordValue: string;
+  expiresAt: string;
+}
+
+interface VerificationCheckResult {
+  status: 'verified' | 'pending' | 'expired' | 'failed';
+  verified: boolean;
+  attemptCount?: number;
+  expiresAt?: string;
+  lastCheckedAt?: string;
 }
 
 export default function TargetDetailPage() {
-  const { targetId } = useParams<{ targetId: string }>();
+  const { targetId } = useParams();
   const { session } = useAuth();
-  const { currentOrg } = useWorkspace();
+  const { currentOrg, isLoading: orgLoading } = useWorkspace();
   const navigate = useNavigate();
 
   const [target, setTarget] = useState<WorkspaceTarget | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [challenge, setChallenge] = useState<TargetVerificationChallenge | null>(null);
-  const [actionBusy, setActionBusy] = useState<string | null>(null);
+  const [challenge, setChallenge] = useState<ChallengeDetails | null>(null);
+  const [checkResult, setCheckResult] = useState<VerificationCheckResult | null>(null);
+  const [actionBusy, setActionBusy] = useState<'start' | 'check' | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+
   const [copiedName, setCopiedName] = useState(false);
   const [copiedValue, setCopiedValue] = useState(false);
+  const [copyError, setCopyError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    
+
+    // Clear stale state on workspace/target change
+    setTarget(null);
+    setChallenge(null);
+    setCheckResult(null);
+    setError(null);
+    setActionError(null);
+    setCopyError(null);
+
+    if (orgLoading) {
+      setLoading(true);
+      return;
+    }
+
     if (!session?.access_token || !currentOrg || !targetId) {
       setLoading(false);
       return;
@@ -39,18 +64,13 @@ export default function TargetDetailPage() {
     async function loadTarget() {
       setLoading(true);
       setError(null);
-      setChallenge(null);
       try {
         const api = createWorkspaceApi(async () => session!.access_token);
-        const data = await api.getTarget(currentOrg!.id, targetId!);
-        if (!cancelled) setTarget(data);
+        const fetched = await api.getTarget(currentOrg!.id, targetId!);
+        if (!cancelled) setTarget(fetched);
       } catch (err) {
         if (!cancelled) {
-          if (err instanceof GuardApiError && err.status === 404) {
-            setError('Target not found or access denied.');
-          } else {
-            setError(err instanceof Error ? err.message : 'Error loading target details.');
-          }
+          setError(err instanceof Error ? err.message : 'Fehler beim Laden des Targets.');
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -62,31 +82,33 @@ export default function TargetDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [session, currentOrg, targetId]);
+  }, [session, currentOrg, targetId, orgLoading]);
 
   const isAdmin = currentOrg?.role === 'owner' || currentOrg?.role === 'admin';
 
   async function handleStartVerification() {
-    if (!currentOrg || !targetId || !session) return;
+    if (!currentOrg || !session || !target) return;
     
     setActionBusy('start');
     setActionError(null);
+    setCopyError(null);
+    setCheckResult(null);
+
     try {
       const api = createWorkspaceApi(async () => session.access_token);
-      const newChallenge = await api.startTargetVerification(currentOrg.id, targetId);
-      setChallenge(newChallenge);
+      const res = await api.startTargetVerification(currentOrg.id, target.id);
       
-      const refreshedTarget = await api.getTarget(currentOrg.id, targetId);
-      setTarget(refreshedTarget);
+      setTarget(prev => prev ? { ...prev, verificationState: 'pending' } : null);
+      setChallenge({
+        dnsRecordName: res.dnsRecordName,
+        dnsRecordValue: res.dnsRecordValue,
+        expiresAt: res.expiresAt,
+      });
     } catch (err) {
       if (err instanceof GuardApiError) {
-        if (err.status === 429) {
-          setActionError('Verification checks are temporarily rate limited. Please wait.');
-        } else {
-          setActionError(`${err.message} (${err.code})`);
-        }
+        setActionError(`${err.message} (${err.code})`);
       } else {
-        setActionError(err instanceof Error ? err.message : 'Failed to start verification.');
+        setActionError(err instanceof Error ? err.message : 'Fehler beim Starten der Verifizierung.');
       }
     } finally {
       setActionBusy(null);
@@ -94,32 +116,46 @@ export default function TargetDetailPage() {
   }
 
   async function handleCheckVerification() {
-    if (!currentOrg || !targetId || !session) return;
+    if (!currentOrg || !session || !target) return;
     
     setActionBusy('check');
     setActionError(null);
+
     try {
       const api = createWorkspaceApi(async () => session.access_token);
-      await api.checkTargetVerification(currentOrg.id, targetId);
+      const res = await api.checkTargetVerification(currentOrg.id, target.id);
       
-      const refreshedTarget = await api.getTarget(currentOrg.id, targetId);
-      setTarget(refreshedTarget);
+      setCheckResult({
+        status: res.status,
+        verified: res.verified,
+        attemptCount: res.attemptCount,
+        expiresAt: res.expiresAt,
+        lastCheckedAt: res.lastCheckedAt
+      });
+
+      if (res.verified || res.status === 'failed') {
+        // Refresh the whole target object from backend
+        const refreshed = await api.getTarget(currentOrg.id, target.id);
+        setTarget(refreshed);
+        // Clear ephemeral challenge state once terminal state is reached
+        if (res.verified) {
+          setChallenge(null);
+          setCheckResult(null);
+        }
+      }
     } catch (err) {
       if (err instanceof GuardApiError) {
-        if (err.status === 429) {
-          setActionError('Verification checks are temporarily rate limited. Please wait.');
-        } else {
-          setActionError(`${err.message} (${err.code})`);
-        }
+        setActionError(`${err.message} (${err.code})`);
       } else {
-        setActionError(err instanceof Error ? err.message : 'Failed to check verification.');
+        setActionError(err instanceof Error ? err.message : 'Fehler bei der DNS Prüfung.');
       }
     } finally {
       setActionBusy(null);
     }
   }
 
-  const copyToClipboard = async (text: string, type: 'name' | 'value') => {
+  async function copyToClipboard(text: string, type: 'name' | 'value') {
+    setCopyError(null);
     try {
       await navigator.clipboard.writeText(text);
       if (type === 'name') {
@@ -130,21 +166,25 @@ export default function TargetDetailPage() {
         setTimeout(() => setCopiedValue(false), 2000);
       }
     } catch {
-      // Ignore
+      setCopyError('Failed to copy to clipboard. Please select and copy manually.');
     }
-  };
+  }
 
-  if (loading) {
+  function formatDate(isoStr: string) {
+    return new Date(isoStr).toLocaleString();
+  }
+
+  if (loading || orgLoading) {
     return <div className="animate-pulse flex items-center justify-center p-12 text-slate-400">Loading target details...</div>;
   }
 
-  if (error || !target) {
+  if (!target) {
     return (
-      <div className="max-w-4xl mx-auto animate-in fade-in duration-500">
-        <button onClick={() => navigate('/app/targets')} className="flex items-center gap-2 text-sm text-slate-400 hover:text-slate-300 mb-6 transition-colors">
+      <div className="max-w-4xl mx-auto space-y-6">
+        <button onClick={() => navigate('/app/targets')} className="flex items-center gap-2 text-sm text-slate-400 hover:text-slate-300 transition-colors">
           <ArrowLeft className="w-4 h-4" /> Back to Targets
         </button>
-        <div className="bg-rose-500/10 border border-rose-500/20 text-rose-400 p-6 rounded-xl flex items-center gap-4">
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-12 text-center flex flex-col items-center gap-4">
           <ShieldAlert className="w-8 h-8" />
           <div>
             <h2 className="text-lg font-semibold text-rose-500">Error</h2>
@@ -230,6 +270,12 @@ export default function TargetDetailPage() {
               <div className="bg-slate-950 border border-slate-800 rounded-xl p-5 space-y-4">
                 <div className="text-sm font-medium text-slate-200">Publish this TXT Record</div>
                 
+                {copyError && (
+                  <div className="text-sm text-rose-500 bg-rose-500/10 border border-rose-500/20 p-2 rounded-md">
+                    {copyError}
+                  </div>
+                )}
+
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-1.5">
                     <label className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Record Name</label>
@@ -264,6 +310,23 @@ export default function TargetDetailPage() {
                   Expires at: {formatDate(challenge.expiresAt)}.<br/>
                   <span className="text-amber-500/80">Keep this tab open. For security reasons, the record value cannot be retrieved again if you leave this page.</span>
                 </p>
+              </div>
+            )}
+
+            {checkResult && target.verificationState === 'pending' && (
+              <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 mt-4 text-sm text-slate-300">
+                <div className="font-medium mb-2 text-slate-200">Check Results</div>
+                <div className="space-y-1">
+                  {checkResult.attemptCount !== undefined && (
+                    <div><span className="text-slate-500">Attempts:</span> {checkResult.attemptCount}</div>
+                  )}
+                  {checkResult.lastCheckedAt && (
+                    <div><span className="text-slate-500">Last checked:</span> {formatDate(checkResult.lastCheckedAt)}</div>
+                  )}
+                  {checkResult.expiresAt && (
+                    <div><span className="text-slate-500">Challenge expires:</span> {formatDate(checkResult.expiresAt)}</div>
+                  )}
+                </div>
               </div>
             )}
 
