@@ -9,6 +9,7 @@ function normalizeCheckoutIdempotencyKey(value) {
   if (
     key.length < 8 ||
     key.length > 200 ||
+    // eslint-disable-next-line no-control-regex
     /[\u0000-\u001f\u007f\s]/.test(key)
   ) {
     throw new HttpError(400, 'Billing Idempotency-Key is invalid.', 'INVALID_BILLING_IDEMPOTENCY_KEY');

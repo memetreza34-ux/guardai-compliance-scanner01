@@ -124,7 +124,7 @@ function createAssetUploadService({
         uploadExpiresAt,
       );
       return { upload: publicAssetUpload(upload), transfer: descriptor };
-    } catch (error) {
+    } catch {
       await assetUploadRepository.markUploadSessionFailed({
         organizationId,
         uploadId: upload.id,
@@ -168,7 +168,7 @@ function createAssetUploadService({
         organizationId,
         objectKey: upload.quarantineObjectKey,
       });
-    } catch (error) {
+    } catch {
       throw new HttpError(503, 'Quarantine object status is temporarily unavailable.', 'ASSET_STORAGE_STAT_FAILED');
     }
     if (!stat || stat.exists !== true || !Number.isInteger(Number(stat.byteLength))) {

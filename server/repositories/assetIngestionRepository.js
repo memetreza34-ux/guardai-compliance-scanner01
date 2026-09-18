@@ -5,7 +5,6 @@ const {
   calculateRetryDelaySeconds,
   sanitizeJobError,
 } = require('../domain/jobLifecycle');
-const { mapAssetUploadRow, uploadColumns } = require('./assetUploadRepository');
 
 function mapIngestionJobRow(row) {
   return {

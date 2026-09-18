@@ -161,7 +161,7 @@ function createGitHubAppProvider({
           'User-Agent': 'GuardAI-Repository-Integration/0.1',
           ...(body ? { 'Content-Type': 'application/json' } : {}),
         },
-        body: body ? JSON.stringify(body) : undefined,
+        ...(body && method !== 'GET' ? { body: JSON.stringify(body) } : {}),
         signal: AbortSignal.timeout(10000),
       });
     } catch {

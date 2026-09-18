@@ -11,6 +11,8 @@ import { LoginPage } from './pages/public/LoginPage';
 
 const AppShell = lazy(() => import('./pages/app/AppShell'));
 const DashboardPage = lazy(() => import('./pages/app/DashboardPage'));
+const TargetsPage = lazy(() => import('./pages/app/TargetsPage'));
+const TargetDetailPage = lazy(() => import('./pages/app/TargetDetailPage'));
 const NotYetAvailable = lazy(() => import('./components/NotYetAvailable'));
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -55,7 +57,9 @@ export function AppRoutes() {
             {/* AUTHENTICATED WORKSPACE */}
             <Route path="/app" element={<ProtectedRoute><AppShell /></ProtectedRoute>}>
               <Route index element={<DashboardPage />} />
-              <Route path="targets" element={<NotYetAvailable title="Targets" />} />
+              <Route path="targets" element={<TargetsPage />} />
+              <Route path="targets/:targetId" element={<TargetDetailPage />} />
+              
               <Route path="scans" element={<NotYetAvailable title="Scans" />} />
               <Route path="scans/:scanId" element={<NotYetAvailable title="Scan Details" />} />
               <Route path="findings" element={<NotYetAvailable title="Findings" />} />
