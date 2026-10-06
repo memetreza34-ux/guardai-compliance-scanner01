@@ -1,4 +1,5 @@
 export type FindingLifecycleStatus = 'open' | 'resolved' | 'accepted_risk';
+export type FindingTechnicalSeverity = 'critical' | 'warning' | 'info';
 
 export interface WorkspaceFindingSummary {
   id: string;
@@ -15,6 +16,15 @@ export interface WorkspaceFindingSummary {
   lastSeenAt: string;
   createdAt: string;
   updatedAt: string;
+  latestScanId: string | null;
+  ruleVersion: string | null;
+  ruleDefinitionHash: string | null;
+  severity: FindingTechnicalSeverity | null;
+  confidence: number | null;
+  evidenceIds: string[];
+  message: string | null;
+  remediation: string | null;
+  latestObservedAt: string | null;
 }
 
 export interface FindingListPage {
