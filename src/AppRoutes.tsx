@@ -15,6 +15,8 @@ const TargetsPage = lazy(() => import('./pages/app/TargetsPage'));
 const TargetDetailPage = lazy(() => import('./pages/app/TargetDetailPage'));
 const ScansPage = lazy(() => import('./pages/app/ScansPage'));
 const ScanDetailPage = lazy(() => import('./pages/app/ScanDetailPage'));
+const FindingsPage = lazy(() => import('./pages/app/FindingsPage'));
+const EvidencePage = lazy(() => import('./pages/app/EvidencePage'));
 const NotYetAvailable = lazy(() => import('./components/NotYetAvailable'));
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -61,8 +63,8 @@ export function AppRoutes() {
               <Route path="targets/:targetId" element={<TargetDetailPage />} />
               <Route path="scans" element={<ScansPage />} />
               <Route path="scans/:scanId" element={<ScanDetailPage />} />
-              <Route path="findings" element={<NotYetAvailable title="Findings" />} />
-              <Route path="evidence" element={<NotYetAvailable title="Evidence" />} />
+              <Route path="findings" element={<FindingsPage />} />
+              <Route path="evidence" element={<EvidencePage />} />
               <Route path="reports" element={<NotYetAvailable title="Reports" />} />
               <Route path="monitoring" element={<NotYetAvailable title="Monitoring" />} />
               <Route path="ai-governance" element={<NotYetAvailable title="AI Governance" />} />
