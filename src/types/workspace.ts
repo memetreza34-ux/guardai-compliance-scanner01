@@ -94,6 +94,15 @@ export interface PersistentJob {
   updatedAt?: string;
 }
 
+export interface PersistentTargetSnapshot {
+  id: string;
+  type: TargetType;
+  displayName: string;
+  canonicalUrl: string | null;
+  provider: string | null;
+  verificationState: TargetVerificationState;
+}
+
 export interface PersistentScan {
   id: string;
   organizationId: string;
@@ -103,6 +112,10 @@ export interface PersistentScan {
   scannerVersion: string;
   contractVersion: string;
   requestedModules: PersistentModuleId[];
+  scoringProfileId?: string;
+  scoringProfileVersion?: string;
+  scoringProfileDefinitionHash?: string;
+  targetSnapshot?: PersistentTargetSnapshot | null;
   overallScore?: number | null;
   coverage?: Partial<Record<PersistentModuleId, PersistentCoverageEntry>>;
   notices?: string[];
@@ -130,6 +143,9 @@ export interface PersistentEvidence {
 export interface PersistentFinding {
   findingId: string;
   fingerprint: string;
+  ruleId?: string;
+  ruleVersion?: string;
+  ruleDefinitionHash?: string;
   status: string;
   severity: PersistentFindingSeverity;
   confidence: number | null;
@@ -146,6 +162,11 @@ export interface PersistentScanSubmission {
   scan: PersistentScan;
   jobs: PersistentJob[];
   idempotentReplay: boolean;
+}
+
+export interface PersistentScanList {
+  contractVersion: string;
+  scans: PersistentScan[];
 }
 
 export interface PersistentScanResult {
