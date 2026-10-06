@@ -54,8 +54,8 @@ A completed scan means the requested automated checks executed and their result 
 - **Persistent finding instances linked to scan evidence/rules:** VERIFIED foundation.
 - **Evidence shown inside Scan Detail:** IMPLEMENTED with detector/version/source/hash/timestamp provenance where available.
 - **Findings shown inside Scan Detail:** IMPLEMENTED with severity, lifecycle state, rule provenance, remediation and linked-evidence count.
-- **Standalone routed Evidence library:** IMPLEMENTED on the current V1 product branch; tenant-scoped, paginated and provenance-first.
-- **Standalone routed Findings workspace:** IMPLEMENTED on the current V1 product branch; tenant-scoped and enriched with the newest persisted technical observation.
+- **Standalone routed Evidence library:** IMPLEMENTED; tenant-scoped, paginated and provenance-first.
+- **Standalone routed Findings workspace:** IMPLEMENTED; tenant-scoped and enriched with the newest persisted technical observation.
 - **Verified remediation / re-test product workflow:** PARTIAL foundations only; not yet a complete routed workflow.
 
 No-result messaging explicitly avoids claiming that zero findings means zero vulnerabilities or compliance issues.
