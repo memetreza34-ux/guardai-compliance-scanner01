@@ -1,29 +1,106 @@
 # CURRENT_STATE.md
 
-## Repository Inspection - 2026-09-16
-### 1. Document / Source Mismatches Discovered
-- **BUILD_PROGRESS_MATRIX.md**: Contained false claims about feature completeness. The frontend lacked a real React Router setup and real API integrations. The UI contained hardcoded demo state (e.g. "Overall Compliance 92%").
-- **PHASE_12_AI_GOVERNANCE_TRACKER.md**: References files like `AiGovernanceCenter.tsx` and `AuthWorkspaceShell.tsx`. The API client was not wired effectively in a router; instead, local state navigation was used.
+## Repository truth — 2026-10-06
 
-### 2. Architecture & Implementation Updates Made
-- **Routing**: Replaced local-state navigation with a mature `react-router-dom` configuration inside `AppRoutes.tsx`. IMPLEMENTED / VERIFIED: `src/main.tsx` cleanly mounts `AppRoutes` (manual URL routing removed).
-- **Authentication**: IMPLEMENTED / VERIFIED. Implemented actual sign-in and sign-up using `@supabase/supabase-js`.
-- **Workspace Context**: IMPLEMENTED / VERIFIED. `WorkspaceProvider` serves as the single source of truth for organization data matching the backend's multi-tenant architecture.
-- **Dashboard**: IMPLEMENTED / VERIFIED. Created `DashboardPage.tsx` which queries the real API (`findingApi.ts`) for open findings. Synthetic zeroes for unknown/missing data have been replaced with truthful "Unavailable" states. Aggregate counts remain bounded and truthful.
-- **Fake Data**: Removed fake scans, fake repository names, and fake reviewers from the production routing paths.
+This file records what the current GuardAI product code actually supports. Product plans and market research do not make a capability implemented.
 
-### 3. Server Configuration
-- Backend APIs (`findingRoutes`, `evidenceRoutes`, `ruleRoutes`) have been properly mounted on `/api/v1` in `server/app.js`.
-- Integrated development flow via `concurrently`: `vite` serves the frontend on port 3000 and proxies `/api` to the backend.
-- IMPLEMENTED / VERIFIED: Backend tests genuinely verified with non-masked npm test step in CI.
+Status vocabulary:
+- **VERIFIED** — implemented and covered by the repository validation/CI gate.
+- **IMPLEMENTED** — code exists, but a stronger runtime/production verification may still be required.
+- **PARTIAL** — a bounded subset exists.
+- **DISABLED / BLOCKED** — code or foundations may exist, but the product capability is intentionally unavailable.
+- **PLANNED** — not implemented.
 
-### 4. Phase 2 Features
-- **Website Targets**: IMPLEMENTED / VERIFIED. Added dedicated routes for creating, listing, and viewing website targets.
-- **DNS Ownership Verification**: IMPLEMENTED / VERIFIED. Fully integrates one-time TXT challenges, copying records, and checking verification status via backend APIs without leaking secrets or faking compliance.
-- **Security Scan routed product UI**: BLOCKED / NEXT PHASE
-- **Findings**: not yet active in routed product UI
-- **Evidence**: not yet active in routed product UI
+## 1. Foundation
 
-### 5. Remaining Blocked / Unverified Modules
-- Asset Ingestion, Real repository parsing, Privacy/Accessibility Scanners, and complete AI Governance automation remain DISABLED or in placeholder state pending further validation.
-- All disabled features explicitly render a "Not Yet Available" state.
+- **Routing:** VERIFIED. React Router is the routed application source of truth.
+- **Authentication:** VERIFIED. Supabase-backed sign-in/session integration is wired into protected application routes.
+- **Organizations / workspace context:** VERIFIED. The routed app uses one workspace context; backend authorization remains authoritative.
+- **Backend API:** VERIFIED. Persistent product APIs are mounted under `/api/v1`.
+- **CI:** VERIFIED. Frontend lint/typecheck/build and backend check/test run as non-masked GitHub Actions jobs.
+- **Node baseline:** Node 24 / npm 11 contract is versioned in the repository.
+
+## 2. Website Targets and DNS ownership
+
+- **Website target create/list/detail:** VERIFIED.
+- **DNS TXT ownership verification:** VERIFIED.
+- **Ownership semantics:** VERIFIED. A verified domain proves control of the target only; it is not displayed as proof of security or legal compliance.
+- **Workspace-switch safety:** IMPLEMENTED. Target create and DNS verification actions invalidate stale async results when organization/route context changes.
+- **Terminal challenge handling:** IMPLEMENTED. Verified, failed and expired challenge outcomes refresh authoritative target state.
+- **Rate-limit UX:** IMPLEMENTED for target/DNS actions; HTTP 429 is surfaced without aggressive retry.
+- **Ephemeral DNS secret handling:** challenge values remain one-time UI state and are not treated as retrievable durable product data.
+
+## 3. Persistent security scanning
+
+- **Persistent scan submission:** VERIFIED backend foundation.
+- **Current externally requestable persistent module:** `security` only.
+- **Verified-target requirement:** VERIFIED backend rule.
+- **Role requirement:** backend requires at least `member` to submit; `viewer` is read-only.
+- **Queue / worker model:** VERIFIED foundation. Long-running security work is executed by the worker pipeline rather than the HTTP request.
+- **Safe network fetch foundation:** IMPLEMENTED and used by the security worker. This remains a security-critical area and must continue to fail closed.
+- **Idempotent submission:** VERIFIED backend foundation.
+- **Tenant-scoped scan read:** VERIFIED.
+- **Tenant-scoped scan history:** IMPLEMENTED and covered by repository tests.
+- **Routed scan history UI:** IMPLEMENTED.
+- **Routed scan detail UI:** IMPLEMENTED.
+- **Target → security scan launch:** IMPLEMENTED for verified website targets and authorized roles.
+- **Scan polling:** IMPLEMENTED. Queued/running scans refresh; refresh failures are shown as stale-state warnings rather than silently implying live data.
+
+A completed scan means the requested automated checks executed and their result was persisted. It does **not** mean the target is secure, legally compliant, certified, or free of vulnerabilities.
+
+## 4. Evidence and Findings
+
+- **Persistent evidence produced by the scan pipeline:** VERIFIED foundation.
+- **Persistent finding instances linked to scan evidence/rules:** VERIFIED foundation.
+- **Evidence shown inside Scan Detail:** IMPLEMENTED with detector/version/source/hash/timestamp provenance where available.
+- **Findings shown inside Scan Detail:** IMPLEMENTED with severity, lifecycle state, rule provenance, remediation and linked-evidence count.
+- **Standalone routed Evidence library:** PLANNED / next product phase.
+- **Standalone routed Findings workspace:** PLANNED / next product phase.
+- **Verified remediation / re-test product workflow:** PARTIAL foundations only; not yet a complete routed workflow.
+
+No-result messaging explicitly avoids claiming that zero findings means zero vulnerabilities or compliance issues.
+
+## 5. Other product modules
+
+The repository contains substantial foundations for additional domains, but routed availability must not be inferred from code presence.
+
+- **Monitoring / drift:** backend foundations exist; routed product UI is not yet active.
+- **Reports / snapshots:** backend foundations exist; routed product UI is not yet active.
+- **Trust publication:** backend/public foundations exist; authenticated assurance workflow is not yet complete.
+- **GitHub integration:** foundations exist; full routed integration workflow is not yet active.
+- **AI Governance:** guided-review/evidence foundations exist; routed product UI remains unavailable in the current app shell.
+- **Privacy / accessibility browser scanning:** foundations exist but remain gated/fail-closed pending hardened runtime requirements.
+- **Repository scanner:** bounded foundations exist; it must not be presented as full SAST, dependency vulnerability management, secret scanning, SBOM or pentesting.
+- **Asset/file pipeline:** foundations exist but remain gated until runtime/storage/parser safety requirements are satisfied.
+- **Billing / entitlements:** backend foundations exist; routed billing product experience is not yet active.
+- **Team / granular enterprise administration:** not yet complete in routed product UI.
+
+## 6. Product truth invariants
+
+GuardAI must preserve these distinctions across backend, UI, reports and AI:
+
+```text
+PASS != COMPLIANT
+SCAN COMPLETED != SECURE
+DOMAIN VERIFIED != SECURE
+NO DATA != PASS
+UNKNOWN != ZERO
+COLLECTION ERROR != PASS
+OBSERVATION != FINDING
+FINDING != RISK
+EVIDENCE != CONTROL
+USER MARKED FIXED != VERIFIED RESOLVED
+CONTROL STATUS != AUDITOR OPINION
+AUTOMATED AI ASSESSMENT != LEGAL DETERMINATION
+```
+
+## 7. Immediate next product work
+
+1. Standalone Findings workspace backed by real tenant-scoped data.
+2. Standalone Evidence library with provenance and freshness semantics.
+3. Remediation + explicit re-test / verified-resolution workflow.
+4. Canonical Controls and versioned Framework Requirement mapping.
+5. Basic Risk register connected to findings/controls/assets.
+6. Monitoring/drift and notification product surfaces after those object relationships are stable.
+
+Do not expose placeholder enterprise modules merely to make the navigation look larger.
