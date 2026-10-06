@@ -31,6 +31,15 @@ function mapFinding(row) {
     lastSeenAt: row.last_seen_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    latestScanId: row.latest_scan_id || null,
+    ruleVersion: row.rule_version || null,
+    ruleDefinitionHash: row.rule_definition_hash || null,
+    severity: row.severity || null,
+    confidence: row.confidence ?? null,
+    evidenceIds: row.evidence_ids || [],
+    message: row.message || null,
+    remediation: row.remediation || null,
+    latestObservedAt: row.latest_observed_at || null,
   };
 }
 
@@ -57,9 +66,28 @@ function createFindingRepository(pool) {
       `select f.id, f.organization_id, f.target_id, f.rule_id, r.title as rule_title,
               f.fingerprint, f.status, f.status_reason, f.status_updated_at,
               f.status_updated_by, f.first_seen_at, f.last_seen_at,
-              f.created_at, f.updated_at
+              f.created_at, f.updated_at,
+              latest.scan_id as latest_scan_id,
+              latest.rule_version,
+              latest.rule_definition_hash,
+              latest.severity,
+              latest.confidence,
+              latest.evidence_ids,
+              latest.message,
+              latest.remediation,
+              latest.created_at as latest_observed_at
          from public.findings f
          left join public.rules r on r.id = f.rule_id
+         left join lateral (
+           select fi.scan_id, fi.rule_version, fi.rule_definition_hash,
+                  fi.severity, fi.confidence, fi.evidence_ids,
+                  fi.message, fi.remediation, fi.created_at
+             from public.finding_instances fi
+            where fi.organization_id = f.organization_id
+              and fi.finding_id = f.id
+            order by fi.created_at desc, fi.id desc
+            limit 1
+         ) latest on true
         where f.organization_id = $1 and f.id = $2
         limit 1`,
       [organizationId, findingId],
@@ -94,12 +122,31 @@ function createFindingRepository(pool) {
       `select f.id, f.organization_id, f.target_id, f.rule_id, r.title as rule_title,
               f.fingerprint, f.status, f.status_reason, f.status_updated_at,
               f.status_updated_by, f.first_seen_at, f.last_seen_at,
-              f.created_at, f.updated_at
+              f.created_at, f.updated_at,
+              latest.scan_id as latest_scan_id,
+              latest.rule_version,
+              latest.rule_definition_hash,
+              latest.severity,
+              latest.confidence,
+              latest.evidence_ids,
+              latest.message,
+              latest.remediation,
+              latest.created_at as latest_observed_at
          from public.findings f
          left join public.rules r on r.id = f.rule_id
+         left join lateral (
+           select fi.scan_id, fi.rule_version, fi.rule_definition_hash,
+                  fi.severity, fi.confidence, fi.evidence_ids,
+                  fi.message, fi.remediation, fi.created_at
+             from public.finding_instances fi
+            where fi.organization_id = f.organization_id
+              and fi.finding_id = f.id
+            order by fi.created_at desc, fi.id desc
+            limit 1
+         ) latest on true
         where ${where.join(' and ')}
         order by f.status_updated_at desc, f.id desc
-        limit $${limitIndex}`,
+        limit ${limitIndex}`,
       params,
     );
 
