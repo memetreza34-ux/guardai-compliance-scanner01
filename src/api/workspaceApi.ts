@@ -1,6 +1,7 @@
 import scanContract from '../../shared/scan-contract.json';
 import type {
   PersistentModuleId,
+  PersistentScanList,
   PersistentScanResult,
   PersistentScanSubmission,
   TargetVerificationChallenge,
@@ -147,6 +148,22 @@ export function createWorkspaceApi(getAccessToken: AccessTokenProvider) {
     return payload as unknown as PersistentScanSubmission;
   }
 
+  async function listScans(
+    organizationId: string,
+    limit = 25,
+  ): Promise<PersistentScanList> {
+    const safeLimit = Math.min(Math.max(Math.trunc(limit), 1), 100);
+    const payload = requireRecord(
+      await client.request(
+        `/organizations/${encodeURIComponent(organizationId)}/scans?limit=${safeLimit}`,
+      ),
+      'Scan list',
+    );
+    assertPersistentContract(payload);
+    requireArray(payload.scans, 'Scan list');
+    return payload as unknown as PersistentScanList;
+  }
+
   async function getScanStatus(
     organizationId: string,
     scanId: string,
@@ -188,6 +205,7 @@ export function createWorkspaceApi(getAccessToken: AccessTokenProvider) {
     getTarget,
     listAuditEvents,
     listOrganizations,
+    listScans,
     listTargets,
     startTargetVerification,
     submitScan,
