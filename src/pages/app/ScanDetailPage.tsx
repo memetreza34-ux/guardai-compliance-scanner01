@@ -135,6 +135,12 @@ export default function ScanDetailPage() {
         </button>
       </div>
 
+      {error && (
+        <div role="alert" className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-300">
+          GuardAI could not refresh the latest scan state: {error}. The data shown below is the last successfully loaded state and may be stale.
+        </div>
+      )}
+
       <section className="rounded-2xl border border-slate-800 bg-slate-900 p-6 sm:p-8">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0">
