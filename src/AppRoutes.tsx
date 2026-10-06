@@ -13,15 +13,17 @@ const AppShell = lazy(() => import('./pages/app/AppShell'));
 const DashboardPage = lazy(() => import('./pages/app/DashboardPage'));
 const TargetsPage = lazy(() => import('./pages/app/TargetsPage'));
 const TargetDetailPage = lazy(() => import('./pages/app/TargetDetailPage'));
+const ScansPage = lazy(() => import('./pages/app/ScansPage'));
+const ScanDetailPage = lazy(() => import('./pages/app/ScanDetailPage'));
 const NotYetAvailable = lazy(() => import('./components/NotYetAvailable'));
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { session, isLoading, error } = useAuth();
-  
+
   if (isLoading) {
     return <div className="flex h-screen items-center justify-center bg-slate-950 text-slate-400">Loading session...</div>;
   }
-  
+
   if (error) {
     return (
       <div className="flex h-screen items-center justify-center bg-slate-950 text-slate-400 p-4 text-center">
@@ -36,7 +38,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   if (!session) {
     return <Navigate to="/login" replace />;
   }
-  
+
   return <WorkspaceProvider>{children}</WorkspaceProvider>;
 }
 
@@ -46,22 +48,19 @@ export function AppRoutes() {
       <AuthProvider>
         <Suspense fallback={<div className="flex h-screen items-center justify-center bg-slate-950 text-slate-400">Loading...</div>}>
           <Routes>
-            {/* PUBLIC */}
             <Route path="/" element={<LandingPage />} />
             <Route path="/contact" element={<PublicContactPage />} />
             <Route path="/trust/:slug" element={<PublicTrustPageRoute />} />
             <Route path="/billing/return" element={<BillingReturnPage />} />
             <Route path="/integrations/github/callback" element={<GitHubIntegrationCallbackPage />} />
             <Route path="/login" element={<LoginPage />} />
-            
-            {/* AUTHENTICATED WORKSPACE */}
+
             <Route path="/app" element={<ProtectedRoute><AppShell /></ProtectedRoute>}>
               <Route index element={<DashboardPage />} />
               <Route path="targets" element={<TargetsPage />} />
               <Route path="targets/:targetId" element={<TargetDetailPage />} />
-              
-              <Route path="scans" element={<NotYetAvailable title="Scans" />} />
-              <Route path="scans/:scanId" element={<NotYetAvailable title="Scan Details" />} />
+              <Route path="scans" element={<ScansPage />} />
+              <Route path="scans/:scanId" element={<ScanDetailPage />} />
               <Route path="findings" element={<NotYetAvailable title="Findings" />} />
               <Route path="evidence" element={<NotYetAvailable title="Evidence" />} />
               <Route path="reports" element={<NotYetAvailable title="Reports" />} />
@@ -74,7 +73,6 @@ export function AppRoutes() {
               <Route path="settings" element={<NotYetAvailable title="Settings" />} />
             </Route>
 
-            {/* Fallback */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
