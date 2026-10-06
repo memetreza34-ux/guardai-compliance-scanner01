@@ -54,8 +54,8 @@ A completed scan means the requested automated checks executed and their result 
 - **Persistent finding instances linked to scan evidence/rules:** VERIFIED foundation.
 - **Evidence shown inside Scan Detail:** IMPLEMENTED with detector/version/source/hash/timestamp provenance where available.
 - **Findings shown inside Scan Detail:** IMPLEMENTED with severity, lifecycle state, rule provenance, remediation and linked-evidence count.
-- **Standalone routed Evidence library:** PLANNED / next product phase.
-- **Standalone routed Findings workspace:** PLANNED / next product phase.
+- **Standalone routed Evidence library:** IMPLEMENTED; tenant-scoped, paginated and provenance-first.
+- **Standalone routed Findings workspace:** IMPLEMENTED; tenant-scoped and enriched with the newest persisted technical observation.
 - **Verified remediation / re-test product workflow:** PARTIAL foundations only; not yet a complete routed workflow.
 
 No-result messaging explicitly avoids claiming that zero findings means zero vulnerabilities or compliance issues.
@@ -96,11 +96,10 @@ AUTOMATED AI ASSESSMENT != LEGAL DETERMINATION
 
 ## 7. Immediate next product work
 
-1. Standalone Findings workspace backed by real tenant-scoped data.
-2. Standalone Evidence library with provenance and freshness semantics.
-3. Remediation + explicit re-test / verified-resolution workflow.
-4. Canonical Controls and versioned Framework Requirement mapping.
-5. Basic Risk register connected to findings/controls/assets.
-6. Monitoring/drift and notification product surfaces after those object relationships are stable.
+1. Remediation + explicit re-test / verified-resolution workflow.
+2. Evidence freshness semantics and collection-health states.
+3. Canonical Controls and versioned Framework Requirement mapping.
+4. Basic Risk register connected to findings/controls/assets.
+5. Monitoring/drift and notification product surfaces after those object relationships are stable.
 
 Do not expose placeholder enterprise modules merely to make the navigation look larger.
