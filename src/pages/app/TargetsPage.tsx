@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthProvider';
 import { useWorkspace } from '../../providers/WorkspaceProvider';
@@ -21,6 +21,11 @@ function TargetStatusBadge({ state }: { state: WorkspaceTarget['verificationStat
   }
 }
 
+function formatDate(value: string) {
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? 'Unavailable' : parsed.toLocaleDateString();
+}
+
 export default function TargetsPage() {
   const { session } = useAuth();
   const { currentOrg, isLoading: orgLoading } = useWorkspace();
@@ -35,13 +40,17 @@ export default function TargetsPage() {
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
-  // Expose a retry trigger for deliberate user actions
   const [retryCount, setRetryCount] = useState(0);
+  const activeOrgIdRef = useRef<string | null>(currentOrg?.id ?? null);
+  const createRequestRef = useRef(0);
+
+  activeOrgIdRef.current = currentOrg?.id ?? null;
 
   useEffect(() => {
     let cancelled = false;
 
-    // Reset state immediately on context change to prevent stale leaks
+    createRequestRef.current += 1;
+    setCreating(false);
     setTargets([]);
     setError(null);
     setCreateError(null);
@@ -70,14 +79,14 @@ export default function TargetsPage() {
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Fehler beim Laden der Targets.');
+          setError(err instanceof Error ? err.message : 'Failed to load targets.');
         }
       } finally {
         if (!cancelled) setLoading(false);
       }
     }
 
-    loadTargets();
+    void loadTargets();
 
     return () => {
       cancelled = true;
@@ -107,32 +116,39 @@ export default function TargetsPage() {
   async function handleCreateTarget(e: React.FormEvent) {
     e.preventDefault();
     if (!currentOrg || !session) return;
-    
+
     const activeOrgId = currentOrg.id;
+    const requestId = ++createRequestRef.current;
+    const isCurrentRequest = () =>
+      createRequestRef.current === requestId && activeOrgIdRef.current === activeOrgId;
 
     setCreating(true);
     setCreateError(null);
+
     try {
       const api = createWorkspaceApi(async () => session.access_token);
       const newTarget = await api.createWebsiteTarget(activeOrgId, {
         url: targetUrl,
-        displayName: targetName || undefined
+        displayName: targetName || undefined,
       });
-      
-      // Guard against race condition: only navigate if we are still in the same organization context
-      if (currentOrg.id === activeOrgId) {
+
+      if (isCurrentRequest()) {
         navigate(`/app/targets/${newTarget.id}`);
       }
     } catch (err) {
-      if (currentOrg.id === activeOrgId) {
-        if (err instanceof GuardApiError) {
-          setCreateError(`${err.message} (${err.code})`);
-        } else {
-          setCreateError(err instanceof Error ? err.message : 'Fehler beim Anlegen des Targets.');
-        }
+      if (!isCurrentRequest()) return;
+
+      if (err instanceof GuardApiError) {
+        setCreateError(
+          err.status === 429
+            ? 'Too many target requests. Wait a moment before trying again.'
+            : `${err.message} (${err.code})`,
+        );
+      } else {
+        setCreateError(err instanceof Error ? err.message : 'Failed to create target.');
       }
     } finally {
-      if (currentOrg.id === activeOrgId) {
+      if (isCurrentRequest()) {
         setCreating(false);
       }
     }
@@ -184,16 +200,16 @@ export default function TargetsPage() {
               {creating ? 'Adding...' : 'Add Target'}
             </button>
           </form>
-          {createError && <p className="text-sm text-rose-500 mt-2">{createError}</p>}
+          {createError && <p role="alert" className="text-sm text-rose-500 mt-2">{createError}</p>}
         </section>
       )}
 
       {loading ? (
         <div className="animate-pulse flex items-center justify-center p-12 text-slate-400">Loading targets...</div>
       ) : error ? (
-        <div role="alert" className="rounded-xl border border-destructive/40 bg-destructive/10 p-5 flex items-center justify-between">
+        <div role="alert" className="rounded-xl border border-destructive/40 bg-destructive/10 p-5 flex items-center justify-between gap-4">
           <p className="text-sm text-destructive-foreground">{error}</p>
-          <button 
+          <button
             onClick={() => setRetryCount(c => c + 1)}
             className="flex items-center gap-2 text-xs font-medium text-destructive-foreground hover:bg-destructive/20 px-3 py-1.5 rounded-md transition-colors"
           >
@@ -222,7 +238,7 @@ export default function TargetsPage() {
                   <div className="flex items-center gap-4">
                     <TargetStatusBadge state={target.verificationState} />
                     <div className="text-xs text-slate-500 whitespace-nowrap">
-                      Created {new Date(target.createdAt).toLocaleDateString()}
+                      Created {formatDate(target.createdAt)}
                     </div>
                   </div>
                 </button>

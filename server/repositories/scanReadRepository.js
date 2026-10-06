@@ -84,6 +84,29 @@ function createScanReadRepository(pool) {
     throw new TypeError('Scan read repository requires a PostgreSQL pool.');
   }
 
+  async function listScans(organizationId, { limit = 25 } = {}) {
+    const normalizedLimit = Number.isInteger(limit)
+      ? Math.min(Math.max(limit, 1), 100)
+      : 25;
+
+    const result = await pool.query(
+      `select id, organization_id, target_id, requested_by, status,
+              scanner_version, contract_version, requested_modules,
+              scoring_profile_id, scoring_profile_version,
+              scoring_profile_definition_hash, target_snapshot,
+              overall_score, coverage, notices,
+              started_at, completed_at, failed_at,
+              error_code, error_message, created_at, updated_at
+         from public.scans
+        where organization_id = $1
+        order by created_at desc, id desc
+        limit $2`,
+      [organizationId, normalizedLimit],
+    );
+
+    return result.rows.map(mapScanStatusRow);
+  }
+
   async function getScanWithJobs(organizationId, scanId) {
     const scanResult = await pool.query(
       `select id, organization_id, target_id, requested_by, status,
@@ -155,7 +178,7 @@ function createScanReadRepository(pool) {
     };
   }
 
-  return { getScanWithJobs };
+  return { getScanWithJobs, listScans };
 }
 
 module.exports = {

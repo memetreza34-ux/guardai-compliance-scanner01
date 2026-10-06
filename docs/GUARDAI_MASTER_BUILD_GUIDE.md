@@ -204,72 +204,40 @@ Target aktivieren
 
 # 3. Aktueller Repository-Zustand
 
-Das Repository ist heute ein **starker Produkt-/UI-Prototyp mit ersten Backend-Ansätzen**, aber noch keine Production-SaaS.
+Der aktuelle, detaillierte Implementierungsstand liegt verbindlich in [`CURRENT_STATE.md`](../CURRENT_STATE.md). Dieser Abschnitt enthält bewusst nur die Architektur-Zusammenfassung, damit der Master Guide nicht erneut zu einer zweiten, veralteten Statusquelle wird.
 
-## 3.1 Frontend heute
+## 3.1 Verifizierte Basis
 
-Vorhanden:
+Stand Oktober 2026 sind im Repository unter anderem real vorhanden:
 
-- React + TypeScript + Vite,
-- Tailwind,
-- UI-Komponenten,
-- Landing Page,
-- URL-/File-Input,
-- Scan Progress,
-- Compliance Dashboard,
-- Printable Report,
-- LeadGen,
-- Pricing,
-- Checkout Simulation,
-- User Dashboard,
-- AI Counsel,
-- Audit Hub,
-- Trust Center,
-- Badge Generator,
-- Document Generator,
-- Templates Hub,
-- Integrations Hub,
-- Policy Manager,
-- TrueSight.
+- React-Routing und geschützte App-Routen,
+- Supabase-basierte Authentifizierung,
+- Organization-/Workspace-Kontext mit serverseitiger Tenant-Autorisierung,
+- persistente PostgreSQL-Repositories und Transaktionen,
+- Website Targets,
+- DNS-TXT-Ownership-Verifizierung,
+- persistente Scan-Submission mit Idempotency,
+- Queue-/Worker-Grundmodell,
+- Security Worker mit begrenzter technischer HTTP-/Header-Evidence,
+- Evidence-/Finding-Persistenz,
+- tenant-scoped Scan Reads,
+- reale Scan-History- und Scan-Detail-Produktflächen,
+- CI mit Frontend-Lint/Typecheck/Build sowie Backend-Check/Tests.
 
-Viele dieser Flächen sind heute Demo-/Mock-getrieben.
+## 3.2 Noch nicht aus Code-Präsenz ableiten
 
-## 3.2 Backend heute
+Das Repository enthält außerdem Foundations für weitere Module. **Foundation ist nicht gleich Produktverfügbarkeit.** Insbesondere dürfen Browser Privacy/Accessibility, Repository Security, Asset Pipeline, Monitoring, Reports, Trust, Billing und AI Governance nur dann im Produkt als aktiv dargestellt werden, wenn ihre jeweiligen Runtime-, Security-, Daten- und UX-Gates erfüllt sind.
 
-Vorhanden:
+## 3.3 Verbindliche Statusregel
 
-- Express-Server,
-- `POST /api/scan`,
-- erste Website-Prüfung,
-- erste GitHub-Prüfung,
-- Gemini-Analyse,
-- `POST /api/scan-file`,
-- PDF-/Text-Extraktion,
-- einige Security-Header-Checks,
-- Helmet,
-- Rate Limit,
-- erste Zod-Nutzung.
+Wenn dieser Guide und `CURRENT_STATE.md` bei der Aussage, was heute tatsächlich funktioniert, voneinander abweichen, gilt:
 
-## 3.3 Aktuell bekannte P0-Probleme
+1. ausführbarer Source Code und Tests,
+2. aktueller CI-/Release-Nachweis,
+3. `CURRENT_STATE.md`,
+4. erst danach dieser langfristige Master Guide.
 
-- Frontend/Backend verwenden unterschiedliche Kategorienamen.
-- Statuswerte sind nicht vereinheitlicht.
-- Frontend verwendet hart codiertes `localhost:3001`.
-- Backend importiert Pakete, die nicht vollständig in `server/package.json` stehen.
-- User-gesteuertes URL-Fetching ist noch nicht ausreichend gegen SSRF abgesichert.
-- Upload-Limits/-Typen sind serverseitig nicht vollständig abgesichert.
-- Mehrere App-Views werden doppelt gerendert.
-- `score || fallback` kann einen echten Score `0` überschreiben.
-- Mock-Fallbacks haben nicht dieselbe Datenform wie echte Antworten.
-- UI behauptet teilweise Fähigkeiten, die technisch noch simuliert sind.
-- LeadGen kann Erfolg anzeigen, obwohl der Webhook fehlschlägt.
-- Payment ist simuliert.
-- TrueSight ist simuliert.
-- AI Counsel ist überwiegend simuliert.
-- Audit Hub / Policy / Integrationen enthalten Mock-Zustände.
-- Repository enthält versionierte npm-Cache-Verzeichnisse.
-- `.gitignore` ist für Secrets, Uploads, Cache und Coverage noch zu schwach.
-- Es gibt noch keine vollständige CI-/Test-Pipeline.
+Planungsdokumente dürfen niemals eine Capability von PLANNED/PARTIAL zu IMPLEMENTED/VERIFIED hochstufen.
 
 ---
 

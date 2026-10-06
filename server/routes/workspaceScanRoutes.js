@@ -1,5 +1,6 @@
 const express = require('express');
 const { z } = require('zod');
+const scanContract = require('../../shared/scan-contract.json');
 const { requireAuth } = require('../auth/supabaseAuth');
 const { HttpError } = require('../lib/httpError');
 const {
@@ -11,14 +12,20 @@ const { getPersistenceServices } = require('../services/persistenceServices');
 
 const router = express.Router();
 
-const submissionParamsSchema = z.object({
+const organizationParamsSchema = z.object({
   organizationId: z.string().uuid(),
+});
+
+const submissionParamsSchema = organizationParamsSchema.extend({
   targetId: z.string().uuid(),
 });
 
-const scanParamsSchema = z.object({
-  organizationId: z.string().uuid(),
+const scanParamsSchema = organizationParamsSchema.extend({
   scanId: z.string().uuid(),
+});
+
+const listQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(25),
 });
 
 const bodySchema = z.object({
@@ -51,6 +58,39 @@ router.post(
       res.status(result.created ? 202 : 200).json(payload);
     } catch (error) {
       sendRouteError(res, error, 'Workspace Scan Submission');
+    }
+  },
+);
+
+router.get(
+  '/organizations/:organizationId/scans',
+  requireAuth,
+  async (req, res) => {
+    try {
+      const params = organizationParamsSchema.parse(req.params);
+      const query = listQuerySchema.parse(req.query);
+      const {
+        organizationAuthorization,
+        scanReadRepository,
+      } = getPersistenceServices();
+
+      await organizationAuthorization.requireRole(
+        params.organizationId,
+        req.auth.userId,
+        'viewer',
+      );
+
+      const scans = await scanReadRepository.listScans(
+        params.organizationId,
+        { limit: query.limit },
+      );
+
+      res.json({
+        contractVersion: scanContract.version,
+        scans,
+      });
+    } catch (error) {
+      sendRouteError(res, error, 'Workspace Scan List');
     }
   },
 );

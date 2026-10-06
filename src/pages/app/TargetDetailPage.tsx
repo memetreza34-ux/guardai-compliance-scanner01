@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthProvider';
 import { useWorkspace } from '../../providers/WorkspaceProvider';
-import { createWorkspaceApi } from '../../api/workspaceApi';
+import { createScanIdempotencyKey, createWorkspaceApi } from '../../api/workspaceApi';
 import type { WorkspaceTarget } from '../../types/workspace';
-import { CheckCircle2, Clock, XCircle, ArrowLeft, Copy, Check, ShieldAlert } from 'lucide-react';
+import { CheckCircle2, Clock, XCircle, ArrowLeft, Copy, Check, ShieldAlert, Play } from 'lucide-react';
 import { GuardApiError } from '../../api/apiClient';
 
 interface ChallengeDetails {
@@ -19,6 +19,21 @@ interface VerificationCheckResult {
   attemptCount?: number;
   expiresAt?: string;
   lastCheckedAt?: string;
+}
+
+function formatDate(value: string) {
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? 'Unavailable' : parsed.toLocaleString();
+}
+
+function verificationErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof GuardApiError) {
+    if (error.status === 429) {
+      return 'Too many verification requests. Wait a moment before trying again. GuardAI will not retry aggressively.';
+    }
+    return `${error.message} (${error.code})`;
+  }
+  return error instanceof Error ? error.message : fallback;
 }
 
 export default function TargetDetailPage() {
@@ -39,17 +54,37 @@ export default function TargetDetailPage() {
   const [copiedName, setCopiedName] = useState(false);
   const [copiedValue, setCopiedValue] = useState(false);
   const [copyError, setCopyError] = useState<string | null>(null);
+  const [scanBusy, setScanBusy] = useState(false);
+  const [scanError, setScanError] = useState<string | null>(null);
+
+  const contextRef = useRef<{ organizationId: string | null; targetId: string | null }>({
+    organizationId: currentOrg?.id ?? null,
+    targetId: targetId ?? null,
+  });
+  const actionRequestRef = useRef(0);
+  const scanRequestRef = useRef(0);
+
+  contextRef.current = {
+    organizationId: currentOrg?.id ?? null,
+    targetId: targetId ?? null,
+  };
 
   useEffect(() => {
     let cancelled = false;
 
-    // Clear stale state on workspace/target change
+    actionRequestRef.current += 1;
+    scanRequestRef.current += 1;
+    setActionBusy(null);
+    setScanBusy(false);
+    setScanError(null);
     setTarget(null);
     setChallenge(null);
     setCheckResult(null);
     setError(null);
     setActionError(null);
     setCopyError(null);
+    setCopiedName(false);
+    setCopiedValue(false);
 
     if (orgLoading) {
       setLoading(true);
@@ -70,14 +105,14 @@ export default function TargetDetailPage() {
         if (!cancelled) setTarget(fetched);
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Fehler beim Laden des Targets.');
+          setError(err instanceof Error ? err.message : 'Failed to load target.');
         }
       } finally {
         if (!cancelled) setLoading(false);
       }
     }
 
-    loadTarget();
+    void loadTarget();
 
     return () => {
       cancelled = true;
@@ -85,10 +120,23 @@ export default function TargetDetailPage() {
   }, [session, currentOrg, targetId, orgLoading]);
 
   const isAdmin = currentOrg?.role === 'owner' || currentOrg?.role === 'admin';
+  const canRunScans = currentOrg?.role === 'owner' || currentOrg?.role === 'admin' || currentOrg?.role === 'member';
+
+  function createActionGuard(organizationId: string, targetIdValue: string) {
+    const requestId = ++actionRequestRef.current;
+    return () =>
+      actionRequestRef.current === requestId &&
+      contextRef.current.organizationId === organizationId &&
+      contextRef.current.targetId === targetIdValue;
+  }
 
   async function handleStartVerification() {
     if (!currentOrg || !session || !target) return;
-    
+
+    const organizationId = currentOrg.id;
+    const targetIdValue = target.id;
+    const isCurrentAction = createActionGuard(organizationId, targetIdValue);
+
     setActionBusy('start');
     setActionError(null);
     setCopyError(null);
@@ -96,8 +144,10 @@ export default function TargetDetailPage() {
 
     try {
       const api = createWorkspaceApi(async () => session.access_token);
-      const res = await api.startTargetVerification(currentOrg.id, target.id);
-      
+      const res = await api.startTargetVerification(organizationId, targetIdValue);
+
+      if (!isCurrentAction()) return;
+
       setTarget(prev => prev ? { ...prev, verificationState: 'pending' } : null);
       setChallenge({
         dnsRecordName: res.dnsRecordName,
@@ -105,52 +155,107 @@ export default function TargetDetailPage() {
         expiresAt: res.expiresAt,
       });
     } catch (err) {
-      if (err instanceof GuardApiError) {
-        setActionError(`${err.message} (${err.code})`);
-      } else {
-        setActionError(err instanceof Error ? err.message : 'Fehler beim Starten der Verifizierung.');
+      if (isCurrentAction()) {
+        setActionError(verificationErrorMessage(err, 'Failed to start verification.'));
       }
     } finally {
-      setActionBusy(null);
+      if (isCurrentAction()) {
+        setActionBusy(null);
+      }
     }
   }
 
   async function handleCheckVerification() {
     if (!currentOrg || !session || !target) return;
-    
+
+    const organizationId = currentOrg.id;
+    const targetIdValue = target.id;
+    const isCurrentAction = createActionGuard(organizationId, targetIdValue);
+
     setActionBusy('check');
     setActionError(null);
 
     try {
       const api = createWorkspaceApi(async () => session.access_token);
-      const res = await api.checkTargetVerification(currentOrg.id, target.id);
-      
+      const res = await api.checkTargetVerification(organizationId, targetIdValue);
+
+      if (!isCurrentAction()) return;
+
       setCheckResult({
         status: res.status,
         verified: res.verified,
         attemptCount: res.attemptCount,
         expiresAt: res.expiresAt,
-        lastCheckedAt: res.lastCheckedAt
+        lastCheckedAt: res.lastCheckedAt,
       });
 
-      if (res.verified || res.status === 'failed') {
-        // Refresh the whole target object from backend
-        const refreshed = await api.getTarget(currentOrg.id, target.id);
+      const terminal = res.verified || res.status === 'failed' || res.status === 'expired';
+      if (terminal) {
+        const refreshed = await api.getTarget(organizationId, targetIdValue);
+        if (!isCurrentAction()) return;
+
         setTarget(refreshed);
-        // Clear ephemeral challenge state once terminal state is reached
+        setChallenge(null);
+
         if (res.verified) {
-          setChallenge(null);
           setCheckResult(null);
+        } else if (res.status === 'expired') {
+          setActionError('This DNS challenge expired. Start a new challenge before checking again.');
         }
       }
     } catch (err) {
-      if (err instanceof GuardApiError) {
-        setActionError(`${err.message} (${err.code})`);
-      } else {
-        setActionError(err instanceof Error ? err.message : 'Fehler bei der DNS Prüfung.');
+      if (isCurrentAction()) {
+        setActionError(verificationErrorMessage(err, 'Failed to check DNS verification.'));
       }
     } finally {
-      setActionBusy(null);
+      if (isCurrentAction()) {
+        setActionBusy(null);
+      }
+    }
+  }
+
+  async function handleRunSecurityScan() {
+    if (!currentOrg || !session || !target || target.verificationState !== 'verified' || !canRunScans) return;
+
+    const organizationId = currentOrg.id;
+    const targetIdValue = target.id;
+    const requestId = ++scanRequestRef.current;
+    const isCurrentScanRequest = () =>
+      scanRequestRef.current === requestId &&
+      contextRef.current.organizationId === organizationId &&
+      contextRef.current.targetId === targetIdValue;
+
+    setScanBusy(true);
+    setScanError(null);
+
+    try {
+      const api = createWorkspaceApi(async () => session.access_token);
+      const submission = await api.submitScan(
+        organizationId,
+        targetIdValue,
+        ['security'],
+        createScanIdempotencyKey(),
+      );
+
+      if (isCurrentScanRequest()) {
+        navigate(`/app/scans/${submission.scan.id}`);
+      }
+    } catch (err) {
+      if (!isCurrentScanRequest()) return;
+
+      if (err instanceof GuardApiError) {
+        setScanError(
+          err.status === 429
+            ? 'Too many scan requests. Wait a moment before starting another scan.'
+            : `${err.message} (${err.code})`,
+        );
+      } else {
+        setScanError(err instanceof Error ? err.message : 'Failed to start technical scan.');
+      }
+    } finally {
+      if (isCurrentScanRequest()) {
+        setScanBusy(false);
+      }
     }
   }
 
@@ -160,18 +265,14 @@ export default function TargetDetailPage() {
       await navigator.clipboard.writeText(text);
       if (type === 'name') {
         setCopiedName(true);
-        setTimeout(() => setCopiedName(false), 2000);
+        window.setTimeout(() => setCopiedName(false), 2000);
       } else {
         setCopiedValue(true);
-        setTimeout(() => setCopiedValue(false), 2000);
+        window.setTimeout(() => setCopiedValue(false), 2000);
       }
     } catch {
       setCopyError('Failed to copy to clipboard. Please select and copy manually.');
     }
-  }
-
-  function formatDate(isoStr: string) {
-    return new Date(isoStr).toLocaleString();
   }
 
   if (loading || orgLoading) {
@@ -222,7 +323,7 @@ export default function TargetDetailPage() {
             )}
           </div>
         </div>
-        
+
         <div className="p-6 sm:p-8 grid sm:grid-cols-2 gap-6 text-sm">
           <div>
             <div className="text-slate-500 mb-1">Target Type</div>
@@ -245,14 +346,13 @@ export default function TargetDetailPage() {
         </div>
       )}
 
-      {/* Verification Actions */}
       <section className="bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
         <h2 className="text-lg font-medium text-slate-200">DNS Ownership Verification</h2>
-        
+
         {target.verificationState === 'verified' ? (
           <div className="text-sm text-slate-400">
             <p>GuardAI has successfully verified domain control. The target is now ready for technical scanning.</p>
-            <p className="mt-2 text-xs italic opacity-80">Note: This only proves ownership. It does not certify the website as secure or legally compliant.</p>
+            <p className="mt-2 text-xs italic opacity-80">This proves ownership only. It does not certify the website as secure or legally compliant.</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -269,7 +369,7 @@ export default function TargetDetailPage() {
             {challenge && (
               <div className="bg-slate-950 border border-slate-800 rounded-xl p-5 space-y-4">
                 <div className="text-sm font-medium text-slate-200">Publish this TXT Record</div>
-                
+
                 {copyError && (
                   <div className="text-sm text-rose-500 bg-rose-500/10 border border-rose-500/20 p-2 rounded-md">
                     {copyError}
@@ -281,7 +381,7 @@ export default function TargetDetailPage() {
                     <label className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Record Name</label>
                     <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 rounded-lg p-2.5">
                       <code className="flex-1 text-slate-300 text-xs overflow-x-auto">{challenge.dnsRecordName}</code>
-                      <button 
+                      <button
                         onClick={() => copyToClipboard(challenge.dnsRecordName, 'name')}
                         className="p-1.5 text-slate-400 hover:text-slate-200 transition-colors"
                         aria-label="Copy record name"
@@ -290,12 +390,12 @@ export default function TargetDetailPage() {
                       </button>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-1.5">
                     <label className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Record Value</label>
                     <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 rounded-lg p-2.5">
                       <code className="flex-1 text-slate-300 text-xs overflow-x-auto">{challenge.dnsRecordValue}</code>
-                      <button 
+                      <button
                         onClick={() => copyToClipboard(challenge.dnsRecordValue, 'value')}
                         className="p-1.5 text-slate-400 hover:text-slate-200 transition-colors"
                         aria-label="Copy record value"
@@ -305,18 +405,19 @@ export default function TargetDetailPage() {
                     </div>
                   </div>
                 </div>
-                
+
                 <p className="text-xs text-slate-500">
-                  Expires at: {formatDate(challenge.expiresAt)}.<br/>
+                  Expires at: {formatDate(challenge.expiresAt)}.<br />
                   <span className="text-amber-500/80">Keep this tab open. For security reasons, the record value cannot be retrieved again if you leave this page.</span>
                 </p>
               </div>
             )}
 
-            {checkResult && target.verificationState === 'pending' && (
+            {checkResult && (
               <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 mt-4 text-sm text-slate-300">
                 <div className="font-medium mb-2 text-slate-200">Check Results</div>
                 <div className="space-y-1">
+                  <div><span className="text-slate-500">Status:</span> {checkResult.status}</div>
                   {checkResult.attemptCount !== undefined && (
                     <div><span className="text-slate-500">Attempts:</span> {checkResult.attemptCount}</div>
                   )}
@@ -341,7 +442,7 @@ export default function TargetDetailPage() {
                     {actionBusy === 'start' ? 'Starting...' : target.verificationState === 'unverified' ? 'Start Verification' : 'Start New Challenge'}
                   </button>
                 )}
-                
+
                 {target.verificationState === 'pending' && (
                   <button
                     onClick={handleCheckVerification}
@@ -356,6 +457,43 @@ export default function TargetDetailPage() {
           </div>
         )}
       </section>
+
+      {target.verificationState === 'verified' && (
+        <section className="bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-sm space-y-5">
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Available scanner</div>
+            <h2 className="mt-2 text-lg font-medium text-slate-200">Website security baseline</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-400">
+              Run the persistent security worker against this verified website. GuardAI stores the execution, detector provenance,
+              evidence and resulting findings. This is a bounded automated technical screening, not a penetration test or compliance certification.
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-slate-800 bg-slate-950 p-4 text-sm text-slate-400">
+            <div><span className="text-slate-500">Module:</span> security</div>
+            <div className="mt-1"><span className="text-slate-500">Current scope:</span> observed HTTP response, security headers and supported document-level checks.</div>
+          </div>
+
+          {scanError && (
+            <div role="alert" className="rounded-xl border border-rose-500/20 bg-rose-500/10 p-4 text-sm text-rose-300">
+              {scanError}
+            </div>
+          )}
+
+          {canRunScans ? (
+            <button
+              onClick={handleRunSecurityScan}
+              disabled={scanBusy}
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+            >
+              <Play className="h-4 w-4" />
+              {scanBusy ? 'Starting scan...' : 'Run technical scan'}
+            </button>
+          ) : (
+            <p className="text-sm text-slate-500">Your Viewer role can inspect scan results but cannot start new scans.</p>
+          )}
+        </section>
+      )}
     </div>
   );
 }
