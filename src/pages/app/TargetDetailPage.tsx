@@ -2,9 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthProvider';
 import { useWorkspace } from '../../providers/WorkspaceProvider';
-import { createWorkspaceApi } from '../../api/workspaceApi';
+import { createScanIdempotencyKey, createWorkspaceApi } from '../../api/workspaceApi';
 import type { WorkspaceTarget } from '../../types/workspace';
-import { CheckCircle2, Clock, XCircle, ArrowLeft, Copy, Check, ShieldAlert } from 'lucide-react';
+import { CheckCircle2, Clock, XCircle, ArrowLeft, Copy, Check, ShieldAlert, Play } from 'lucide-react';
 import { GuardApiError } from '../../api/apiClient';
 
 interface ChallengeDetails {
@@ -54,12 +54,15 @@ export default function TargetDetailPage() {
   const [copiedName, setCopiedName] = useState(false);
   const [copiedValue, setCopiedValue] = useState(false);
   const [copyError, setCopyError] = useState<string | null>(null);
+  const [scanBusy, setScanBusy] = useState(false);
+  const [scanError, setScanError] = useState<string | null>(null);
 
   const contextRef = useRef<{ organizationId: string | null; targetId: string | null }>({
     organizationId: currentOrg?.id ?? null,
     targetId: targetId ?? null,
   });
   const actionRequestRef = useRef(0);
+  const scanRequestRef = useRef(0);
 
   contextRef.current = {
     organizationId: currentOrg?.id ?? null,
@@ -70,7 +73,10 @@ export default function TargetDetailPage() {
     let cancelled = false;
 
     actionRequestRef.current += 1;
+    scanRequestRef.current += 1;
     setActionBusy(null);
+    setScanBusy(false);
+    setScanError(null);
     setTarget(null);
     setChallenge(null);
     setCheckResult(null);
@@ -114,6 +120,7 @@ export default function TargetDetailPage() {
   }, [session, currentOrg, targetId, orgLoading]);
 
   const isAdmin = currentOrg?.role === 'owner' || currentOrg?.role === 'admin';
+  const canRunScans = currentOrg?.role === 'owner' || currentOrg?.role === 'admin' || currentOrg?.role === 'member';
 
   function createActionGuard(organizationId: string, targetIdValue: string) {
     const requestId = ++actionRequestRef.current;
@@ -203,6 +210,51 @@ export default function TargetDetailPage() {
     } finally {
       if (isCurrentAction()) {
         setActionBusy(null);
+      }
+    }
+  }
+
+  async function handleRunSecurityScan() {
+    if (!currentOrg || !session || !target || target.verificationState !== 'verified' || !canRunScans) return;
+
+    const organizationId = currentOrg.id;
+    const targetIdValue = target.id;
+    const requestId = ++scanRequestRef.current;
+    const isCurrentScanRequest = () =>
+      scanRequestRef.current === requestId &&
+      contextRef.current.organizationId === organizationId &&
+      contextRef.current.targetId === targetIdValue;
+
+    setScanBusy(true);
+    setScanError(null);
+
+    try {
+      const api = createWorkspaceApi(async () => session.access_token);
+      const submission = await api.submitScan(
+        organizationId,
+        targetIdValue,
+        ['security'],
+        createScanIdempotencyKey(),
+      );
+
+      if (isCurrentScanRequest()) {
+        navigate(`/app/scans/${submission.scan.id}`);
+      }
+    } catch (err) {
+      if (!isCurrentScanRequest()) return;
+
+      if (err instanceof GuardApiError) {
+        setScanError(
+          err.status === 429
+            ? 'Too many scan requests. Wait a moment before starting another scan.'
+            : `${err.message} (${err.code})`,
+        );
+      } else {
+        setScanError(err instanceof Error ? err.message : 'Failed to start technical scan.');
+      }
+    } finally {
+      if (isCurrentScanRequest()) {
+        setScanBusy(false);
       }
     }
   }
@@ -405,6 +457,43 @@ export default function TargetDetailPage() {
           </div>
         )}
       </section>
+
+      {target.verificationState === 'verified' && (
+        <section className="bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-sm space-y-5">
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Available scanner</div>
+            <h2 className="mt-2 text-lg font-medium text-slate-200">Website security baseline</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-400">
+              Run the persistent security worker against this verified website. GuardAI stores the execution, detector provenance,
+              evidence and resulting findings. This is a bounded automated technical screening, not a penetration test or compliance certification.
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-slate-800 bg-slate-950 p-4 text-sm text-slate-400">
+            <div><span className="text-slate-500">Module:</span> security</div>
+            <div className="mt-1"><span className="text-slate-500">Current scope:</span> observed HTTP response, security headers and supported document-level checks.</div>
+          </div>
+
+          {scanError && (
+            <div role="alert" className="rounded-xl border border-rose-500/20 bg-rose-500/10 p-4 text-sm text-rose-300">
+              {scanError}
+            </div>
+          )}
+
+          {canRunScans ? (
+            <button
+              onClick={handleRunSecurityScan}
+              disabled={scanBusy}
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+            >
+              <Play className="h-4 w-4" />
+              {scanBusy ? 'Starting scan...' : 'Run technical scan'}
+            </button>
+          ) : (
+            <p className="text-sm text-slate-500">Your Viewer role can inspect scan results but cannot start new scans.</p>
+          )}
+        </section>
+      )}
     </div>
   );
 }
