@@ -63,6 +63,8 @@ A completed scan means the requested automated checks executed and their result 
 - **Evidence shown inside Scan Detail:** IMPLEMENTED with detector/version/source/hash/timestamp provenance where available.
 - **Findings shown inside Scan Detail:** IMPLEMENTED with severity, lifecycle state, rule provenance, remediation and linked-evidence count.
 - **Standalone routed Evidence library:** IMPLEMENTED; tenant-scoped, paginated and provenance-first.
+- **Evidence freshness semantics:** IMPLEMENTED without arbitrary expiry claims. Each Evidence item is classified as current or superseded relative to the same Target + Detector, while absolute age is shown separately.
+- **Evidence collection health:** IMPLEMENTED from the authoritative source Scan state. Completed, pending, failed and cancelled collection states remain distinct; collection uncertainty never becomes a pass.
 - **Standalone routed Findings workspace:** IMPLEMENTED; tenant-scoped and enriched with the newest persisted technical observation.
 - **Remediation / re-test workflow:** IMPLEMENTED on the V1 core path. Members can mark a finding fixed-but-unverified and launch a dedicated re-test through the same persistent security worker. A finding is shown as **Verified Resolved** only when the matching detector assesses the same target and the original fingerprint is absent; the verifying Scan ID is recorded in status history.
 
@@ -114,8 +116,7 @@ AUTOMATED AI ASSESSMENT != LEGAL DETERMINATION
 
 ## 7. Immediate next product work
 
-1. Evidence freshness semantics and collection-health states.
-2. Basic Risk register connected to findings/controls/assets.
-3. Monitoring/drift and notification product surfaces after those object relationships are stable.
+1. Basic Risk register connected to findings/controls/assets.
+2. Monitoring/drift and notification product surfaces after those object relationships are stable.
 
 Do not expose placeholder enterprise modules merely to make the navigation look larger.
