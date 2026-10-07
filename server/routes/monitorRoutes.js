@@ -19,6 +19,26 @@ const createSchema = z.object({
 const statusSchema = z.object({
   status: z.enum(['active', 'paused', 'disabled']),
 }).strict();
+const driftQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).optional(),
+  cursor: z.string().max(500).optional(),
+});
+
+router.get('/organizations/:organizationId/drift-events', requireAuth, async (req, res) => {
+  try {
+    const params = organizationParamsSchema.parse(req.params);
+    const query = driftQuerySchema.parse(req.query);
+    const { driftService } = getMonitoringPersistenceServices();
+    res.json(await driftService.list({
+      organizationId: params.organizationId,
+      userId: req.auth.userId,
+      limit: query.limit,
+      cursor: query.cursor,
+    }));
+  } catch (error) {
+    sendRouteError(res, error, 'Drift Event List');
+  }
+});
 
 router.get('/organizations/:organizationId/monitors', requireAuth, async (req, res) => {
   try {
