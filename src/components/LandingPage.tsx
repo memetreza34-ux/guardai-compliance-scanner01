@@ -1,210 +1,245 @@
-import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
-  AlertTriangle,
-  Bot,
-  ChevronDown,
-  Eye,
-  FileSearch,
-  GitBranch,
-  Lock,
-  SearchCheck,
+  ArrowRight,
+  CheckCircle2,
+  FileCheck2,
+  Fingerprint,
+  Radar,
+  ScanSearch,
   ShieldCheck,
+  Sparkles,
+  TriangleAlert,
 } from 'lucide-react';
-import { UrlInputHero } from './UrlInputHero';
-import type { ScanOptions } from '../types/scanOptions';
 
-interface LandingPageProps {
-  onStartScan?: (target: string | File, options: ScanOptions) => void | Promise<void>;
-  isScanning?: boolean;
-}
+const currentCapabilities = [
+  {
+    icon: Fingerprint,
+    title: 'Verified Targets',
+    text: 'Domain-Ownership per DNS-TXT, bevor technische Website-Scans gestartet werden.',
+  },
+  {
+    icon: ScanSearch,
+    title: 'Persistent Security Scans',
+    text: 'Worker-basierte Security-Checks mit gespeichertem Ausführungsstatus statt flüchtiger Demo-Resultate.',
+  },
+  {
+    icon: FileCheck2,
+    title: 'Evidence & Findings',
+    text: 'Detector, Version, Quelle, Hash, Zeitpunkt und daraus abgeleitete Findings bleiben nachvollziehbar verknüpft.',
+  },
+];
 
-function FaqItem({ question, answer }: { question: string; answer: string }) {
-  const [open, setOpen] = useState(false);
+const nextCapabilities = [
+  'Remediation → Re-Test → Verified Resolved',
+  'Controls & Framework Requirements',
+  'Risk Register & Ownership',
+  'Continuous Monitoring & Drift',
+];
 
+export function LandingPage() {
   return (
-    <div className="border-b border-border last:border-0">
-      <button
-        type="button"
-        onClick={() => setOpen((value) => !value)}
-        className="w-full flex items-center justify-between py-5 text-left group"
-        aria-expanded={open}
-      >
-        <span className="font-semibold text-base group-hover:text-primary transition-colors">{question}</span>
-        <ChevronDown
-          className={`w-5 h-5 text-muted-foreground shrink-0 transition-transform duration-300 ${open ? 'rotate-180' : ''}`}
-        />
-      </button>
-      <div className={`grid transition-all duration-300 ${open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
-        <div className="overflow-hidden">
-          <p className="pb-5 text-muted-foreground text-sm leading-relaxed">{answer}</p>
+    <main>
+      <section className="relative overflow-hidden border-b border-white/10">
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute left-1/2 top-[-18rem] h-[36rem] w-[56rem] -translate-x-1/2 rounded-full bg-indigo-500/15 blur-3xl" />
+          <div className="absolute right-[-12rem] top-40 h-80 w-80 rounded-full bg-cyan-500/10 blur-3xl" />
         </div>
-      </div>
-    </div>
-  );
-}
 
-import { useNavigate } from "react-router-dom";
+        <div className="relative mx-auto grid max-w-7xl gap-14 px-4 py-20 sm:px-6 md:py-28 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:px-8">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-indigo-400/20 bg-indigo-500/8 px-3 py-1.5 text-xs font-semibold text-indigo-200">
+              <Sparkles className="h-3.5 w-3.5" />
+              Evidence-first Technical GRC
+            </div>
+            <h1 className="mt-6 max-w-4xl text-5xl font-semibold tracking-[-0.04em] text-white sm:text-6xl lg:text-7xl">
+              Aus technischen Checks wird belastbare Evidence.
+            </h1>
+            <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-400">
+              GuardAI verbindet verifizierte Targets, persistente Scans, technische Evidence und Findings in einem nachvollziehbaren Workflow — ohne aus fehlenden Daten automatisch „bestanden“ zu machen.
+            </p>
 
-export function LandingPage({ onStartScan, isScanning = false }: LandingPageProps = {}) {
-  const navigate = useNavigate();
-  const handleStartScan = onStartScan || (() => { navigate("/login"); });
-
-  const featureCards = [
-    {
-      icon: Lock,
-      title: 'Security Evidence',
-      description: 'Technische Hinweise aus tatsächlich ausgeführten Security-Checks statt pauschaler Sicherheitsversprechen.',
-    },
-    {
-      icon: SearchCheck,
-      title: 'Privacy Evidence',
-      description: 'Der Ausbau zielt auf beobachtbare Cookies, Requests, Storage und Consent-Verhalten im Browser.',
-    },
-    {
-      icon: Eye,
-      title: 'Accessibility',
-      description: 'Automatisierte Accessibility-Checks werden als Teilabdeckung dargestellt und nicht mit manueller Prüfung verwechselt.',
-    },
-    {
-      icon: Bot,
-      title: 'AI Governance',
-      description: 'AI-bezogene Evidenz und geführte Prüfung statt automatischer Behauptung vollständiger EU-AI-Act-Konformität.',
-    },
-    {
-      icon: GitBranch,
-      title: 'Repository Analysis',
-      description: 'Geplant sind nachvollziehbare Dependency-, Secret-, SAST- und Supply-Chain-Findings mit Datei- und Versionsbezug.',
-    },
-    {
-      icon: FileSearch,
-      title: 'Evidence-first Reports',
-      description: 'Berichte sollen aus gespeicherten Findings, Evidence und Scanner-Versionen entstehen — nicht aus statischen Demo-Texten.',
-    },
-  ];
-
-  return (
-    <div className="animate-in fade-in duration-500">
-      <UrlInputHero onStartScan={handleStartScan} isScanning={isScanning} />
-
-      <section className="py-14 border-y border-border bg-muted/20">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="grid md:grid-cols-3 gap-6">
-            <div className="rounded-2xl border bg-card/50 p-6">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-4">
-                <ShieldCheck className="w-5 h-5" />
-              </div>
-              <h2 className="font-bold text-lg">1. Target erfassen</h2>
-              <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
-                Website, Repository oder unterstützte Datei auswählen. GuardAI trennt künftig unterschiedliche Scanner-Pipelines sauber voneinander.
-              </p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Link
+                to="/login"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition-colors hover:bg-slate-200"
+              >
+                Kostenlos starten <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link
+                to="/product"
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/12 bg-white/[0.03] px-5 py-3 text-sm font-semibold text-slate-200 hover:bg-white/[0.06]"
+              >
+                Produkt ansehen
+              </Link>
             </div>
 
-            <div className="rounded-2xl border bg-card/50 p-6">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-4">
-                <SearchCheck className="w-5 h-5" />
-              </div>
-              <h2 className="font-bold text-lg">2. Technische Checks ausführen</h2>
-              <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
-                Nur ausgeführte Detectoren zählen. Fehlende Checks werden als nicht bewertet angezeigt und nicht künstlich als bestanden gewertet.
-              </p>
+            <div className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-xs text-slate-500">
+              <span className="flex items-center gap-2"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" /> Kein Sales-Call für den Einstieg nötig</span>
+              <span className="flex items-center gap-2"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" /> Tenant-scoped Datenmodell</span>
+              <span className="flex items-center gap-2"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" /> Evidence-Provenienz</span>
             </div>
+          </div>
 
-            <div className="rounded-2xl border bg-card/50 p-6">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-4">
-                <FileSearch className="w-5 h-5" />
+          <div className="relative">
+            <div className="absolute -inset-6 rounded-[2rem] bg-indigo-500/10 blur-2xl" />
+            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-slate-900/90 shadow-2xl shadow-black/40">
+              <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+                <div>
+                  <div className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">GuardAI Workspace</div>
+                  <div className="mt-1 font-semibold text-white">Technical posture</div>
+                </div>
+                <div className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-300">
+                  Target verified
+                </div>
               </div>
-              <h2 className="font-bold text-lg">3. Findings nachvollziehen</h2>
-              <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
-                Zielbild sind Findings mit Evidence, Severity, Confidence, Rule-Version und Remediation statt einer nicht erklärbaren Ampel.
-              </p>
+
+              <div className="grid gap-3 p-5 sm:grid-cols-3">
+                {[
+                  ['Scans', '12', 'Persistent runs'],
+                  ['Findings', '4', 'Open technical'],
+                  ['Evidence', '37', 'Stored records'],
+                ].map(([label, value, sub]) => (
+                  <div key={label} className="rounded-xl border border-white/8 bg-slate-950/70 p-4">
+                    <div className="text-xs text-slate-500">{label}</div>
+                    <div className="mt-2 text-2xl font-semibold text-white">{value}</div>
+                    <div className="mt-1 text-[11px] text-slate-600">{sub}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="border-t border-white/10 p-5">
+                <div className="mb-3 flex items-center justify-between">
+                  <div className="text-sm font-medium text-slate-200">Recent technical findings</div>
+                  <div className="text-xs text-slate-600">Evidence linked</div>
+                </div>
+                <div className="space-y-2">
+                  {[
+                    ['warning', 'HSTS header not observed', 'security.hsts@3'],
+                    ['warning', 'CSP policy missing', 'security.csp@2'],
+                    ['info', 'Server header exposed', 'security.server-header@1'],
+                  ].map(([severity, title, rule]) => (
+                    <div key={rule} className="flex items-center justify-between gap-3 rounded-lg border border-white/8 bg-white/[0.02] px-3 py-3">
+                      <div className="min-w-0">
+                        <div className="truncate text-sm text-slate-300">{title}</div>
+                        <div className="mt-0.5 font-mono text-[10px] text-slate-600">{rule}</div>
+                      </div>
+                      <span className={`rounded-full px-2 py-1 text-[10px] font-medium ${
+                        severity === 'warning'
+                          ? 'bg-amber-500/10 text-amber-300'
+                          : 'bg-sky-500/10 text-sky-300'
+                      }`}>
+                        {severity}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="border-t border-white/10 bg-slate-950/50 px-5 py-3 text-[11px] text-slate-600">
+                UI preview uses illustrative counts. Product results are always derived from the active workspace.
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="py-20 max-w-7xl mx-auto px-4">
-        <div className="max-w-3xl mb-12">
-          <p className="text-sm font-semibold text-primary uppercase tracking-wider">GuardAI Product Direction</p>
-          <h2 className="text-3xl md:text-4xl font-extrabold mt-3">Was wir aus dem Prototype bauen</h2>
-          <p className="text-muted-foreground mt-4 text-lg leading-relaxed">
-            Die Oberfläche ist bereits weit entwickelt. Jetzt wird jede wichtige Produktfläche schrittweise mit echter Scanner-Technik,
-            Backend-Zustand, Security, Persistenz und Tests verbunden.
+      <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
+        <div className="max-w-3xl">
+          <div className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-300">Heute im Produkt</div>
+          <h2 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+            Der Kern ist nicht mehr nur eine Demo.
+          </h2>
+          <p className="mt-4 text-base leading-7 text-slate-400">
+            Der aktuelle GuardAI-Core arbeitet bereits mit echten Workspace-Daten, serverseitiger Autorisierung und persistierten Scan-Ergebnissen.
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {featureCards.map(({ icon: Icon, title, description }) => (
-            <div key={title} className="rounded-2xl border bg-card/40 p-6 hover:bg-card/70 transition-colors">
-              <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-                <Icon className="w-5 h-5" />
+        <div className="mt-10 grid gap-4 md:grid-cols-3">
+          {currentCapabilities.map(({ icon: Icon, title, text }) => (
+            <div key={title} className="rounded-2xl border border-white/10 bg-white/[0.025] p-6">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-indigo-400/20 bg-indigo-500/10">
+                <Icon className="h-5 w-5 text-indigo-300" />
               </div>
-              <h3 className="font-bold text-lg mt-5">{title}</h3>
-              <p className="text-sm text-muted-foreground mt-2 leading-relaxed">{description}</p>
+              <h3 className="mt-5 font-semibold text-white">{title}</h3>
+              <p className="mt-2 text-sm leading-6 text-slate-500">{text}</p>
             </div>
           ))}
         </div>
       </section>
 
-      <section className="py-16 bg-muted/20 border-y border-border">
-        <div className="max-w-5xl mx-auto px-4 grid lg:grid-cols-[1.1fr_0.9fr] gap-10 items-start">
+      <section className="border-y border-white/10 bg-white/[0.02]">
+        <div className="mx-auto grid max-w-7xl gap-12 px-4 py-20 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
           <div>
-            <p className="text-sm font-semibold text-primary uppercase tracking-wider">Aktueller Status</p>
-            <h2 className="text-3xl font-extrabold mt-3">Prototype mit aktivem Production-Rebuild</h2>
-            <p className="text-muted-foreground mt-4 leading-relaxed">
-              GuardAI ist noch keine fertige Compliance-Plattform. Einige bestehende Module sind Demo-/Preview-Flächen und werden erst dann
-              als reale Produktfunktion behandelt, wenn Backend, Datenmodell, Tests und Security dazu existieren.
+            <div className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-300">Ein Datenmodell statt Inseln</div>
+            <h2 className="mt-3 text-3xl font-semibold tracking-tight text-white">
+              Von der technischen Realität bis zur Assurance.
+            </h2>
+            <p className="mt-4 text-sm leading-7 text-slate-400">
+              GuardAI wird entlang eines einzigen Evidence-Graphs ausgebaut. Neue Module sollen dieselben Targets, Evidence, Findings, Controls und Risiken nutzen — nicht separate Wahrheitssysteme erzeugen.
             </p>
+            <Link to="/product" className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-indigo-300 hover:text-indigo-200">
+              Architektur ansehen <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
 
-            <div className="mt-6 rounded-xl border border-amber-500/25 bg-amber-500/10 p-4 flex gap-3">
-              <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-              <div>
-                <p className="font-semibold">Keine Rechts- oder Sicherheitsgarantie</p>
-                <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
-                  Automatisierte technische Checks können Risiken sichtbar machen, ersetzen aber weder eine vollständige manuelle Prüfung noch Rechtsberatung oder einen Penetrationstest.
-                </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {[
+              ['1', 'Target / Asset', 'Was wird geprüft und wem gehört es?'],
+              ['2', 'Scan / Observation', 'Was wurde tatsächlich ausgeführt und beobachtet?'],
+              ['3', 'Evidence / Finding', 'Welche Evidence stützt welches technische Finding?'],
+              ['4', 'Control / Risk', 'Welche Governance-Relevanz folgt daraus?'],
+            ].map(([step, title, text]) => (
+              <div key={step} className="rounded-xl border border-white/10 bg-slate-950 p-5">
+                <div className="text-xs font-semibold text-indigo-300">0{step}</div>
+                <div className="mt-3 font-semibold text-white">{title}</div>
+                <div className="mt-2 text-sm leading-6 text-slate-500">{text}</div>
               </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
+        <div className="grid gap-8 rounded-3xl border border-white/10 bg-gradient-to-br from-indigo-500/10 via-slate-900 to-slate-950 p-8 sm:p-10 lg:grid-cols-[1fr_auto] lg:items-center">
+          <div>
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-indigo-300">
+              <Radar className="h-4 w-4" /> Als Nächstes
+            </div>
+            <h2 className="mt-3 text-3xl font-semibold text-white">Der Core wird bis zum echten GRC-Workflow erweitert.</h2>
+            <div className="mt-5 grid gap-2 sm:grid-cols-2">
+              {nextCapabilities.map(item => (
+                <div key={item} className="flex items-start gap-2 text-sm text-slate-400">
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-indigo-300" />
+                  {item}
+                </div>
+              ))}
             </div>
           </div>
+          <Link to="/product" className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-semibold text-slate-950 hover:bg-slate-200">
+            Roadmap verstehen <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
 
-          <div className="rounded-2xl border bg-card p-6">
-            <h3 className="font-bold">Was im Rebuild priorisiert wird</h3>
-            <ul className="mt-4 space-y-3 text-sm text-muted-foreground">
-              <li className="flex gap-2"><ShieldCheck className="w-4 h-4 text-primary shrink-0 mt-0.5" /> Gemeinsame Frontend-/Backend-Contracts</li>
-              <li className="flex gap-2"><ShieldCheck className="w-4 h-4 text-primary shrink-0 mt-0.5" /> Sichere URL- und Upload-Grenzen</li>
-              <li className="flex gap-2"><ShieldCheck className="w-4 h-4 text-primary shrink-0 mt-0.5" /> Echte Evidence statt Mock-Resultate</li>
-              <li className="flex gap-2"><ShieldCheck className="w-4 h-4 text-primary shrink-0 mt-0.5" /> Auth, Workspaces und Tenant-Isolation</li>
-              <li className="flex gap-2"><ShieldCheck className="w-4 h-4 text-primary shrink-0 mt-0.5" /> Persistenz, Queue/Worker und Monitoring</li>
-              <li className="flex gap-2"><ShieldCheck className="w-4 h-4 text-primary shrink-0 mt-0.5" /> Tests, CI/CD und reproduzierbares Deployment</li>
-            </ul>
-          </div>
+        <div className="mt-8 flex gap-3 rounded-2xl border border-amber-500/15 bg-amber-500/[0.06] p-5">
+          <TriangleAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-300" />
+          <p className="text-sm leading-6 text-slate-400">
+            GuardAI trennt technische Evidence von rechtlicher oder auditorischer Bewertung. Ein erfolgreicher Scan ist keine Zertifizierung, keine Rechtsberatung und keine Garantie, dass keine weiteren Risiken existieren.
+          </p>
         </div>
       </section>
 
-      <section className="py-20 max-w-4xl mx-auto px-4">
-        <div className="text-center mb-10">
-          <h2 className="text-3xl font-extrabold">Häufige Fragen</h2>
-          <p className="text-muted-foreground mt-3">Zum aktuellen GuardAI-Produktstatus.</p>
-        </div>
-
-        <div className="rounded-2xl border bg-card/40 px-6">
-          <FaqItem
-            question="Ist GuardAI bereits eine fertige Compliance-Zertifizierung?"
-            answer="Nein. GuardAI wird als technische Evidence- und Risk-Screening-Plattform aufgebaut. Ein automatisierter Scan ist keine offizielle Zertifizierung und keine Garantie rechtlicher Konformität."
-          />
-          <FaqItem
-            question="Warum zeigt GuardAI manche Bereiche als nicht bewertet?"
-            answer="Weil fehlende oder nicht ausgeführte Checks nicht als bestanden dargestellt werden sollen. Coverage und Ergebnis müssen getrennt bleiben."
-          />
-          <FaqItem
-            question="Welche Scanner sollen im MVP real werden?"
-            answer="Priorisiert sind technische Web-Security-Checks, Privacy-/Browser-Evidence, Accessibility, geführte AI-Governance-Evidence sowie Repository-Checks für Dependencies, Secrets und SAST-Basis."
-          />
-          <FaqItem
-            question="Was passiert mit AI Counsel, Trust Center und TrueSight?"
-            answer="Diese Oberflächen bleiben Teil der Produktvision, werden aber erst dann als echte Funktion freigeschaltet, wenn ihre Daten- und Modellgrundlage real, getestet und nachvollziehbar ist."
-          />
+      <section className="border-t border-white/10 bg-white/[0.02]">
+        <div className="mx-auto max-w-4xl px-4 py-20 text-center sm:px-6 lg:px-8">
+          <ShieldCheck className="mx-auto h-8 w-8 text-indigo-300" />
+          <h2 className="mt-5 text-3xl font-semibold tracking-tight text-white">Baue technische Trust-Evidence auf, die man nachvollziehen kann.</h2>
+          <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-slate-400">
+            Starte mit einem Workspace, verifiziere dein erstes Target und führe den verfügbaren Security-Scan aus.
+          </p>
+          <Link to="/login" className="mt-7 inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-semibold text-slate-950 hover:bg-slate-200">
+            GuardAI öffnen <ArrowRight className="h-4 w-4" />
+          </Link>
         </div>
       </section>
-    </div>
+    </main>
   );
 }
