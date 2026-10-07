@@ -52,6 +52,7 @@ All files below are **design sources, not applied migrations**. Before first sta
 29. `029_asset_target_provenance_draft.sql` — only clean, same-tenant Asset uploads may become verified `guardai-upload` Targets.
 30. `030_rule_definition_hash_provenance_draft.sql` — immutable Rule definition SHA-256, Finding-instance triple provenance and Rule-version rewrite prevention.
 31. `031_scoring_definition_hash_provenance_draft.sql` — immutable scoring-profile SHA-256, Scan triple provenance and scoring-version rewrite prevention.
+32. `032_risk_register_draft.sql` — tenant-safe Risk Register, Target/Finding/Control relations, treatment, review and ownership fields.
 
 ## Canonical generated seed sources
 
@@ -220,6 +221,18 @@ When the dedicated GuardAI staging project and Supabase CLI are available:
 - honeypot submissions create no database row,
 - browser roles cannot query Lead rows directly.
 
+### Risk Register
+
+- Risk is a distinct governance object and is never inferred automatically from a Finding,
+- cross-tenant Risk/Target/Finding links fail through composite tenant foreign keys,
+- every persisted Control relation is validated against the canonical GuardAI Control catalog before write,
+- Risk owner must be a current member of the same Organization,
+- residual likelihood/impact are both present or both absent,
+- accepted Risk state requires `accept` treatment and an Admin/Owner decision,
+- Viewer is read-only; Member can create/update non-acceptance workflow state,
+- Risk create/update writes an Audit Event in the same backend transaction,
+- missing Risk tables fail as `RISK_STORAGE_NOT_READY` and never fall back to browser-only persistence.
+
 ### Monitoring / notifications
 
 - only verified Website Targets can have an active `security` Monitor,
@@ -308,6 +321,7 @@ When the dedicated GuardAI staging project and Supabase CLI are available:
 - GitHub App installation state/link/webhook lifecycle,
 - bounded commit-pinned GitHub Repository baseline worker source,
 - AI Governance Review + Review-item creation in one PostgreSQL transaction with frozen DB-generated declaration provenance,
-- Asset upload/session finalization + separate leased ingestion lifecycle with clean-Target creation only after all gates.
+- Asset upload/session finalization + separate leased ingestion lifecycle with clean-Target creation only after all gates,
+- Risk create/update + relation replacement + audit.
 
 The browser never receives `DATABASE_URL`, DB passwords, target challenge hashes, Worker leases, Stripe secret/webhook keys, GitHub App private keys/installation tokens, Asset storage object keys, raw Lead rows, direct entitlement mutation access, full provider webhook payloads or detected credential values. AI Governance HTTP input rejects arbitrary prompt/output/customer-content fields and does not accept client-controlled LegalSource or applicability state.
