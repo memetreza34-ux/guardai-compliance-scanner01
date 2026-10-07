@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import {
+  Activity,
+  Bell,
   BookOpenCheck,
   FileCheck,
   LayoutDashboard,
@@ -21,6 +23,7 @@ const navSections = [
     label: 'Overview',
     items: [
       { name: 'Dashboard', path: '/app', icon: LayoutDashboard, end: true },
+      { name: 'Notifications', path: '/app/notifications', icon: Bell },
     ],
   },
   {
@@ -37,6 +40,12 @@ const navSections = [
     items: [
       { name: 'Controls', path: '/app/controls', icon: ListChecks },
       { name: 'Frameworks', path: '/app/frameworks', icon: BookOpenCheck },
+    ],
+  },
+  {
+    label: 'Monitor',
+    items: [
+      { name: 'Monitoring', path: '/app/monitoring', icon: Activity },
     ],
   },
 ];
