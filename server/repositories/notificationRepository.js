@@ -4,6 +4,17 @@ const {
   encodeTimestampIdCursor,
 } = require('../lib/paginationCursor');
 
+function notificationStorageError(error) {
+  if (error?.code === '42P01') {
+    return new HttpError(
+      503,
+      'Notification storage is not provisioned in this GuardAI environment.',
+      'NOTIFICATION_STORAGE_NOT_READY',
+    );
+  }
+  return error;
+}
+
 function normalizeNotificationLimit(value) {
   if (value === undefined || value === null || value === '') return 30;
   const parsed = Number(value);
@@ -45,7 +56,9 @@ function createNotificationRepository(pool) {
     params.push(pageSize + 1);
     const limitIndex = params.length;
 
-    const result = await pool.query(
+    let result;
+    try {
+      result = await pool.query(
       `select id, organization_id, type, scan_id, finding_id, severity,
               title, message, read_at, created_at
          from public.notifications
@@ -55,7 +68,10 @@ function createNotificationRepository(pool) {
         order by created_at desc, id desc
         limit $${limitIndex}`,
       params,
-    );
+      );
+    } catch (error) {
+      throw notificationStorageError(error);
+    }
 
     const hasMore = result.rows.length > pageSize;
     const rows = hasMore ? result.rows.slice(0, pageSize) : result.rows;
@@ -67,24 +83,34 @@ function createNotificationRepository(pool) {
   }
 
   async function markRead({ organizationId, notificationId }) {
-    const result = await pool.query(
+    let result;
+    try {
+      result = await pool.query(
       `update public.notifications
           set read_at = coalesce(read_at, now())
         where organization_id = $1 and id = $2
         returning id, organization_id, type, scan_id, finding_id, severity,
                   title, message, read_at, created_at`,
       [organizationId, notificationId],
-    );
+      );
+    } catch (error) {
+      throw notificationStorageError(error);
+    }
     return result.rowCount > 0 ? mapNotificationRow(result.rows[0]) : null;
   }
 
   async function markAllRead(organizationId) {
-    const result = await pool.query(
+    let result;
+    try {
+      result = await pool.query(
       `update public.notifications
           set read_at = now()
         where organization_id = $1 and read_at is null`,
       [organizationId],
-    );
+      );
+    } catch (error) {
+      throw notificationStorageError(error);
+    }
     return { updated: result.rowCount };
   }
 
@@ -93,6 +119,7 @@ function createNotificationRepository(pool) {
 
 module.exports = {
   createNotificationRepository,
+  notificationStorageError,
   mapNotificationRow,
   normalizeNotificationLimit,
 };
