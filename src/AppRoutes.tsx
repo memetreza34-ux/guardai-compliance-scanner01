@@ -27,6 +27,7 @@ const ControlsPage = lazy(() => import('./pages/app/ControlsPage'));
 const ControlDetailPage = lazy(() => import('./pages/app/ControlDetailPage'));
 const FrameworksPage = lazy(() => import('./pages/app/FrameworksPage'));
 const FrameworkDetailPage = lazy(() => import('./pages/app/FrameworkDetailPage'));
+const RisksPage = lazy(() => import('./pages/app/RisksPage'));
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { session, isLoading, error } = useAuth();
@@ -84,6 +85,7 @@ export function AppRoutes() {
               <Route path="controls/:controlId" element={<ControlDetailPage />} />
               <Route path="frameworks" element={<FrameworksPage />} />
               <Route path="frameworks/:frameworkId" element={<FrameworkDetailPage />} />
+              <Route path="risks" element={<RisksPage />} />
               <Route path="*" element={<Navigate to="/app" replace />} />
             </Route>
 
