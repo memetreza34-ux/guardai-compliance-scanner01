@@ -17,7 +17,13 @@ function createHarness(currentStatus = 'open') {
     },
     findingRepository: {
       async getFinding() {
-        return current;
+        return {
+          ...current,
+          targetId: 'target-1',
+          ruleId: 'security.hsts',
+          fingerprint: 'fingerprint-1',
+          latestDetectorId: 'security-headers',
+        };
       },
       async listFindings(input) {
         calls.push(['list', input]);
@@ -30,6 +36,16 @@ function createHarness(currentStatus = 'open') {
       async transitionStatus(input) {
         calls.push(['transition', input]);
         return { ...current, status: input.nextStatus, statusReason: input.reason };
+      },
+    },
+    scanSubmission: {
+      async submit(input) {
+        calls.push(['scan-submit', input]);
+        return {
+          created: true,
+          scan: { id: 'scan-1', status: 'queued' },
+          jobs: [{ id: 'job-1', jobType: 'security', status: 'queued' }],
+        };
       },
     },
   });
@@ -84,4 +100,35 @@ test('same-status PATCH is still a member mutation, not viewer-only', async () =
     status: 'resolved',
   });
   assert.deepEqual(harness.calls[0], ['auth', 'org-1', 'user-1', 'member']);
+});
+
+test('finding re-test requires member role and reuses the persistent security scan pipeline', async () => {
+  const harness = createHarness('resolved');
+  const result = await harness.service.requestRetest({
+    organizationId: 'org-1',
+    userId: 'user-1',
+    findingId: 'finding-1',
+    idempotencyKey: 'retest-request-123',
+  });
+
+  assert.equal(result.scan.id, 'scan-1');
+  assert.deepEqual(harness.calls[0], ['auth', 'org-1', 'user-1', 'member']);
+  const submission = harness.calls.find((call) => call[0] === 'scan-submit')[1];
+  assert.equal(submission.targetId, 'target-1');
+  assert.deepEqual(submission.requestedModules, ['security']);
+  assert.equal(submission.jobPayloadByModule.security.purpose, 'finding_retest');
+  assert.equal(submission.jobPayloadByModule.security.findingId, 'finding-1');
+});
+
+test('accepted-risk finding must be reopened before re-test', async () => {
+  const harness = createHarness('accepted_risk');
+  await assert.rejects(
+    () => harness.service.requestRetest({
+      organizationId: 'org-1',
+      userId: 'user-1',
+      findingId: 'finding-1',
+      idempotencyKey: 'retest-request-456',
+    }),
+    (error) => error.code === 'FINDING_RETEST_ACCEPTED_RISK_BLOCKED',
+  );
 });
