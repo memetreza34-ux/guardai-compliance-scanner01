@@ -1,3 +1,4 @@
+const { isDeepStrictEqual } = require('node:util');
 const { HttpError } = require('../lib/httpError');
 const { selectScoringProfile } = require('../domain/scoringPolicy');
 const { assertTargetSupportsModules } = require('../domain/targetScanCompatibility');
@@ -75,6 +76,22 @@ function assertIdempotentRequestMatches(existing, input) {
       'Idempotency key was already used for a different scan request.',
       'IDEMPOTENCY_KEY_REUSED',
     );
+  }
+}
+
+function assertJobPayloadsMatch(jobs, input) {
+  const expected = input.jobPayloadByModule || null;
+  if (!expected) return;
+
+  for (const [moduleId, payload] of Object.entries(expected)) {
+    const job = jobs.find((candidate) => candidate.jobType === moduleId);
+    if (!job || !isDeepStrictEqual(job.payload || {}, payload || {})) {
+      throw new HttpError(
+        409,
+        'Idempotency key was already used for a scan with different internal context.',
+        'IDEMPOTENCY_KEY_REUSED',
+      );
+    }
   }
 }
 
@@ -187,6 +204,7 @@ function createScanRepository(pool, { entitlementRepository = null } = {}) {
         assertScoringProfileMatches(existingBeforeInsert, scoringProfile);
         await reserveUsageWithinTransaction(client, input, existingBeforeInsert.id);
         const jobs = await loadJobsForScan(client, existingBeforeInsert.id, input.organizationId);
+        assertJobPayloadsMatch(jobs, input);
         await client.query('commit');
         return { created: false, scan: mapScanRow(existingBeforeInsert), jobs };
       }
@@ -243,6 +261,7 @@ function createScanRepository(pool, { entitlementRepository = null } = {}) {
         assertScoringProfileMatches(existingAfterConflict, scoringProfile);
         await reserveUsageWithinTransaction(client, input, existingAfterConflict.id);
         const jobs = await loadJobsForScan(client, existingAfterConflict.id, input.organizationId);
+        assertJobPayloadsMatch(jobs, input);
         await client.query('commit');
         return { created: false, scan: mapScanRow(existingAfterConflict), jobs };
       }
@@ -256,13 +275,19 @@ function createScanRepository(pool, { entitlementRepository = null } = {}) {
            status,
            payload
          )
-         select $1, $2, module_id, 'queued', '{}'::jsonb
+         select $1, $2, module_id, 'queued',
+                coalesce($4::jsonb -> module_id, '{}'::jsonb)
            from unnest($3::text[]) as module_id
          returning id, organization_id, scan_id, job_type, status,
                    attempt_count, max_attempts, available_at,
                    leased_at, lease_expires_at, worker_id, payload,
                    result_summary, completed_at, failed_at, created_at`,
-        [input.organizationId, scanRow.id, input.requestedModules],
+        [
+          input.organizationId,
+          scanRow.id,
+          input.requestedModules,
+          JSON.stringify(input.jobPayloadByModule || {}),
+        ],
       );
 
       await reserveUsageWithinTransaction(client, input, scanRow.id);
@@ -292,6 +317,7 @@ function createScanRepository(pool, { entitlementRepository = null } = {}) {
 
 module.exports = {
   assertIdempotentRequestMatches,
+  assertJobPayloadsMatch,
   assertScoringProfileMatches,
   buildTargetSnapshot,
   createScanRepository,
