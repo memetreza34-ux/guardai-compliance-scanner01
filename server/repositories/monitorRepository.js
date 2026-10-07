@@ -30,8 +30,20 @@ function mapMonitorRunRow(row) {
     monitorId: row.monitor_id,
     scheduledFor: row.scheduled_for,
     scanId: row.scan_id,
+    scanStatus: row.scan_status || null,
+    scanCompletedAt: row.scan_completed_at || null,
+    scanFailedAt: row.scan_failed_at || null,
     createdAt: row.created_at,
   };
+}
+
+function normalizeMonitorRunLimit(value) {
+  if (value === undefined || value === null || value === '') return 20;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 1 || parsed > 100) {
+    throw new HttpError(400, 'Monitor run limit must be between 1 and 100.', 'INVALID_MONITOR_RUN_LIMIT');
+  }
+  return parsed;
 }
 
 function createMonitorRepository(pool) {
@@ -97,6 +109,39 @@ function createMonitorRepository(pool) {
       [organizationId],
     );
     return result.rows.map(mapMonitorRow);
+  }
+
+  async function getMonitor(organizationId, monitorId) {
+    const result = await pool.query(
+      `select id, organization_id, target_id, module_id, status,
+              schedule_minutes, next_run_at, leased_at, lease_expires_at,
+              created_by, created_at, updated_at
+         from public.monitors
+        where organization_id = $1 and id = $2
+        limit 1`,
+      [organizationId, monitorId],
+    );
+    return result.rowCount > 0 ? mapMonitorRow(result.rows[0]) : null;
+  }
+
+  async function listMonitorRuns({ organizationId, monitorId, limit }) {
+    const pageSize = normalizeMonitorRunLimit(limit);
+    const result = await pool.query(
+      `select mr.id, mr.organization_id, mr.monitor_id, mr.scheduled_for,
+              mr.scan_id, mr.created_at,
+              s.status as scan_status,
+              s.completed_at as scan_completed_at,
+              s.failed_at as scan_failed_at
+         from public.monitor_runs mr
+         join public.scans s
+           on s.id = mr.scan_id and s.organization_id = mr.organization_id
+        where mr.organization_id = $1
+          and mr.monitor_id = $2
+        order by mr.scheduled_for desc, mr.id desc
+        limit $3`,
+      [organizationId, monitorId, pageSize],
+    );
+    return result.rows.map(mapMonitorRunRow);
   }
 
   async function setStatus({ organizationId, monitorId, status }) {
@@ -283,6 +328,8 @@ function createMonitorRepository(pool) {
     claimDueMonitor,
     completeScheduledRun,
     createMonitor,
+    getMonitor,
+    listMonitorRuns,
     listMonitors,
     releaseLease,
     setStatus,
@@ -293,4 +340,5 @@ module.exports = {
   createMonitorRepository,
   mapMonitorRow,
   mapMonitorRunRow,
+  normalizeMonitorRunLimit,
 };
