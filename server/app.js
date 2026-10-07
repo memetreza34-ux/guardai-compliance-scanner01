@@ -68,6 +68,7 @@ function createApp() {
   app.use('/api/v1', organizationRoutes);
   app.use('/api/v1', evidenceRoutes);
   app.use('/api/v1', findingRoutes);
+  app.use('/api/v1', governanceRoutes);
   app.use('/api/v1', ruleRoutes);
   app.use('/api/v1', aiGovernanceRoutes);
   app.use('/api/v1', assetRoutes);
