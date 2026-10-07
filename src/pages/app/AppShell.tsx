@@ -4,6 +4,7 @@ import {
   Activity,
   Bell,
   BookOpenCheck,
+  Brain,
   FileCheck,
   FileText,
   GitCompareArrows,
@@ -45,6 +46,7 @@ const navSections = [
       { name: 'Controls', path: '/app/controls', icon: ListChecks },
       { name: 'Frameworks', path: '/app/frameworks', icon: BookOpenCheck },
       { name: 'Risks', path: '/app/risks', icon: ShieldAlert },
+      { name: 'AI Governance', path: '/app/ai-governance', icon: Brain },
     ],
   },
   {

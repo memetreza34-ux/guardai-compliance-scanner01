@@ -99,7 +99,8 @@ The repository contains substantial foundations for additional domains, but rout
 - **Reports / snapshots:** ROUTED IN CODE. Members can create immutable technical report snapshots from completed Scans; viewers can browse and inspect frozen Target, Scan, scoring, Evidence, Finding, limitation and SHA-256 provenance.
 - **Trust publication:** ROUTED IN CODE at `/app/trust-center`. Admin/Owner can publish one immutable technical report through the existing curated public Trust projection, copy/open the public URL, and revoke publication without deleting the underlying report. Viewer/Member remain read-only for publication controls.
 - **GitHub integration:** ROUTED IN CODE at `/app/integrations`. Viewer can inspect installation health and authorized repositories; Admin/Owner can start/reconnect the GitHub App and create verified repository Targets only from repositories returned by the current provider authorization. Suspended/deleted installation state remains explicitly unhealthy and repository connection is not presented as a completed repository security scan.
-- **AI Governance:** guided-review/evidence foundations exist; routed product UI remains unavailable in the current app shell.
+- **AI Governance:** ROUTED IN CODE at `/app/ai-governance`. Viewer can inspect active AI-System inventory and guided-review cycles; Member can create AI Systems and source-versioned guided reviews; Admin/Owner can complete or reopen the human-review workflow and archive systems. Every item remains `requires_human_review`; GuardAI does not determine EU AI Act applicability, prohibited/high-risk classification or legal compliance.
+- **AI Governance storage:** BLOCKED until `database/026_ai_governance_guided_review_draft.sql` and `027_ai_governance_review_cycle_invariant_draft.sql` are promoted through the dedicated GuardAI staging migration process. Missing tables return `AI_GOVERNANCE_STORAGE_NOT_READY` rather than simulated browser data.
 - **Privacy / accessibility browser scanning:** foundations exist but remain gated/fail-closed pending hardened runtime requirements.
 - **Repository scanner:** bounded foundations exist; it must not be presented as full SAST, dependency vulnerability management, secret scanning, SBOM or pentesting.
 - **Asset/file pipeline:** foundations exist but remain gated until runtime/storage/parser safety requirements are satisfied.
@@ -129,6 +130,6 @@ AUTOMATED AI ASSESSMENT != LEGAL DETERMINATION
 
 1. Promote the Risk + Monitoring/Notification schema only in the dedicated GuardAI staging database and run tenant/invariant proof matrices.
 2. Add authoritative monitored-absence resolution before introducing `finding_cleared` Drift.
-3. Validate Reports, Trust and GitHub Integration against staging/provider configuration, then continue AI Governance product surfaces without weakening evidence/provenance or legal-review boundaries.
+3. Promote and validate AI Governance storage only through staging, then continue Billing/Entitlements and Organization administration without weakening evidence/provenance or legal-review boundaries.
 
 Do not expose placeholder enterprise modules merely to make the navigation look larger.

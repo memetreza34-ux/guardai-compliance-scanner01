@@ -35,6 +35,8 @@ const ReportsPage = lazy(() => import('./pages/app/ReportsPage'));
 const ReportDetailPage = lazy(() => import('./pages/app/ReportDetailPage'));
 const TrustCenterPage = lazy(() => import('./pages/app/TrustCenterPage'));
 const IntegrationsPage = lazy(() => import('./pages/app/IntegrationsPage'));
+const AiGovernancePage = lazy(() => import('./pages/app/AiGovernancePage'));
+const AiGovernanceReviewPage = lazy(() => import('./pages/app/AiGovernanceReviewPage'));
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { session, isLoading, error } = useAuth();
@@ -100,6 +102,8 @@ export function AppRoutes() {
               <Route path="reports/:reportId" element={<ReportDetailPage />} />
               <Route path="trust-center" element={<TrustCenterPage />} />
               <Route path="integrations" element={<IntegrationsPage />} />
+              <Route path="ai-governance" element={<AiGovernancePage />} />
+              <Route path="ai-governance/reviews/:reviewId" element={<AiGovernanceReviewPage />} />
               <Route path="*" element={<Navigate to="/app" replace />} />
             </Route>
 
