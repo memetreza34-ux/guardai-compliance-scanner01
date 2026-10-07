@@ -1,10 +1,11 @@
 const { HttpError } = require('../lib/httpError');
+const { buildFindingRetestJobPayload } = require('../domain/findingRetest');
 const {
   normalizeFindingStatus,
   normalizeFindingTransition,
 } = require('../domain/findingLifecycle');
 
-function createFindingService({ findingRepository, organizationAuthorization }) {
+function createFindingService({ findingRepository, organizationAuthorization, scanSubmission = null }) {
   if (!findingRepository) {
     throw new TypeError('Finding service requires a Finding repository.');
   }
@@ -59,6 +60,52 @@ function createFindingService({ findingRepository, organizationAuthorization }) 
     });
   }
 
+  async function requestRetest({
+    organizationId,
+    userId,
+    findingId,
+    idempotencyKey = null,
+  }) {
+    await organizationAuthorization.requireRole(organizationId, userId, 'member');
+
+    const finding = await findingRepository.getFinding(organizationId, findingId);
+    if (!finding) {
+      throw new HttpError(404, 'Finding was not found in this organization.', 'FINDING_NOT_FOUND');
+    }
+    if (finding.status === 'accepted_risk') {
+      throw new HttpError(
+        409,
+        'Withdraw accepted risk before requesting a verification re-test.',
+        'FINDING_RETEST_ACCEPTED_RISK_BLOCKED',
+      );
+    }
+    if (!finding.ruleId?.startsWith('security.') || !finding.latestDetectorId) {
+      throw new HttpError(
+        422,
+        'This Finding does not currently support automated verification re-tests.',
+        'FINDING_RETEST_NOT_SUPPORTED',
+      );
+    }
+    if (!scanSubmission || typeof scanSubmission.submit !== 'function') {
+      throw new HttpError(
+        503,
+        'Finding re-test service is not available.',
+        'FINDING_RETEST_SERVICE_UNAVAILABLE',
+      );
+    }
+
+    return scanSubmission.submit({
+      organizationId,
+      targetId: finding.targetId,
+      requestedBy: userId,
+      requestedModules: ['security'],
+      idempotencyKey,
+      jobPayloadByModule: {
+        security: buildFindingRetestJobPayload(finding),
+      },
+    });
+  }
+
   async function history({ organizationId, userId, findingId, limit, cursor }) {
     await organizationAuthorization.requireRole(organizationId, userId, 'viewer');
     const finding = await findingRepository.getFinding(organizationId, findingId);
@@ -77,6 +124,7 @@ function createFindingService({ findingRepository, organizationAuthorization }) 
     get,
     history,
     list,
+    requestRetest,
     updateStatus,
   };
 }
