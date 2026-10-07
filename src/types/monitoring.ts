@@ -16,6 +16,18 @@ export interface WorkspaceMonitor {
   updatedAt: string;
 }
 
+export interface WorkspaceMonitorRun {
+  id: string;
+  organizationId: string;
+  monitorId: string;
+  scheduledFor: string;
+  scanId: string;
+  scanStatus: 'queued' | 'running' | 'completed' | 'failed' | 'cancelled' | null;
+  scanCompletedAt: string | null;
+  scanFailedAt: string | null;
+  createdAt: string;
+}
+
 export interface WorkspaceNotification {
   id: string;
   organizationId: string;
