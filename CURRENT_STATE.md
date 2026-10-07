@@ -20,6 +20,14 @@ Status vocabulary:
 - **CI:** VERIFIED. Frontend lint/typecheck/build and backend check/test run as non-masked GitHub Actions jobs.
 - **Node baseline:** Node 24 / npm 11 contract is versioned in the repository.
 
+## 1A. Public website
+
+- **Multi-page public SaaS site:** IMPLEMENTED. Shared responsive navigation/footer now cover Home, Product, Security, Pricing, About and Contact.
+- **Public product claims:** bounded to real or explicitly upcoming capabilities. The site no longer presents the product as a generic prototype/rebuild status page.
+- **Pricing page:** IMPLEMENTED as packaging/launch information only. Paid checkout is not presented as publicly available until billing configuration and entitlements are released together.
+- **Login experience:** IMPLEMENTED with GuardAI public-site branding while preserving Supabase authentication behavior.
+- **Public Trust publications:** remain a separate evidence-verification surface under `/trust/:slug`.
+
 ## 2. Website Targets and DNS ownership
 
 - **Website target create/list/detail:** VERIFIED.

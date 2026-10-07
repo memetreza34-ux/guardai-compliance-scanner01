@@ -2,12 +2,18 @@ import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './auth/AuthProvider';
 import { WorkspaceProvider } from './providers/WorkspaceProvider';
-import { LandingPage } from './components/LandingPage';
 import PublicContactPage from './components/PublicContactPage';
 import { PublicTrustPageRoute } from './pages/public/PublicTrustPageRoute';
 import BillingReturnPage from './components/BillingReturnPage';
 import GitHubIntegrationCallbackPage from './components/GitHubIntegrationCallbackPage';
 import { LoginPage } from './pages/public/LoginPage';
+
+const PublicSiteLayout = lazy(() => import('./pages/public/PublicSiteLayout'));
+const LandingPage = lazy(() => import('./components/LandingPage').then(module => ({ default: module.LandingPage })));
+const ProductPage = lazy(() => import('./pages/public/ProductPage'));
+const SecurityPage = lazy(() => import('./pages/public/SecurityPage'));
+const PricingPage = lazy(() => import('./pages/public/PricingPage'));
+const AboutPage = lazy(() => import('./pages/public/AboutPage'));
 
 const AppShell = lazy(() => import('./pages/app/AppShell'));
 const DashboardPage = lazy(() => import('./pages/app/DashboardPage'));
@@ -50,8 +56,14 @@ export function AppRoutes() {
       <AuthProvider>
         <Suspense fallback={<div className="flex h-screen items-center justify-center bg-slate-950 text-slate-400">Loading...</div>}>
           <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/contact" element={<PublicContactPage />} />
+            <Route element={<PublicSiteLayout />}>
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/product" element={<ProductPage />} />
+              <Route path="/security" element={<SecurityPage />} />
+              <Route path="/pricing" element={<PricingPage />} />
+              <Route path="/about" element={<AboutPage />} />
+              <Route path="/contact" element={<PublicContactPage />} />
+            </Route>
             <Route path="/trust/:slug" element={<PublicTrustPageRoute />} />
             <Route path="/billing/return" element={<BillingReturnPage />} />
             <Route path="/integrations/github/callback" element={<GitHubIntegrationCallbackPage />} />
