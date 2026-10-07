@@ -9,6 +9,7 @@ const { createAssetUploadRepository } = require('../repositories/assetUploadRepo
 const { createAuditRepository } = require('../repositories/auditRepository');
 const { createBillingRepository } = require('../repositories/billingRepository');
 const { createEntitlementRepository } = require('../repositories/entitlementRepository');
+const { createFindingRepository } = require('../repositories/findingRepository');
 const { createJobRepository } = require('../repositories/jobRepository');
 const { createMembershipRepository } = require('../repositories/membershipRepository');
 const { createOrganizationRepository } = require('../repositories/organizationRepository');
@@ -23,6 +24,7 @@ const { createAiGovernanceService } = require('./aiGovernanceService');
 const { createAssetUploadService } = require('./assetUploadService');
 const { createAuditService } = require('./auditService');
 const { createBillingService } = require('./billingService');
+const { createFindingService } = require('./findingService');
 const { createJobFailureService } = require('./jobFailureService');
 const { createOrganizationAuthorizationService } = require('./organizationAuthorization');
 const { createOrganizationService } = require('./organizationService');
@@ -104,6 +106,12 @@ function createPersistenceServices() {
     scannerVersion: config.scannerVersion,
     contractVersion: scanContract.version,
   });
+  const findingRepository = createFindingRepository(pool);
+  const findingService = createFindingService({
+    findingRepository,
+    organizationAuthorization,
+    scanSubmission,
+  });
 
   return {
     aiGovernanceRepository,
@@ -116,6 +124,8 @@ function createPersistenceServices() {
     billingRepository,
     billingService,
     entitlementRepository,
+    findingRepository,
+    findingService,
     jobFailureService,
     jobRepository,
     membershipRepository,
