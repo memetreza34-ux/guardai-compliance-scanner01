@@ -8,6 +8,7 @@ import {
   FileText,
   GitCompareArrows,
   LayoutDashboard,
+  Link2,
   ListChecks,
   LogOut,
   Menu,
@@ -59,6 +60,12 @@ const navSections = [
     items: [
       { name: 'Reports', path: '/app/reports', icon: FileText },
       { name: 'Trust Center', path: '/app/trust-center', icon: Globe2 },
+    ],
+  },
+  {
+    label: 'Connect',
+    items: [
+      { name: 'Integrations', path: '/app/integrations', icon: Link2 },
     ],
   },
 ];
