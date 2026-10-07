@@ -1,3 +1,6 @@
+export type EvidenceFreshnessState = 'current' | 'superseded';
+export type EvidenceCollectionHealth = 'healthy' | 'pending' | 'collection_error' | 'cancelled' | 'unknown';
+
 export interface EvidenceExplorerItem {
   id: string;
   organizationId: string;
@@ -12,6 +15,10 @@ export interface EvidenceExplorerItem {
   contentHash: string | null;
   capturedAt: string;
   createdAt: string;
+  freshnessState: EvidenceFreshnessState;
+  collectionHealth: EvidenceCollectionHealth;
+  sourceScanStatus: string;
+  sourceScanCompletedAt: string | null;
 }
 
 export interface EvidenceExplorerPage {
