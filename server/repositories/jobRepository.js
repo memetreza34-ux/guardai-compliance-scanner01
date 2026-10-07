@@ -12,6 +12,8 @@ const {
   createFindingFingerprint,
   hashEvidence,
 } = require('../lib/evidenceIntegrity');
+const { evaluateFindingRetest } = require('../domain/findingRetest');
+const { observeFinding, writeStatusEvent } = require('./findingObservationWriter');
 const { mapJobRow } = require('./scanRepository');
 
 function normalizeWorkerJobTypes(jobTypes) {
@@ -226,7 +228,8 @@ function createJobRepository(pool) {
 
       const locked = await client.query(
         `select j.id, j.organization_id, j.scan_id, j.job_type, j.status,
-                j.worker_id, (j.lease_expires_at > now()) as lease_valid,
+                j.worker_id, j.payload,
+                (j.lease_expires_at > now()) as lease_valid,
                 s.status as scan_status, s.target_id,
                 s.scoring_profile_id, s.scoring_profile_version,
                 s.scoring_profile_definition_hash
@@ -290,6 +293,8 @@ function createJobRepository(pool) {
         throw new HttpError(500, 'Evidence persistence did not produce an identifier.', 'EVIDENCE_PERSISTENCE_FAILED');
       }
 
+      const detectedFingerprints = new Set();
+
       for (const issue of normalized.issues) {
         if (issue.ruleId) {
           const ruleMatch = await client.query(
@@ -319,50 +324,88 @@ function createJobRepository(pool) {
           detectorId: normalized.detectorId,
           findingId: issue.id,
         });
+        detectedFingerprints.add(fingerprint);
 
-        const findingResult = await client.query(
-          `insert into public.findings (
-             organization_id, target_id, rule_id, fingerprint,
-             status, first_seen_at, last_seen_at
-           ) values ($1, $2, $3, $4, 'open', now(), now())
-           on conflict (organization_id, target_id, fingerprint)
-           do update set last_seen_at = excluded.last_seen_at,
-                         rule_id = coalesce(public.findings.rule_id, excluded.rule_id),
-                         updated_at = now()
-           where public.findings.rule_id is null
-              or public.findings.rule_id is not distinct from excluded.rule_id
-           returning id, rule_id`,
-          [row.organization_id, row.target_id, issue.ruleId, fingerprint],
+        await observeFinding(client, {
+          organizationId: row.organization_id,
+          targetId: row.target_id,
+          scanId: row.scan_id,
+          ruleId: issue.ruleId,
+          ruleVersion: issue.ruleVersion,
+          ruleDefinitionHash: issue.ruleDefinitionHash,
+          fingerprint,
+          severity: issue.severity,
+          evidenceId,
+          message: `${issue.title}: ${issue.description}`,
+          remediation: issue.remediation,
+        });
+      }
+
+      const retest = evaluateFindingRetest({
+        payload: row.payload || {},
+        detectorId: normalized.detectorId,
+        assessmentState: normalized.state,
+        detectedFingerprints,
+      });
+
+      let retestOutcome = null;
+      if (retest) {
+        const retestFindingResult = await client.query(
+          `select id, target_id, fingerprint, status
+             from public.findings
+            where organization_id = $1 and id = $2
+            limit 1
+            for update`,
+          [row.organization_id, retest.findingId],
         );
 
-        if (findingResult.rowCount === 0) {
+        if (retestFindingResult.rowCount === 0) {
           throw new HttpError(
-            500,
-            'Finding rule provenance conflicts with the persisted finding identity.',
-            'FINDING_RULE_PROVENANCE_CONFLICT',
+            409,
+            'Finding selected for re-test no longer exists in this organization.',
+            'FINDING_RETEST_TARGET_MISSING',
           );
         }
 
-        await client.query(
-          `insert into public.finding_instances (
-             organization_id, finding_id, scan_id,
-             rule_id, rule_version, rule_definition_hash,
-             severity, confidence, evidence_ids, message, remediation
-           ) values ($1, $2, $3, $4, $5, $6, $7, null, $8::uuid[], $9, $10)
-           on conflict (finding_id, scan_id) do nothing`,
-          [
-            row.organization_id,
-            findingResult.rows[0].id,
-            row.scan_id,
-            issue.ruleId,
-            issue.ruleVersion,
-            issue.ruleDefinitionHash,
-            issue.severity,
-            [evidenceId],
-            `${issue.title}: ${issue.description}`,
-            issue.remediation,
-          ],
-        );
+        const retestFinding = retestFindingResult.rows[0];
+        if (
+          retestFinding.target_id !== row.target_id ||
+          retestFinding.fingerprint !== retest.findingFingerprint
+        ) {
+          throw new HttpError(
+            409,
+            'Finding re-test context no longer matches the persisted finding.',
+            'FINDING_RETEST_CONTEXT_CHANGED',
+          );
+        }
+
+        if (retestFinding.status === 'accepted_risk') {
+          retestOutcome = 'accepted_risk_preserved';
+        } else if (retest.outcome === 'verified_resolved') {
+          await client.query(
+            `update public.findings
+                set status = 'resolved',
+                    status_reason = 'Verified resolved by GuardAI re-test',
+                    status_updated_at = now(),
+                    status_updated_by = null,
+                    updated_at = now()
+              where organization_id = $1 and id = $2`,
+            [row.organization_id, retest.findingId],
+          );
+
+          await writeStatusEvent(client, {
+            organizationId: row.organization_id,
+            findingId: retest.findingId,
+            scanId: row.scan_id,
+            fromStatus: retestFinding.status,
+            toStatus: 'resolved',
+            reason: 'Verified resolved by GuardAI re-test',
+            actorId: null,
+          });
+          retestOutcome = 'verified_resolved';
+        } else {
+          retestOutcome = 'still_present';
+        }
       }
 
       const resultSummary = {
@@ -372,6 +415,12 @@ function createJobRepository(pool) {
         detectorVersion: normalized.detectorVersion,
         evidenceId,
         findingCount: normalized.issues.length,
+        ...(retest ? {
+          retest: {
+            findingId: retest.findingId,
+            outcome: retestOutcome,
+          },
+        } : {}),
       };
 
       await client.query(
