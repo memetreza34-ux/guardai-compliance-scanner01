@@ -93,6 +93,7 @@ function createScanSubmissionService({
     requestedBy,
     requestedModules,
     idempotencyKey = null,
+    jobPayloadByModule = null,
   }) {
     if (!organizationId || !targetId || !requestedBy) {
       throw new HttpError(400, 'Organization, target and requester are required.', 'INVALID_SCAN_REQUEST');
@@ -113,6 +114,7 @@ function createScanSubmissionService({
       scannerVersion,
       contractVersion,
       idempotencyKey: normalizedIdempotencyKey,
+      ...(jobPayloadByModule ? { jobPayloadByModule } : {}),
     });
   }
 

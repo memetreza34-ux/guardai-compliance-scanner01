@@ -25,6 +25,10 @@ export interface WorkspaceFindingSummary {
   message: string | null;
   remediation: string | null;
   latestObservedAt: string | null;
+  latestDetectorId: string | null;
+  resolutionVerification: 'verified' | 'unverified' | null;
+  verifiedByScanId: string | null;
+  verifiedAt: string | null;
 }
 
 export interface FindingListPage {

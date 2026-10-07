@@ -22,7 +22,7 @@ test('finding list includes the newest technical observation without weakening t
           rule_id: 'security.hsts',
           rule_title: 'HSTS is missing',
           fingerprint: 'fingerprint',
-          status: 'open',
+          status: 'resolved',
           status_reason: 'First observed by scanner',
           status_updated_at: '2026-10-06T13:00:00Z',
           status_updated_by: null,
@@ -39,6 +39,10 @@ test('finding list includes the newest technical observation without weakening t
           message: 'Strict-Transport-Security was not observed.',
           remediation: 'Enable HSTS after validating HTTPS coverage.',
           latest_observed_at: '2026-10-06T13:00:01Z',
+          latest_detector_id: 'security-headers',
+          latest_status_to: 'resolved',
+          latest_status_scan_id: '66666666-6666-4666-8666-666666666666',
+          latest_status_created_at: '2026-10-06T14:00:00Z',
         }],
       };
     },
@@ -56,4 +60,7 @@ test('finding list includes the newest technical observation without weakening t
   assert.equal(page.findings[0].ruleVersion, '3');
   assert.equal(page.findings[0].latestScanId, '44444444-4444-4444-8444-444444444444');
   assert.deepEqual(page.findings[0].evidenceIds, ['55555555-5555-4555-8555-555555555555']);
+  assert.equal(page.findings[0].latestDetectorId, 'security-headers');
+  assert.equal(page.findings[0].resolutionVerification, 'verified');
+  assert.equal(page.findings[0].verifiedByScanId, '66666666-6666-4666-8666-666666666666');
 });

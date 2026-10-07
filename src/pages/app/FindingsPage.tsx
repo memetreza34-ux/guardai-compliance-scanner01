@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, ExternalLink, RefreshCw, ShieldAlert } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ExternalLink, RefreshCw, RotateCcw, ShieldAlert } from 'lucide-react';
 import { useAuth } from '../../auth/AuthProvider';
 import { createFindingApi } from '../../api/findingApi';
-import { createWorkspaceApi } from '../../api/workspaceApi';
+import { createScanIdempotencyKey, createWorkspaceApi } from '../../api/workspaceApi';
 import { useWorkspace } from '../../providers/WorkspaceProvider';
 import type { FindingLifecycleStatus, FindingTechnicalSeverity, WorkspaceFindingSummary } from '../../types/findingLifecycle';
 
@@ -21,7 +21,8 @@ function severityClass(severity: FindingTechnicalSeverity | null) {
 }
 
 function statusLabel(finding: WorkspaceFindingSummary) {
-  if (finding.status === 'resolved') return 'Resolved — not scan-verified';
+  if (finding.status === 'resolved' && finding.resolutionVerification === 'verified') return 'Verified resolved';
+  if (finding.status === 'resolved') return 'Resolved — unverified';
   if (finding.status === 'accepted_risk') return 'Accepted risk';
   return 'Open';
 }
@@ -38,6 +39,7 @@ export default function FindingsPage() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [actionBusy, setActionBusy] = useState<string | null>(null);
   const [retry, setRetry] = useState(0);
 
   useEffect(() => {
@@ -99,6 +101,46 @@ export default function FindingsPage() {
       setError(err instanceof Error ? err.message : 'Failed to load more findings.');
     } finally {
       setLoadingMore(false);
+    }
+  }
+
+  const canMutate = currentOrg?.role === 'owner' || currentOrg?.role === 'admin' || currentOrg?.role === 'member';
+
+  async function markFixedUnverified(finding: WorkspaceFindingSummary) {
+    if (!session?.access_token || !currentOrg || !canMutate) return;
+    setActionBusy(`resolve:${finding.id}`);
+    setError(null);
+    try {
+      const api = createFindingApi(async () => session.access_token);
+      await api.updateFindingStatus(
+        currentOrg.id,
+        finding.id,
+        'resolved',
+        'Marked fixed by user; awaiting technical verification re-test.',
+      );
+      setRetry(value => value + 1);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update finding.');
+    } finally {
+      setActionBusy(null);
+    }
+  }
+
+  async function requestRetest(finding: WorkspaceFindingSummary) {
+    if (!session?.access_token || !currentOrg || !canMutate) return;
+    setActionBusy(`retest:${finding.id}`);
+    setError(null);
+    try {
+      const api = createFindingApi(async () => session.access_token);
+      const submission = await api.requestFindingRetest(
+        currentOrg.id,
+        finding.id,
+        createScanIdempotencyKey(),
+      );
+      navigate(`/app/scans/${submission.scan.id}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to start finding re-test.');
+      setActionBusy(null);
     }
   }
 
@@ -218,9 +260,56 @@ export default function FindingsPage() {
                 </div>
               )}
 
-              {finding.status === 'resolved' && (
+              {finding.status === 'resolved' && finding.resolutionVerification === 'verified' && (
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4">
+                  <div>
+                    <div className="flex items-center gap-2 text-sm font-medium text-emerald-300">
+                      <CheckCircle2 className="h-4 w-4" /> Verified resolved by GuardAI re-test
+                    </div>
+                    <div className="mt-1 text-xs text-emerald-300/70">
+                      Verified {formatDate(finding.verifiedAt)}. A later rediscovery will reopen this finding.
+                    </div>
+                  </div>
+                  {finding.verifiedByScanId && (
+                    <button
+                      onClick={() => navigate(`/app/scans/${finding.verifiedByScanId}`)}
+                      className="rounded-lg border border-emerald-500/20 px-3 py-2 text-xs font-medium text-emerald-200 hover:bg-emerald-500/10"
+                    >
+                      View verification scan
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {finding.status === 'resolved' && finding.resolutionVerification !== 'verified' && (
                 <div className="mt-4 text-xs text-amber-400/90">
-                  This finding is marked resolved in the workflow. GuardAI has not yet represented this state as a verified re-test result.
+                  Marked fixed by workflow, but not yet verified by a GuardAI re-test.
+                </div>
+              )}
+
+              {canMutate && finding.status !== 'accepted_risk' && (
+                <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-800 pt-4">
+                  {finding.status === 'open' && (
+                    <button
+                      type="button"
+                      disabled={actionBusy !== null}
+                      onClick={() => markFixedUnverified(finding)}
+                      className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs font-medium text-slate-300 hover:bg-slate-800 disabled:opacity-50"
+                    >
+                      {actionBusy === `resolve:${finding.id}` ? 'Saving...' : 'Mark fixed (unverified)'}
+                    </button>
+                  )}
+                  {finding.ruleId?.startsWith('security.') && finding.latestDetectorId && (
+                    <button
+                      type="button"
+                      disabled={actionBusy !== null}
+                      onClick={() => requestRetest(finding)}
+                      className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" />
+                      {actionBusy === `retest:${finding.id}` ? 'Starting re-test...' : 'Re-test finding'}
+                    </button>
+                  )}
                 </div>
               )}
             </article>

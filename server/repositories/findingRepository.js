@@ -40,6 +40,18 @@ function mapFinding(row) {
     message: row.message || null,
     remediation: row.remediation || null,
     latestObservedAt: row.latest_observed_at || null,
+    latestDetectorId: row.latest_detector_id || null,
+    resolutionVerification: row.status === 'resolved'
+      ? (row.latest_status_to === 'resolved' && row.latest_status_scan_id ? 'verified' : 'unverified')
+      : null,
+    verifiedByScanId:
+      row.status === 'resolved' && row.latest_status_to === 'resolved'
+        ? (row.latest_status_scan_id || null)
+        : null,
+    verifiedAt:
+      row.status === 'resolved' && row.latest_status_to === 'resolved' && row.latest_status_scan_id
+        ? (row.latest_status_created_at || null)
+        : null,
   };
 }
 
@@ -75,7 +87,18 @@ function createFindingRepository(pool) {
               latest.evidence_ids,
               latest.message,
               latest.remediation,
-              latest.created_at as latest_observed_at
+              latest.created_at as latest_observed_at,
+              (
+                select e.detector_id
+                  from public.evidence e
+                 where e.organization_id = f.organization_id
+                   and e.id = any(latest.evidence_ids)
+                 order by e.captured_at desc, e.id desc
+                 limit 1
+              ) as latest_detector_id,
+              latest_status.to_status as latest_status_to,
+              latest_status.scan_id as latest_status_scan_id,
+              latest_status.created_at as latest_status_created_at
          from public.findings f
          left join public.rules r on r.id = f.rule_id
          left join lateral (
@@ -88,6 +111,14 @@ function createFindingRepository(pool) {
             order by fi.created_at desc, fi.id desc
             limit 1
          ) latest on true
+         left join lateral (
+           select se.to_status, se.scan_id, se.created_at
+             from public.finding_status_events se
+            where se.organization_id = f.organization_id
+              and se.finding_id = f.id
+            order by se.created_at desc, se.id desc
+            limit 1
+         ) latest_status on true
         where f.organization_id = $1 and f.id = $2
         limit 1`,
       [organizationId, findingId],
@@ -131,7 +162,18 @@ function createFindingRepository(pool) {
               latest.evidence_ids,
               latest.message,
               latest.remediation,
-              latest.created_at as latest_observed_at
+              latest.created_at as latest_observed_at,
+              (
+                select e.detector_id
+                  from public.evidence e
+                 where e.organization_id = f.organization_id
+                   and e.id = any(latest.evidence_ids)
+                 order by e.captured_at desc, e.id desc
+                 limit 1
+              ) as latest_detector_id,
+              latest_status.to_status as latest_status_to,
+              latest_status.scan_id as latest_status_scan_id,
+              latest_status.created_at as latest_status_created_at
          from public.findings f
          left join public.rules r on r.id = f.rule_id
          left join lateral (
@@ -144,6 +186,14 @@ function createFindingRepository(pool) {
             order by fi.created_at desc, fi.id desc
             limit 1
          ) latest on true
+         left join lateral (
+           select se.to_status, se.scan_id, se.created_at
+             from public.finding_status_events se
+            where se.organization_id = f.organization_id
+              and se.finding_id = f.id
+            order by se.created_at desc, se.id desc
+            limit 1
+         ) latest_status on true
         where ${where.join(' and ')}
         order by f.status_updated_at desc, f.id desc
         limit ${limitIndex}`,

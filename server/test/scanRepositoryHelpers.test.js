@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
+  assertJobPayloadsMatch,
   assertIdempotentRequestMatches,
   sameStringArray,
 } = require('../repositories/scanRepository');
@@ -48,5 +49,37 @@ test('idempotent key reuse with different request fails', () => {
       },
     ),
     (error) => error.code === 'IDEMPOTENCY_KEY_REUSED' && error.statusCode === 409,
+  );
+});
+
+
+test('idempotent scan replay rejects different internal job context', () => {
+  const jobs = [{
+    jobType: 'security',
+    payload: {
+      purpose: 'finding_retest',
+      findingId: 'finding-a',
+    },
+  }];
+
+  assert.doesNotThrow(() => assertJobPayloadsMatch(jobs, {
+    jobPayloadByModule: {
+      security: {
+        purpose: 'finding_retest',
+        findingId: 'finding-a',
+      },
+    },
+  }));
+
+  assert.throws(
+    () => assertJobPayloadsMatch(jobs, {
+      jobPayloadByModule: {
+        security: {
+          purpose: 'finding_retest',
+          findingId: 'finding-b',
+        },
+      },
+    }),
+    (error) => error.code === 'IDEMPOTENCY_KEY_REUSED',
   );
 });

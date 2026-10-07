@@ -1,5 +1,6 @@
 import type { AccessTokenProvider } from './apiClient';
 import { createAuthenticatedApiClient, GuardApiError } from './apiClient';
+import type { PersistentScanSubmission } from '../types/workspace';
 import type {
   FindingLifecycleStatus,
   FindingListPage,
@@ -85,6 +86,24 @@ export function createFindingApi(getAccessToken: AccessTokenProvider) {
     return requireRecord(payload.finding, 'Finding') as unknown as WorkspaceFindingSummary;
   }
 
+  async function requestFindingRetest(
+    organizationId: string,
+    findingId: string,
+    idempotencyKey: string,
+  ): Promise<PersistentScanSubmission> {
+    const payload = requireRecord(
+      await client.request(
+        `/organizations/${encodeURIComponent(organizationId)}/findings/${encodeURIComponent(findingId)}/retest`,
+        {
+          method: 'POST',
+          headers: { 'Idempotency-Key': idempotencyKey },
+        },
+      ),
+      'Finding re-test',
+    );
+    return payload as unknown as PersistentScanSubmission;
+  }
+
   async function getFindingHistory(
     organizationId: string,
     findingId: string,
@@ -109,6 +128,7 @@ export function createFindingApi(getAccessToken: AccessTokenProvider) {
     getFinding,
     getFindingHistory,
     listFindings,
+    requestFindingRetest,
     updateFindingStatus,
   };
 }
