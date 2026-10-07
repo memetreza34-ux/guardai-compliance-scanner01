@@ -5,6 +5,7 @@ import {
   Bell,
   BookOpenCheck,
   FileCheck,
+  GitCompareArrows,
   LayoutDashboard,
   ListChecks,
   LogOut,
@@ -47,6 +48,7 @@ const navSections = [
     label: 'Monitor',
     items: [
       { name: 'Monitoring', path: '/app/monitoring', icon: Activity },
+      { name: 'Drift', path: '/app/drift', icon: GitCompareArrows },
       { name: 'Notifications', path: '/app/notifications', icon: Bell },
     ],
   },
