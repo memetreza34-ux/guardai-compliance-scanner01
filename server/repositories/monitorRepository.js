@@ -6,6 +6,17 @@ const {
 } = require('../domain/monitoring');
 const { assertWorkerId, assertLeaseSeconds } = require('../domain/jobLifecycle');
 
+function monitorStorageError(error) {
+  if (error?.code === '42P01') {
+    return new HttpError(
+      503,
+      'Monitoring storage is not provisioned in this GuardAI environment.',
+      'MONITORING_STORAGE_NOT_READY',
+    );
+  }
+  return error;
+}
+
 function mapMonitorRow(row) {
   return {
     id: row.id,
@@ -42,7 +53,9 @@ function createMonitorRepository(pool) {
   async function createMonitor({ organizationId, targetId, moduleId, scheduleMinutes, createdBy }) {
     const normalizedModule = normalizeMonitorModule(moduleId);
     const normalizedInterval = normalizeMonitorInterval(scheduleMinutes);
-    const result = await pool.query(
+    let result;
+    try {
+      result = await pool.query(
       `insert into public.monitors (
          organization_id, target_id, module_id, status,
          schedule_minutes, next_run_at, created_by
@@ -58,16 +71,24 @@ function createMonitorRepository(pool) {
                  schedule_minutes, next_run_at, leased_at, lease_expires_at,
                  created_by, created_at, updated_at`,
       [organizationId, targetId, normalizedModule, normalizedInterval, createdBy],
-    );
+      );
+    } catch (error) {
+      throw monitorStorageError(error);
+    }
     if (result.rowCount > 0) return mapMonitorRow(result.rows[0]);
 
-    const target = await pool.query(
+    let target;
+    try {
+      target = await pool.query(
       `select type, verification_state
          from public.targets
         where organization_id = $1 and id = $2
         limit 1`,
       [organizationId, targetId],
-    );
+      );
+    } catch (error) {
+      throw monitorStorageError(error);
+    }
     if (target.rowCount === 0) {
       throw new HttpError(404, 'Target was not found in this organization.', 'TARGET_NOT_FOUND');
     }
@@ -86,7 +107,9 @@ function createMonitorRepository(pool) {
   }
 
   async function listMonitors(organizationId) {
-    const result = await pool.query(
+    let result;
+    try {
+      result = await pool.query(
       `select id, organization_id, target_id, module_id, status,
               schedule_minutes, next_run_at, leased_at, lease_expires_at,
               created_by, created_at, updated_at
@@ -95,7 +118,10 @@ function createMonitorRepository(pool) {
           and status <> 'disabled'
         order by created_at desc`,
       [organizationId],
-    );
+      );
+    } catch (error) {
+      throw monitorStorageError(error);
+    }
     return result.rows.map(mapMonitorRow);
   }
 
@@ -103,7 +129,9 @@ function createMonitorRepository(pool) {
     if (!['active', 'paused', 'disabled'].includes(status)) {
       throw new HttpError(400, 'Monitor status is invalid.', 'INVALID_MONITOR_STATUS');
     }
-    const result = await pool.query(
+    let result;
+    try {
+      result = await pool.query(
       `update public.monitors
           set status = $3,
               leased_at = null,
@@ -119,7 +147,10 @@ function createMonitorRepository(pool) {
                   schedule_minutes, next_run_at, leased_at, lease_expires_at,
                   created_by, created_at, updated_at`,
       [organizationId, monitorId, status],
-    );
+      );
+    } catch (error) {
+      throw monitorStorageError(error);
+    }
     return result.rowCount > 0 ? mapMonitorRow(result.rows[0]) : null;
   }
 
@@ -291,6 +322,7 @@ function createMonitorRepository(pool) {
 
 module.exports = {
   createMonitorRepository,
+  monitorStorageError,
   mapMonitorRow,
   mapMonitorRunRow,
 };
