@@ -1,5 +1,5 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { Archive, Brain, CheckCircle2, FileSearch, Plus, RefreshCw, ShieldAlert, X } from 'lucide-react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { Archive, Brain, FileSearch, Plus, RefreshCw, ShieldAlert, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { GuardApiError } from '../../api/apiClient';
 import { createAiGovernanceApi } from '../../api/aiGovernanceApi';
