@@ -2,6 +2,7 @@ const express = require('express');
 const { z } = require('zod');
 const { requireAuth } = require('../auth/supabaseAuth');
 const { sendRouteError } = require('../middleware/errorHandler');
+const { HttpError } = require('../lib/httpError');
 const { getPersistenceServices } = require('../services/persistenceServices');
 
 const router = express.Router();
@@ -12,6 +13,21 @@ const organizationParamsSchema = z.object({
 const checkoutBodySchema = z.object({
   plan: z.string().regex(/^[a-z0-9][a-z0-9._-]{1,79}$/),
 });
+
+function normalizeBillingStorageError(error) {
+  if (error?.code === '42P01' || error?.code === '42703') {
+    return new HttpError(
+      503,
+      'Billing storage is not fully provisioned in this GuardAI environment.',
+      'BILLING_STORAGE_NOT_READY',
+    );
+  }
+  return error;
+}
+
+function sendBillingRouteError(res, error, label) {
+  sendRouteError(res, normalizeBillingStorageError(error), label);
+}
 
 router.get('/organizations/:organizationId/billing', requireAuth, async (req, res) => {
   try {
@@ -24,7 +40,7 @@ router.get('/organizations/:organizationId/billing', requireAuth, async (req, re
       }),
     });
   } catch (error) {
-    sendRouteError(res, error, 'Billing Status');
+    sendBillingRouteError(res, error, 'Billing Status');
   }
 });
 
@@ -42,7 +58,7 @@ router.post('/organizations/:organizationId/billing/checkout-session', requireAu
     });
     res.status(checkout.idempotentReplay ? 200 : 201).json({ checkout });
   } catch (error) {
-    sendRouteError(res, error, 'Billing Checkout');
+    sendBillingRouteError(res, error, 'Billing Checkout');
   }
 });
 
@@ -55,11 +71,12 @@ async function stripeWebhookHandler(req, res) {
     });
     res.json({ received: true, ...result });
   } catch (error) {
-    sendRouteError(res, error, 'Stripe Webhook');
+    sendBillingRouteError(res, error, 'Stripe Webhook');
   }
 }
 
 module.exports = {
   billingRoutes: router,
   stripeWebhookHandler,
+  normalizeBillingStorageError,
 };
