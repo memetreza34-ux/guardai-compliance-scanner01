@@ -28,6 +28,15 @@ function createMonitoringService({ organizationAuthorization, monitorRepository 
     return monitorRepository.listMonitors(organizationId);
   }
 
+  async function runs({ organizationId, userId, monitorId, limit }) {
+    await organizationAuthorization.requireRole(organizationId, userId, 'viewer');
+    const monitor = await monitorRepository.getMonitor(organizationId, monitorId);
+    if (!monitor) {
+      throw new HttpError(404, 'Monitor was not found in this organization.', 'MONITOR_NOT_FOUND');
+    }
+    return monitorRepository.listMonitorRuns({ organizationId, monitorId, limit });
+  }
+
   async function changeStatus({ organizationId, userId, monitorId, status }) {
     await organizationAuthorization.requireRole(organizationId, userId, 'admin');
     const monitor = await monitorRepository.setStatus({ organizationId, monitorId, status });
@@ -37,7 +46,7 @@ function createMonitoringService({ organizationAuthorization, monitorRepository 
     return monitor;
   }
 
-  return { changeStatus, create, list };
+  return { changeStatus, create, list, runs };
 }
 
 module.exports = { createMonitoringService };
