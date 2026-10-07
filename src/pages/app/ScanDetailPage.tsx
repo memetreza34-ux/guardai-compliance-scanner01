@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Clock3, FileCheck2, RefreshCw, ShieldAlert, ShieldCheck, XCircle } from 'lucide-react';
+import { ArrowLeft, Clock3, FileCheck2, FileText, RefreshCw, ShieldAlert, ShieldCheck, XCircle } from 'lucide-react';
 import { useAuth } from '../../auth/AuthProvider';
 import { createWorkspaceApi } from '../../api/workspaceApi';
+import { createReportApi } from '../../api/reportApi';
 import { useWorkspace } from '../../providers/WorkspaceProvider';
 import type {
   PersistentFindingSeverity,
@@ -41,6 +42,8 @@ export default function ScanDetailPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [manualRefresh, setManualRefresh] = useState(0);
+  const [reportBusy, setReportBusy] = useState(false);
+  const [reportError, setReportError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -119,6 +122,22 @@ export default function ScanDetailPage() {
 
   const { scan, jobs, evidence, findings } = result;
   const active = scan.status === 'queued' || scan.status === 'running';
+  const canCreateReport = currentOrg?.role === 'owner' || currentOrg?.role === 'admin' || currentOrg?.role === 'member';
+
+  async function createImmutableReport() {
+    if (!session?.access_token || !currentOrg || scan.status !== 'completed' || !canCreateReport || reportBusy) return;
+    setReportBusy(true);
+    setReportError(null);
+    try {
+      const api = createReportApi(async () => session.access_token);
+      const created = await api.createReport(currentOrg.id, scan.id);
+      navigate(`/app/reports/${created.report.id}`);
+    } catch (err) {
+      setReportError(err instanceof Error ? err.message : 'Failed to create report snapshot.');
+    } finally {
+      setReportBusy(false);
+    }
+  }
 
   return (
     <div className="max-w-6xl mx-auto space-y-7 animate-in fade-in duration-500">
@@ -126,18 +145,36 @@ export default function ScanDetailPage() {
         <button onClick={() => navigate('/app/scans')} className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-slate-200">
           <ArrowLeft className="h-4 w-4" /> Back to scans
         </button>
-        <button
-          onClick={() => setManualRefresh(value => value + 1)}
-          disabled={refreshing}
-          className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800 disabled:opacity-50"
-        >
-          <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} /> Refresh
-        </button>
+        <div className="flex flex-wrap gap-2">
+          {scan.status === 'completed' && canCreateReport && (
+            <button
+              onClick={createImmutableReport}
+              disabled={reportBusy}
+              className="inline-flex items-center gap-2 rounded-lg border border-indigo-500/20 bg-indigo-500/10 px-3 py-2 text-sm font-medium text-indigo-300 hover:bg-indigo-500/15 disabled:opacity-50"
+            >
+              <FileText className="h-4 w-4" />
+              {reportBusy ? 'Creating report…' : 'Create immutable report'}
+            </button>
+          )}
+          <button
+            onClick={() => setManualRefresh(value => value + 1)}
+            disabled={refreshing}
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800 disabled:opacity-50"
+          >
+            <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} /> Refresh
+          </button>
+        </div>
       </div>
 
       {error && (
         <div role="alert" className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-300">
           GuardAI could not refresh the latest scan state: {error}. The data shown below is the last successfully loaded state and may be stale.
+        </div>
+      )}
+
+      {reportError && (
+        <div role="alert" className="rounded-xl border border-rose-500/20 bg-rose-500/10 p-4 text-sm text-rose-300">
+          {reportError}
         </div>
       )}
 
