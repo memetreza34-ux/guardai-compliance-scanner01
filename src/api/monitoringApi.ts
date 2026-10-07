@@ -7,6 +7,7 @@ import type {
   MonitorStatus,
   NotificationPage,
   WorkspaceMonitor,
+  WorkspaceMonitorRun,
   WorkspaceNotification,
 } from '../types/monitoring';
 
@@ -37,6 +38,26 @@ export function createMonitoringApi(getAccessToken: AccessTokenProvider) {
       throw new GuardApiError('Monitor list response is invalid.', 'INVALID_API_RESPONSE', 200);
     }
     return payload.monitors.map(requireMonitor);
+  }
+
+  async function listMonitorRuns(
+    organizationId: string,
+    monitorId: string,
+    limit = 20,
+  ): Promise<WorkspaceMonitorRun[]> {
+    const safeLimit = Math.min(Math.max(Math.trunc(limit), 1), 100);
+    const payload = await client.request(
+      `/organizations/${encodeURIComponent(organizationId)}/monitors/${encodeURIComponent(monitorId)}/runs?limit=${safeLimit}`,
+    );
+    if (!isRecord(payload) || !Array.isArray(payload.runs)) {
+      throw new GuardApiError('Monitor run response is invalid.', 'INVALID_API_RESPONSE', 200);
+    }
+    return payload.runs.map((value) => {
+      if (!isRecord(value) || typeof value.id !== 'string' || typeof value.scanId !== 'string') {
+        throw new GuardApiError('Monitor run response is invalid.', 'INVALID_API_RESPONSE', 200);
+      }
+      return value as unknown as WorkspaceMonitorRun;
+    });
   }
 
   async function createMonitor(
@@ -125,6 +146,7 @@ export function createMonitoringApi(getAccessToken: AccessTokenProvider) {
 
   return {
     createMonitor,
+    listMonitorRuns,
     listMonitors,
     listNotifications,
     markAllNotificationsRead,
