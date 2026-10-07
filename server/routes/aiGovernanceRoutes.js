@@ -2,6 +2,7 @@ const express = require('express');
 const { z } = require('zod');
 const { requireAuth } = require('../auth/supabaseAuth');
 const { sendRouteError } = require('../middleware/errorHandler');
+const { HttpError } = require('../lib/httpError');
 const { getPersistenceServices } = require('../services/persistenceServices');
 
 const router = express.Router();
@@ -53,6 +54,21 @@ function service() {
   return getPersistenceServices().aiGovernanceService;
 }
 
+function normalizeAiGovernanceStorageError(error) {
+  if (error?.code === '42P01') {
+    return new HttpError(
+      503,
+      'AI Governance storage is not provisioned in this GuardAI environment.',
+      'AI_GOVERNANCE_STORAGE_NOT_READY',
+    );
+  }
+  return error;
+}
+
+function sendAiGovernanceRouteError(res, error, label) {
+  sendRouteError(res, normalizeAiGovernanceStorageError(error), label);
+}
+
 router.get('/organizations/:organizationId/ai-systems', requireAuth, async (req, res) => {
   try {
     const params = organizationParamsSchema.parse(req.params);
@@ -65,7 +81,7 @@ router.get('/organizations/:organizationId/ai-systems', requireAuth, async (req,
       }),
     });
   } catch (error) {
-    sendRouteError(res, error, 'AI Governance System List');
+    sendAiGovernanceRouteError(res, error, 'AI Governance System List');
   }
 });
 
@@ -80,7 +96,7 @@ router.post('/organizations/:organizationId/ai-systems', requireAuth, async (req
     });
     res.status(201).json({ system });
   } catch (error) {
-    sendRouteError(res, error, 'AI Governance System Create');
+    sendAiGovernanceRouteError(res, error, 'AI Governance System Create');
   }
 });
 
@@ -95,7 +111,7 @@ router.get('/organizations/:organizationId/ai-systems/:systemId', requireAuth, a
       }),
     });
   } catch (error) {
-    sendRouteError(res, error, 'AI Governance System Get');
+    sendAiGovernanceRouteError(res, error, 'AI Governance System Get');
   }
 });
 
@@ -112,7 +128,7 @@ router.put('/organizations/:organizationId/ai-systems/:systemId', requireAuth, a
       }),
     });
   } catch (error) {
-    sendRouteError(res, error, 'AI Governance System Update');
+    sendAiGovernanceRouteError(res, error, 'AI Governance System Update');
   }
 });
 
@@ -128,7 +144,7 @@ router.post('/organizations/:organizationId/ai-systems/:systemId/archive', requi
       }),
     });
   } catch (error) {
-    sendRouteError(res, error, 'AI Governance System Archive');
+    sendAiGovernanceRouteError(res, error, 'AI Governance System Archive');
   }
 });
 
@@ -143,7 +159,7 @@ router.post('/organizations/:organizationId/ai-systems/:systemId/reviews', requi
     });
     res.status(201).json({ review });
   } catch (error) {
-    sendRouteError(res, error, 'AI Governance Review Create');
+    sendAiGovernanceRouteError(res, error, 'AI Governance Review Create');
   }
 });
 
@@ -159,7 +175,7 @@ router.get('/organizations/:organizationId/ai-governance/reviews', requireAuth, 
       }),
     });
   } catch (error) {
-    sendRouteError(res, error, 'AI Governance Review List');
+    sendAiGovernanceRouteError(res, error, 'AI Governance Review List');
   }
 });
 
@@ -174,7 +190,7 @@ router.get('/organizations/:organizationId/ai-governance/reviews/:reviewId', req
       }),
     });
   } catch (error) {
-    sendRouteError(res, error, 'AI Governance Review Get');
+    sendAiGovernanceRouteError(res, error, 'AI Governance Review Get');
   }
 });
 
@@ -195,7 +211,7 @@ for (const [action, method] of [
         }),
       });
     } catch (error) {
-      sendRouteError(res, error, `AI Governance Review ${action}`);
+      sendAiGovernanceRouteError(res, error, `AI Governance Review ${action}`);
     }
   });
 }
@@ -203,4 +219,5 @@ for (const [action, method] of [
 module.exports = {
   aiGovernanceRoutes: router,
   declarationSchema,
+  normalizeAiGovernanceStorageError,
 };
