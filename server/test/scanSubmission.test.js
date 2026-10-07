@@ -87,3 +87,34 @@ test('scan submission authorizes organization and persists queue request with de
     idempotencyKey: 'request-12345',
   });
 });
+
+
+test('scan submission forwards internal module context only when explicitly provided', async () => {
+  let received = null;
+  const service = createScanSubmissionService({
+    organizationAuthorization,
+    scanRepository: {
+      async createQueuedScanWithJobs(input) {
+        received = input;
+        return { created: true, scan: { id: 'scan-r', status: 'queued' }, jobs: [] };
+      },
+    },
+    scannerVersion: '0.1.0',
+    contractVersion: '0.2.0',
+  });
+
+  await service.submit({
+    organizationId: 'org-a',
+    targetId: 'target-a',
+    requestedBy: 'user-a',
+    requestedModules: ['security'],
+    idempotencyKey: 'retest-request-123',
+    jobPayloadByModule: {
+      security: { purpose: 'finding_retest', findingId: 'finding-1' },
+    },
+  });
+
+  assert.deepEqual(received.jobPayloadByModule, {
+    security: { purpose: 'finding_retest', findingId: 'finding-1' },
+  });
+});
