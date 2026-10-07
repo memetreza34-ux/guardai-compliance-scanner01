@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 1,
+  "frameworks": [
+    {
+      "id": "guardai-security-baseline",
+      "version": 1,
+      "title": "GuardAI Technical Security Baseline",
+      "description": "GuardAI's internal technical baseline for the currently implemented website security detector. It organizes existing technical rules into reusable controls and requirements without claiming certification or external framework conformity.",
+      "kind": "technical_internal",
+      "claimBoundary": "This framework is an internal GuardAI technical baseline. Coverage or the absence of mapped findings is not an auditor opinion, certification, legal compliance determination, penetration test, or proof that no other security issues exist.",
+      "controlIds": [
+        "GA-SEC-01",
+        "GA-SEC-02",
+        "GA-SEC-03",
+        "GA-SEC-04"
+      ],
+      "requirementIds": [
+        "GA-SEC-01.1",
+        "GA-SEC-01.2",
+        "GA-SEC-02.1",
+        "GA-SEC-02.2",
+        "GA-SEC-02.3",
+        "GA-SEC-03.1",
+        "GA-SEC-04.1"
+      ]
+    }
+  ],
+  "controls": [
+    {
+      "id": "GA-SEC-01",
+      "title": "Secure transport",
+      "category": "transport",
+      "description": "Observe whether the assessed website uses HTTPS and whether HSTS is present when applicable.",
+      "requirementIds": ["GA-SEC-01.1", "GA-SEC-01.2"],
+      "mappedRuleIds": [
+        "security.https_transport",
+        "security.strict_transport_security"
+      ]
+    },
+    {
+      "id": "GA-SEC-02",
+      "title": "Browser response protections",
+      "category": "headers",
+      "description": "Observe supported browser-facing response protections on the assessed HTTP response.",
+      "requirementIds": ["GA-SEC-02.1", "GA-SEC-02.2", "GA-SEC-02.3"],
+      "mappedRuleIds": [
+        "security.content_security_policy",
+        "security.frame_protection",
+        "security.content_type_nosniff"
+      ]
+    },
+    {
+      "id": "GA-SEC-03",
+      "title": "Secure cookie delivery",
+      "category": "cookies",
+      "description": "Observe whether cookies set by the assessed HTTPS response carry the Secure attribute.",
+      "requirementIds": ["GA-SEC-03.1"],
+      "mappedRuleIds": [
+        "security.cookie_secure"
+      ]
+    },
+    {
+      "id": "GA-SEC-04",
+      "title": "Mixed-content avoidance",
+      "category": "content",
+      "description": "Observe supported absolute HTTP resource references in the bounded HTML body of an HTTPS response.",
+      "requirementIds": ["GA-SEC-04.1"],
+      "mappedRuleIds": [
+        "security.mixed_content"
+      ]
+    }
+  ],
+  "requirements": [
+    {
+      "id": "GA-SEC-01.1",
+      "controlId": "GA-SEC-01",
+      "title": "Website transport uses HTTPS",
+      "assessmentType": "automated_technical",
+      "mappedRuleIds": ["security.https_transport"],
+      "scopeBoundary": "Assesses only the final validated URL scheme reached by the GuardAI security worker; it does not evaluate the complete TLS configuration."
+    },
+    {
+      "id": "GA-SEC-01.2",
+      "controlId": "GA-SEC-01",
+      "title": "HSTS is present on the observed HTTPS response",
+      "assessmentType": "automated_technical",
+      "mappedRuleIds": ["security.strict_transport_security"],
+      "scopeBoundary": "Assesses header presence on the observed HTTPS response only; it does not prove preload readiness, subdomain correctness, or route-wide coverage."
+    },
+    {
+      "id": "GA-SEC-02.1",
+      "controlId": "GA-SEC-02",
+      "title": "Content-Security-Policy is present",
+      "assessmentType": "automated_technical",
+      "mappedRuleIds": ["security.content_security_policy"],
+      "scopeBoundary": "Assesses CSP header presence on the observed response; it does not fully evaluate policy strength or application-wide coverage."
+    },
+    {
+      "id": "GA-SEC-02.2",
+      "controlId": "GA-SEC-02",
+      "title": "Frame embedding protection is observed",
+      "assessmentType": "automated_technical",
+      "mappedRuleIds": ["security.frame_protection"],
+      "scopeBoundary": "Assesses the supported X-Frame-Options or CSP frame-ancestors mechanisms on the observed response."
+    },
+    {
+      "id": "GA-SEC-02.3",
+      "controlId": "GA-SEC-02",
+      "title": "X-Content-Type-Options nosniff is observed",
+      "assessmentType": "automated_technical",
+      "mappedRuleIds": ["security.content_type_nosniff"],
+      "scopeBoundary": "Assesses the observed response header value only."
+    },
+    {
+      "id": "GA-SEC-03.1",
+      "controlId": "GA-SEC-03",
+      "title": "Observed HTTPS cookies use the Secure attribute",
+      "assessmentType": "automated_technical",
+      "mappedRuleIds": ["security.cookie_secure"],
+      "scopeBoundary": "Assesses cookies set by the observed response only; cookies created on other routes or by client-side code may remain outside coverage."
+    },
+    {
+      "id": "GA-SEC-04.1",
+      "controlId": "GA-SEC-04",
+      "title": "No supported mixed HTTP resources are observed",
+      "assessmentType": "automated_technical",
+      "mappedRuleIds": ["security.mixed_content"],
+      "scopeBoundary": "Assesses supported resource attributes in the bounded observed HTML document; runtime-generated or unsupported references may remain unassessed."
+    }
+  ],
+  "externalMappings": []
+}
