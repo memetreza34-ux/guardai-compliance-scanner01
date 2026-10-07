@@ -34,6 +34,7 @@ const DriftPage = lazy(() => import('./pages/app/DriftPage'));
 const ReportsPage = lazy(() => import('./pages/app/ReportsPage'));
 const ReportDetailPage = lazy(() => import('./pages/app/ReportDetailPage'));
 const TrustCenterPage = lazy(() => import('./pages/app/TrustCenterPage'));
+const IntegrationsPage = lazy(() => import('./pages/app/IntegrationsPage'));
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { session, isLoading, error } = useAuth();
@@ -98,6 +99,7 @@ export function AppRoutes() {
               <Route path="reports" element={<ReportsPage />} />
               <Route path="reports/:reportId" element={<ReportDetailPage />} />
               <Route path="trust-center" element={<TrustCenterPage />} />
+              <Route path="integrations" element={<IntegrationsPage />} />
               <Route path="*" element={<Navigate to="/app" replace />} />
             </Route>
 
