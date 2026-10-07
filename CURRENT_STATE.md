@@ -96,8 +96,8 @@ The repository contains substantial foundations for additional domains, but rout
 - **Monitoring:** ROUTED IN CODE at `/app/monitoring` using the existing tenant-scoped Monitor service. Admin/Owner can create, pause, resume and disable recurring Security monitors for verified Website Targets; Viewer/Member can read. Missing Monitor tables return `MONITORING_STORAGE_NOT_READY` instead of browser fallback.
 - **Notifications:** ROUTED IN CODE at `/app/notifications` using the existing tenant-scoped notification service. Users can filter unread events, mark one/all read and follow source scans/findings. Missing tables return `NOTIFICATION_STORAGE_NOT_READY`.
 - **Drift:** IMPLEMENTED as a read-only canonical monitored-event projection at `/app/drift`. It only emits scanner-originated Finding introductions/reappearances tied to a real `monitor_run`, excludes the first run of each Monitor as baseline, and excludes manual status changes. **Cleared Drift is not yet claimed** because ordinary Monitor scans do not yet automatically verify absence and resolve prior Findings.
-- **Reports / snapshots:** backend foundations exist; routed product UI is not yet active.
-- **Trust publication:** backend/public foundations exist; authenticated assurance workflow is not yet complete.
+- **Reports / snapshots:** ROUTED IN CODE. Members can create immutable technical report snapshots from completed Scans; viewers can browse and inspect frozen Target, Scan, scoring, Evidence, Finding, limitation and SHA-256 provenance.
+- **Trust publication:** ROUTED IN CODE at `/app/trust-center`. Admin/Owner can publish one immutable technical report through the existing curated public Trust projection, copy/open the public URL, and revoke publication without deleting the underlying report. Viewer/Member remain read-only for publication controls.
 - **GitHub integration:** foundations exist; full routed integration workflow is not yet active.
 - **AI Governance:** guided-review/evidence foundations exist; routed product UI remains unavailable in the current app shell.
 - **Privacy / accessibility browser scanning:** foundations exist but remain gated/fail-closed pending hardened runtime requirements.
@@ -129,6 +129,6 @@ AUTOMATED AI ASSESSMENT != LEGAL DETERMINATION
 
 1. Promote the Risk + Monitoring/Notification schema only in the dedicated GuardAI staging database and run tenant/invariant proof matrices.
 2. Add authoritative monitored-absence resolution before introducing `finding_cleared` Drift.
-3. Continue Assurance surfaces (Reports / Trust) using immutable report snapshots and explicit publication controls.
+3. Validate Reports + Trust publication against the staging database, then continue GitHub Integration and AI Governance product surfaces without weakening evidence/provenance boundaries.
 
 Do not expose placeholder enterprise modules merely to make the navigation look larger.
