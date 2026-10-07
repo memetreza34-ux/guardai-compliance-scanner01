@@ -4,14 +4,23 @@ import {
   type AccessTokenProvider,
 } from './apiClient';
 import type {
+  DriftEventPage,
   MonitorStatus,
   NotificationPage,
+  WorkspaceDriftEvent,
   WorkspaceMonitor,
   WorkspaceNotification,
 } from '../types/monitoring';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function requireDriftEvent(value: unknown): WorkspaceDriftEvent {
+  if (!isRecord(value) || typeof value.id !== 'string' || typeof value.type !== 'string') {
+    throw new GuardApiError('Drift event response is invalid.', 'INVALID_API_RESPONSE', 200);
+  }
+  return value as unknown as WorkspaceDriftEvent;
 }
 
 function requireMonitor(value: unknown): WorkspaceMonitor {
@@ -30,6 +39,26 @@ function requireNotification(value: unknown): WorkspaceNotification {
 
 export function createMonitoringApi(getAccessToken: AccessTokenProvider) {
   const client = createAuthenticatedApiClient(getAccessToken);
+
+  async function listDriftEvents(
+    organizationId: string,
+    options: { limit?: number; cursor?: string } = {},
+  ): Promise<DriftEventPage> {
+    const query = new URLSearchParams();
+    if (options.limit !== undefined) query.set('limit', String(options.limit));
+    if (options.cursor) query.set('cursor', options.cursor);
+    const suffix = query.size > 0 ? `?${query.toString()}` : '';
+    const payload = await client.request(
+      `/organizations/${encodeURIComponent(organizationId)}/drift-events${suffix}`,
+    );
+    if (!isRecord(payload) || !Array.isArray(payload.events)) {
+      throw new GuardApiError('Drift event list response is invalid.', 'INVALID_API_RESPONSE', 200);
+    }
+    return {
+      events: payload.events.map(requireDriftEvent),
+      nextCursor: typeof payload.nextCursor === 'string' ? payload.nextCursor : null,
+    };
+  }
 
   async function listMonitors(organizationId: string): Promise<WorkspaceMonitor[]> {
     const payload = await client.request(`/organizations/${encodeURIComponent(organizationId)}/monitors`);
@@ -125,6 +154,7 @@ export function createMonitoringApi(getAccessToken: AccessTokenProvider) {
 
   return {
     createMonitor,
+    listDriftEvents,
     listMonitors,
     listNotifications,
     markAllNotificationsRead,

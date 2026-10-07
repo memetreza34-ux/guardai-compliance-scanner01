@@ -95,7 +95,7 @@ The repository contains substantial foundations for additional domains, but rout
 
 - **Monitoring:** ROUTED IN CODE at `/app/monitoring` using the existing tenant-scoped Monitor service. Admin/Owner can create, pause, resume and disable recurring Security monitors for verified Website Targets; Viewer/Member can read. Missing Monitor tables return `MONITORING_STORAGE_NOT_READY` instead of browser fallback.
 - **Notifications:** ROUTED IN CODE at `/app/notifications` using the existing tenant-scoped notification service. Users can filter unread events, mark one/all read and follow source scans/findings. Missing tables return `NOTIFICATION_STORAGE_NOT_READY`.
-- **Drift:** PLANNED. GuardAI does not yet expose a canonical Drift object or claim that every repeated scan difference is a validated Drift event.
+- **Drift:** IMPLEMENTED as a read-only canonical monitored-event projection at `/app/drift`. It only emits scanner-originated Finding introductions/reappearances tied to a real `monitor_run`, excludes the first run of each Monitor as baseline, and excludes manual status changes. **Cleared Drift is not yet claimed** because ordinary Monitor scans do not yet automatically verify absence and resolve prior Findings.
 - **Reports / snapshots:** backend foundations exist; routed product UI is not yet active.
 - **Trust publication:** backend/public foundations exist; authenticated assurance workflow is not yet complete.
 - **GitHub integration:** foundations exist; full routed integration workflow is not yet active.
@@ -128,7 +128,7 @@ AUTOMATED AI ASSESSMENT != LEGAL DETERMINATION
 ## 7. Immediate next product work
 
 1. Promote the Risk + Monitoring/Notification schema only in the dedicated GuardAI staging database and run tenant/invariant proof matrices.
-2. Add canonical Drift comparison/provenance so state changes are distinguished from ordinary repeated scans.
-3. Continue Assurance surfaces (Reports / Trust) after Monitoring state is routed and observable.
+2. Add authoritative monitored-absence resolution before introducing `finding_cleared` Drift.
+3. Continue Assurance surfaces (Reports / Trust) using immutable report snapshots and explicit publication controls.
 
 Do not expose placeholder enterprise modules merely to make the navigation look larger.
