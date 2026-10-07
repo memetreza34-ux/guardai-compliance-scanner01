@@ -82,7 +82,11 @@ No-result messaging explicitly avoids claiming that zero findings means zero vul
 
 The repository contains substantial foundations for additional domains, but routed availability must not be inferred from code presence.
 
-- **Monitoring / drift:** backend foundations exist; routed product UI is not yet active.
+- **Scheduled Security Monitoring:** IMPLEMENTED in product code. Admins can create/pause/resume/disable Security monitors for verified Website Targets; scheduled executions use the persistent Scan queue and retain monitor-run → Scan provenance.
+- **Monitoring run history:** IMPLEMENTED. Routed UI exposes recent scheduled runs and links each persisted run to its Scan.
+- **In-app Notifications:** IMPLEMENTED in product code for deduplicated new-Finding and failed-Scan events, including unread/read state and pagination.
+- **Monitoring production gate:** runtime availability still depends on the dedicated GuardAI database having the monitoring/notification schema applied and the monitor scheduler process being deployed. Code presence alone is not production verification.
+- **Drift detection:** PLANNED. Scheduled repetition currently creates historical Scans but does not yet promote material state deltas into first-class Drift Events.
 - **Reports / snapshots:** backend foundations exist; routed product UI is not yet active.
 - **Trust publication:** backend/public foundations exist; authenticated assurance workflow is not yet complete.
 - **GitHub integration:** foundations exist; full routed integration workflow is not yet active.
@@ -116,6 +120,6 @@ AUTOMATED AI ASSESSMENT != LEGAL DETERMINATION
 
 1. Evidence freshness semantics and collection-health states.
 2. Basic Risk register connected to findings/controls/assets.
-3. Monitoring/drift and notification product surfaces after those object relationships are stable.
+3. First-class Drift Events derived from monitored technical state changes.
 
 Do not expose placeholder enterprise modules merely to make the navigation look larger.
