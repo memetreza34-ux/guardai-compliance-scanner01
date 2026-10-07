@@ -5,6 +5,7 @@ import {
   Bell,
   BookOpenCheck,
   Brain,
+  CreditCard,
   FileCheck,
   FileText,
   GitCompareArrows,
@@ -68,6 +69,12 @@ const navSections = [
     label: 'Connect',
     items: [
       { name: 'Integrations', path: '/app/integrations', icon: Link2 },
+    ],
+  },
+  {
+    label: 'Organization',
+    items: [
+      { name: 'Billing', path: '/app/billing', icon: CreditCard },
     ],
   },
 ];

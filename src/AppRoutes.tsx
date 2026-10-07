@@ -37,6 +37,7 @@ const TrustCenterPage = lazy(() => import('./pages/app/TrustCenterPage'));
 const IntegrationsPage = lazy(() => import('./pages/app/IntegrationsPage'));
 const AiGovernancePage = lazy(() => import('./pages/app/AiGovernancePage'));
 const AiGovernanceReviewPage = lazy(() => import('./pages/app/AiGovernanceReviewPage'));
+const BillingPage = lazy(() => import('./pages/app/BillingPage'));
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { session, isLoading, error } = useAuth();
@@ -104,6 +105,7 @@ export function AppRoutes() {
               <Route path="integrations" element={<IntegrationsPage />} />
               <Route path="ai-governance" element={<AiGovernancePage />} />
               <Route path="ai-governance/reviews/:reviewId" element={<AiGovernanceReviewPage />} />
+              <Route path="billing" element={<BillingPage />} />
               <Route path="*" element={<Navigate to="/app" replace />} />
             </Route>
 
