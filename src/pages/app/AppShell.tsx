@@ -8,6 +8,7 @@ import {
   LogOut,
   Menu,
   Search,
+  ShieldAlert,
   ShieldCheck,
   Target,
   X,
@@ -37,6 +38,7 @@ const navSections = [
     items: [
       { name: 'Controls', path: '/app/controls', icon: ListChecks },
       { name: 'Frameworks', path: '/app/frameworks', icon: BookOpenCheck },
+      { name: 'Risks', path: '/app/risks', icon: ShieldAlert },
     ],
   },
 ];
