@@ -5,6 +5,7 @@ import {
   Bell,
   BookOpenCheck,
   FileCheck,
+  FileText,
   GitCompareArrows,
   LayoutDashboard,
   ListChecks,
@@ -13,6 +14,7 @@ import {
   Search,
   ShieldAlert,
   ShieldCheck,
+  Globe2,
   Target,
   X,
 } from 'lucide-react';
@@ -50,6 +52,13 @@ const navSections = [
       { name: 'Monitoring', path: '/app/monitoring', icon: Activity },
       { name: 'Drift', path: '/app/drift', icon: GitCompareArrows },
       { name: 'Notifications', path: '/app/notifications', icon: Bell },
+    ],
+  },
+  {
+    label: 'Assure',
+    items: [
+      { name: 'Reports', path: '/app/reports', icon: FileText },
+      { name: 'Trust Center', path: '/app/trust-center', icon: Globe2 },
     ],
   },
 ];
