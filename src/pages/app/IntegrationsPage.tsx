@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, Github, Link2, RefreshCw, ShieldAlert, XCircle } from 'lucide-react';
+import { CheckCircle2, GitBranch, Link2, RefreshCw, ShieldAlert, XCircle } from 'lucide-react';
 import { GuardApiError } from '../../api/apiClient';
 import { createGitHubIntegrationApi } from '../../api/githubIntegrationApi';
 import { createWorkspaceApi } from '../../api/workspaceApi';
@@ -158,7 +158,7 @@ export default function IntegrationsPage() {
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex items-start gap-4">
             <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-slate-700 bg-slate-950">
-              <Github className="h-6 w-6 text-slate-200" />
+              <GitBranch className="h-6 w-6 text-slate-200" />
             </span>
             <div>
               <h2 className="font-semibold text-slate-100">GitHub</h2>
