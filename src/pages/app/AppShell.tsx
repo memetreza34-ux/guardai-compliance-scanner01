@@ -71,7 +71,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
                 <NavLink
                   key={item.path}
                   to={item.path}
-                  end={item.end}
+                  end={item.path === '/app'}
                   onClick={onNavigate}
                   className={({ isActive }) =>
                     `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
