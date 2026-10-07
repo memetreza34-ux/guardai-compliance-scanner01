@@ -1,6 +1,6 @@
 # CURRENT_STATE.md
 
-## Repository truth — 2026-10-06
+## Repository truth — 2026-10-07
 
 This file records what the current GuardAI product code actually supports. Product plans and market research do not make a capability implemented.
 
@@ -80,6 +80,15 @@ No-result messaging explicitly avoids claiming that zero findings means zero vul
 - **Frameworks workspace/detail:** IMPLEMENTED with framework version, Control/Requirement structure and explicit claim boundary.
 - **App navigation:** IMPLEMENTED as responsive active-module navigation. Placeholder enterprise modules are hidden until their routed workflows are real.
 
+## 4B. Risk Register
+
+- **Risk domain/API/UI:** IMPLEMENTED IN CODE. GuardAI models Risk separately from Findings with status, treatment, likelihood, impact, optional residual assessment, review date and owner.
+- **Risk relationships:** IMPLEMENTED IN CODE for same-tenant Targets and Findings plus canonical GuardAI Control IDs.
+- **Risk RBAC:** IMPLEMENTED IN CODE. Viewer is read-only; Member can create/update normal Risk workflow; accepted-Risk decisions require Admin/Owner.
+- **Risk audit:** IMPLEMENTED IN CODE. Create/update operations write tenant-scoped Audit Events in the same backend transaction.
+- **Risk storage:** BLOCKED until `database/032_risk_register_draft.sql` is promoted through the dedicated GuardAI staging migration process. Environments without the Risk tables return `RISK_STORAGE_NOT_READY` instead of simulating browser data.
+- **Risk workspace:** ROUTED IN CODE at `/app/risks`; it displays the storage gate truthfully when the database capability is not provisioned.
+
 ## 5. Other product modules
 
 The repository contains substantial foundations for additional domains, but routed availability must not be inferred from code presence.
@@ -116,7 +125,8 @@ AUTOMATED AI ASSESSMENT != LEGAL DETERMINATION
 
 ## 7. Immediate next product work
 
-1. Basic Risk register connected to findings/controls/assets.
-2. Monitoring/drift and notification product surfaces after those object relationships are stable.
+1. Promote the Risk schema only in the dedicated GuardAI staging database and run the tenant/invariant proof matrix.
+2. Activate Monitoring / Drift and Notification product surfaces using the existing backend foundations.
+3. Continue Assurance surfaces (Reports / Trust) after Monitoring state is routed and observable.
 
 Do not expose placeholder enterprise modules merely to make the navigation look larger.
