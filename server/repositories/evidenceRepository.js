@@ -25,7 +25,16 @@ function normalizeEvidenceFilterText(value, field, maxLength) {
   return normalized;
 }
 
+function collectionHealthForScanStatus(status) {
+  if (status === 'completed') return 'healthy';
+  if (status === 'failed') return 'collection_error';
+  if (status === 'cancelled') return 'cancelled';
+  if (status === 'queued' || status === 'running') return 'pending';
+  return 'unknown';
+}
+
 function mapEvidenceExplorerRow(row) {
+  const superseded = row.is_superseded === true;
   return {
     id: row.id,
     organizationId: row.organization_id,
@@ -40,6 +49,10 @@ function mapEvidenceExplorerRow(row) {
     contentHash: row.content_hash,
     capturedAt: row.captured_at,
     createdAt: row.created_at,
+    freshnessState: superseded ? 'superseded' : 'current',
+    collectionHealth: collectionHealthForScanStatus(row.source_scan_status),
+    sourceScanStatus: row.source_scan_status || 'unknown',
+    sourceScanCompletedAt: row.source_scan_completed_at || null,
   };
 }
 
@@ -96,7 +109,20 @@ function createEvidenceRepository(pool) {
       `select e.id, e.organization_id, e.scan_id,
               s.target_id, t.display_name as target_display_name,
               e.detector_id, e.detector_version, e.type, e.source,
-              e.normalized_data, e.content_hash, e.captured_at, e.created_at
+              e.normalized_data, e.content_hash, e.captured_at, e.created_at,
+              s.status as source_scan_status,
+              s.completed_at as source_scan_completed_at,
+              exists (
+                select 1
+                  from public.evidence newer
+                  join public.scans newer_scan
+                    on newer_scan.id = newer.scan_id
+                   and newer_scan.organization_id = newer.organization_id
+                 where newer.organization_id = e.organization_id
+                   and newer_scan.target_id = s.target_id
+                   and newer.detector_id = e.detector_id
+                   and (newer.captured_at, newer.id) > (e.captured_at, e.id)
+              ) as is_superseded
          from public.evidence e
          join public.scans s
            on s.id = e.scan_id and s.organization_id = e.organization_id
@@ -104,7 +130,7 @@ function createEvidenceRepository(pool) {
            on t.id = s.target_id and t.organization_id = s.organization_id
         where ${where.join(' and ')}
         order by e.captured_at desc, e.id desc
-        limit $${limitIndex}`,
+        limit ${limitIndex}`,
       params,
     );
 
@@ -124,7 +150,20 @@ function createEvidenceRepository(pool) {
       `select e.id, e.organization_id, e.scan_id,
               s.target_id, t.display_name as target_display_name,
               e.detector_id, e.detector_version, e.type, e.source,
-              e.normalized_data, e.content_hash, e.captured_at, e.created_at
+              e.normalized_data, e.content_hash, e.captured_at, e.created_at,
+              s.status as source_scan_status,
+              s.completed_at as source_scan_completed_at,
+              exists (
+                select 1
+                  from public.evidence newer
+                  join public.scans newer_scan
+                    on newer_scan.id = newer.scan_id
+                   and newer_scan.organization_id = newer.organization_id
+                 where newer.organization_id = e.organization_id
+                   and newer_scan.target_id = s.target_id
+                   and newer.detector_id = e.detector_id
+                   and (newer.captured_at, newer.id) > (e.captured_at, e.id)
+              ) as is_superseded
          from public.evidence e
          join public.scans s
            on s.id = e.scan_id and s.organization_id = e.organization_id
@@ -145,6 +184,7 @@ function createEvidenceRepository(pool) {
 }
 
 module.exports = {
+  collectionHealthForScanStatus,
   createEvidenceRepository,
   mapEvidenceExplorerRow,
   normalizeEvidenceFilterText,
