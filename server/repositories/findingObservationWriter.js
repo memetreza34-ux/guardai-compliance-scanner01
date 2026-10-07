@@ -23,6 +23,7 @@ async function observeFinding(client, {
   scanId,
   ruleId,
   ruleVersion,
+  ruleDefinitionHash,
   fingerprint,
   severity,
   evidenceId,
@@ -98,9 +99,9 @@ async function observeFinding(client, {
 
   await client.query(
     `insert into public.finding_instances (
-       organization_id, finding_id, scan_id, rule_id, rule_version,
+       organization_id, finding_id, scan_id, rule_id, rule_version, rule_definition_hash,
        severity, confidence, evidence_ids, message, remediation
-     ) values ($1, $2, $3, $4, $5, $6, null, $7::uuid[], $8, $9)
+     ) values ($1, $2, $3, $4, $5, $6, $7, null, $8::uuid[], $9, $10)
      on conflict (finding_id, scan_id) do nothing`,
     [
       organizationId,
@@ -108,6 +109,7 @@ async function observeFinding(client, {
       scanId,
       ruleId,
       ruleVersion,
+      ruleDefinitionHash,
       severity,
       [evidenceId],
       message,
