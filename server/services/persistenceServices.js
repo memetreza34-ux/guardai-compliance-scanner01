@@ -14,6 +14,7 @@ const { createJobRepository } = require('../repositories/jobRepository');
 const { createMembershipRepository } = require('../repositories/membershipRepository');
 const { createOrganizationRepository } = require('../repositories/organizationRepository');
 const { createReportRepository } = require('../repositories/reportRepository');
+const { createRiskRepository } = require('../repositories/riskRepository');
 const { createScanReadRepository } = require('../repositories/scanReadRepository');
 const { createScanRepository } = require('../repositories/scanRepository');
 const { createTargetRepository } = require('../repositories/targetRepository');
@@ -29,6 +30,7 @@ const { createJobFailureService } = require('./jobFailureService');
 const { createOrganizationAuthorizationService } = require('./organizationAuthorization');
 const { createOrganizationService } = require('./organizationService');
 const { createReportService } = require('./reportService');
+const { createRiskService } = require('./riskService');
 const { createTargetService } = require('./targetService');
 const { createTargetVerificationService } = require('./targetVerificationService');
 const { createTrustPublicationService } = require('./trustPublicationService');
@@ -112,6 +114,12 @@ function createPersistenceServices() {
     organizationAuthorization,
     scanSubmission,
   });
+  const riskRepository = createRiskRepository(pool);
+  const riskService = createRiskService({
+    riskRepository,
+    organizationAuthorization,
+    membershipRepository,
+  });
 
   return {
     aiGovernanceRepository,
@@ -135,6 +143,8 @@ function createPersistenceServices() {
     pool,
     reportRepository,
     reportService,
+    riskRepository,
+    riskService,
     scanReadRepository,
     scanRepository,
     scanSubmission,
