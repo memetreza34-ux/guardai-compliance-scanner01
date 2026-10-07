@@ -16,6 +16,10 @@ const createSchema = z.object({
   moduleId: z.literal('security').default('security'),
   scheduleMinutes: z.number().int().min(60).max(10080),
 }).strict();
+const runQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+});
+
 const statusSchema = z.object({
   status: z.enum(['active', 'paused', 'disabled']),
 }).strict();
@@ -50,6 +54,24 @@ router.post('/organizations/:organizationId/monitors', requireAuth, async (req, 
     res.status(201).json({ monitor });
   } catch (error) {
     sendRouteError(res, error, 'Monitor Create');
+  }
+});
+
+router.get('/organizations/:organizationId/monitors/:monitorId/runs', requireAuth, async (req, res) => {
+  try {
+    const params = monitorParamsSchema.parse(req.params);
+    const query = runQuerySchema.parse(req.query);
+    const { monitoringService } = getMonitoringPersistenceServices();
+    res.json({
+      runs: await monitoringService.runs({
+        organizationId: params.organizationId,
+        userId: req.auth.userId,
+        monitorId: params.monitorId,
+        limit: query.limit,
+      }),
+    });
+  } catch (error) {
+    sendRouteError(res, error, 'Monitor Run History');
   }
 });
 
