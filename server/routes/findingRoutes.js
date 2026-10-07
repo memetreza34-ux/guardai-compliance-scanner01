@@ -1,6 +1,7 @@
 const express = require('express');
 const { z } = require('zod');
 const { requireAuth } = require('../auth/supabaseAuth');
+const { finalizePersistentSubmission } = require('../lib/persistentScanContract');
 const { sendRouteError } = require('../middleware/errorHandler');
 const { getPersistenceServices } = require('../services/persistenceServices');
 
@@ -77,6 +78,28 @@ router.patch('/organizations/:organizationId/findings/:findingId/status', requir
     res.json({ finding });
   } catch (error) {
     sendRouteError(res, error, 'Finding Status Update');
+  }
+});
+
+router.post('/organizations/:organizationId/findings/:findingId/retest', requireAuth, async (req, res) => {
+  try {
+    const params = findingParamsSchema.parse(req.params);
+    const idempotencyHeader = req.get('Idempotency-Key');
+    const { findingService } = getPersistenceServices();
+    const result = await findingService.requestRetest({
+      organizationId: params.organizationId,
+      userId: req.auth.userId,
+      findingId: params.findingId,
+      idempotencyKey: idempotencyHeader || null,
+    });
+
+    res.status(result.created ? 202 : 200).json(finalizePersistentSubmission({
+      scan: result.scan,
+      jobs: result.jobs,
+      idempotentReplay: !result.created,
+    }));
+  } catch (error) {
+    sendRouteError(res, error, 'Finding Re-test');
   }
 });
 
