@@ -105,11 +105,17 @@ function parseFrameworkDetail(value: unknown): GovernanceFrameworkDetail {
     ...summary,
     controls: requireArray(item.controls, 'Governance framework controls').map((control) => {
       const parsed = requireRecord(control, 'Governance framework control');
+      if (
+        typeof parsed.id !== 'string' ||
+        typeof parsed.title !== 'string' ||
+        typeof parsed.category !== 'string' ||
+        typeof parsed.description !== 'string'
+      ) invalid('Governance framework control');
       return {
-        id: String(parsed.id),
-        title: String(parsed.title),
-        category: String(parsed.category),
-        description: String(parsed.description),
+        id: parsed.id,
+        title: parsed.title,
+        category: parsed.category,
+        description: parsed.description,
         requirementIds: requireStringArray(parsed.requirementIds, 'Governance control requirements'),
         mappedRuleIds: requireStringArray(parsed.mappedRuleIds, 'Governance control rules'),
       };
