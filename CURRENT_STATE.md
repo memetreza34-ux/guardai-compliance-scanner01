@@ -68,6 +68,16 @@ A completed scan means the requested automated checks executed and their result 
 
 No-result messaging explicitly avoids claiming that zero findings means zero vulnerabilities or compliance issues.
 
+## 4A. Controls and Frameworks
+
+- **Canonical GuardAI Control catalog:** IMPLEMENTED as a versioned, validated source catalog mapped to existing versioned Rule IDs.
+- **GuardAI Technical Security Baseline:** IMPLEMENTED as an internal technical framework with four Controls and seven bounded technical Requirements.
+- **External compliance mappings:** intentionally EMPTY. GuardAI does not currently claim ISO 27001, SOC 2, NIS2 or other external framework coverage from this catalog.
+- **Controls workspace:** IMPLEMENTED. Current open Findings are mapped to Controls by canonical Rule ID; absence of mapped Findings is explicitly not presented as a pass/audit result.
+- **Control detail:** IMPLEMENTED with mapped Requirements, Rule IDs and current mapped open Findings.
+- **Frameworks workspace/detail:** IMPLEMENTED with framework version, Control/Requirement structure and explicit claim boundary.
+- **App navigation:** IMPLEMENTED as responsive active-module navigation. Placeholder enterprise modules are hidden until their routed workflows are real.
+
 ## 5. Other product modules
 
 The repository contains substantial foundations for additional domains, but routed availability must not be inferred from code presence.
@@ -105,8 +115,7 @@ AUTOMATED AI ASSESSMENT != LEGAL DETERMINATION
 ## 7. Immediate next product work
 
 1. Evidence freshness semantics and collection-health states.
-2. Canonical Controls and versioned Framework Requirement mapping.
-3. Basic Risk register connected to findings/controls/assets.
-4. Monitoring/drift and notification product surfaces after those object relationships are stable.
+2. Basic Risk register connected to findings/controls/assets.
+3. Monitoring/drift and notification product surfaces after those object relationships are stable.
 
 Do not expose placeholder enterprise modules merely to make the navigation look larger.

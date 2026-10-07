@@ -23,7 +23,10 @@ const ScansPage = lazy(() => import('./pages/app/ScansPage'));
 const ScanDetailPage = lazy(() => import('./pages/app/ScanDetailPage'));
 const FindingsPage = lazy(() => import('./pages/app/FindingsPage'));
 const EvidencePage = lazy(() => import('./pages/app/EvidencePage'));
-const NotYetAvailable = lazy(() => import('./components/NotYetAvailable'));
+const ControlsPage = lazy(() => import('./pages/app/ControlsPage'));
+const ControlDetailPage = lazy(() => import('./pages/app/ControlDetailPage'));
+const FrameworksPage = lazy(() => import('./pages/app/FrameworksPage'));
+const FrameworkDetailPage = lazy(() => import('./pages/app/FrameworkDetailPage'));
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { session, isLoading, error } = useAuth();
@@ -77,14 +80,11 @@ export function AppRoutes() {
               <Route path="scans/:scanId" element={<ScanDetailPage />} />
               <Route path="findings" element={<FindingsPage />} />
               <Route path="evidence" element={<EvidencePage />} />
-              <Route path="reports" element={<NotYetAvailable title="Reports" />} />
-              <Route path="monitoring" element={<NotYetAvailable title="Monitoring" />} />
-              <Route path="ai-governance" element={<NotYetAvailable title="AI Governance" />} />
-              <Route path="integrations" element={<NotYetAvailable title="Integrations" />} />
-              <Route path="audit" element={<NotYetAvailable title="Audit Log" />} />
-              <Route path="team" element={<NotYetAvailable title="Team" />} />
-              <Route path="billing" element={<NotYetAvailable title="Billing" />} />
-              <Route path="settings" element={<NotYetAvailable title="Settings" />} />
+              <Route path="controls" element={<ControlsPage />} />
+              <Route path="controls/:controlId" element={<ControlDetailPage />} />
+              <Route path="frameworks" element={<FrameworksPage />} />
+              <Route path="frameworks/:frameworkId" element={<FrameworkDetailPage />} />
+              <Route path="*" element={<Navigate to="/app" replace />} />
             </Route>
 
             <Route path="*" element={<Navigate to="/" replace />} />
