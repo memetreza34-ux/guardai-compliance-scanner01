@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CheckCircle2, Github, ShieldAlert } from 'lucide-react';
+import { CheckCircle2, GitBranch, ShieldAlert } from 'lucide-react';
 import { GuardApiError } from '../api/apiClient';
 import { completeGitHubInstallation } from '../api/githubIntegrationApi';
 import type { GitHubInstallationCompletion } from '../types/githubIntegration';
@@ -44,7 +44,7 @@ export default function GitHubIntegrationCallbackPage() {
     <main className="min-h-screen bg-slate-950 px-4 py-16 text-slate-100">
       <div className="mx-auto max-w-2xl rounded-2xl border border-slate-800 bg-slate-900 p-8">
         <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-slate-700 bg-slate-950">
-          <Github className="h-6 w-6 text-slate-200" />
+          <GitBranch className="h-6 w-6 text-slate-200" />
         </div>
 
         {error ? (
