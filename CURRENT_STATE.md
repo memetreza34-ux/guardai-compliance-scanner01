@@ -104,7 +104,8 @@ The repository contains substantial foundations for additional domains, but rout
 - **Privacy / accessibility browser scanning:** foundations exist but remain gated/fail-closed pending hardened runtime requirements.
 - **Repository scanner:** bounded foundations exist; it must not be presented as full SAST, dependency vulnerability management, secret scanning, SBOM or pentesting.
 - **Asset/file pipeline:** foundations exist but remain gated until runtime/storage/parser safety requirements are satisfied.
-- **Billing / entitlements:** backend foundations exist; routed billing product experience is not yet active.
+- **Billing / entitlements:** ROUTED IN CODE at `/app/billing`. Admin/Owner can read the authoritative server-side subscription state and start Checkout only for server-configured Stripe plan codes when billing is enabled. Member/Viewer do not receive billing details. Checkout return never activates entitlements; verified Stripe webhook reconciliation remains authoritative. Missing/incomplete billing schema returns `BILLING_STORAGE_NOT_READY` rather than simulated client state.
+- **Billing storage:** commercial tables/invariants remain draft-gated by `database/006_entitlements_usage_draft.sql`, `016_stripe_billing_invariants_draft.sql` and `017_billing_checkout_idempotency_draft.sql`. No commercial prices or paid limits are invented in code.
 - **Team / granular enterprise administration:** not yet complete in routed product UI.
 
 ## 6. Product truth invariants
@@ -130,6 +131,6 @@ AUTOMATED AI ASSESSMENT != LEGAL DETERMINATION
 
 1. Promote the Risk + Monitoring/Notification schema only in the dedicated GuardAI staging database and run tenant/invariant proof matrices.
 2. Add authoritative monitored-absence resolution before introducing `finding_cleared` Drift.
-3. Promote and validate AI Governance storage only through staging, then continue Billing/Entitlements and Organization administration without weakening evidence/provenance or legal-review boundaries.
+3. Promote and validate AI Governance + Billing/Entitlement storage only through staging, then continue Organization/Team administration without weakening tenant isolation or auditability.
 
 Do not expose placeholder enterprise modules merely to make the navigation look larger.
