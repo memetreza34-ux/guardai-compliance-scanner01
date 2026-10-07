@@ -31,6 +31,9 @@ const RisksPage = lazy(() => import('./pages/app/RisksPage'));
 const MonitoringPage = lazy(() => import('./pages/app/MonitoringPage'));
 const NotificationsPage = lazy(() => import('./pages/app/NotificationsPage'));
 const DriftPage = lazy(() => import('./pages/app/DriftPage'));
+const ReportsPage = lazy(() => import('./pages/app/ReportsPage'));
+const ReportDetailPage = lazy(() => import('./pages/app/ReportDetailPage'));
+const TrustCenterPage = lazy(() => import('./pages/app/TrustCenterPage'));
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { session, isLoading, error } = useAuth();
@@ -92,6 +95,9 @@ export function AppRoutes() {
               <Route path="monitoring" element={<MonitoringPage />} />
               <Route path="notifications" element={<NotificationsPage />} />
               <Route path="drift" element={<DriftPage />} />
+              <Route path="reports" element={<ReportsPage />} />
+              <Route path="reports/:reportId" element={<ReportDetailPage />} />
+              <Route path="trust-center" element={<TrustCenterPage />} />
               <Route path="*" element={<Navigate to="/app" replace />} />
             </Route>
 
