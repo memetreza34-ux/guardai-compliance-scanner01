@@ -40,6 +40,8 @@ const AiGovernanceReviewPage = lazy(() => import('./pages/app/AiGovernanceReview
 const BillingPage = lazy(() => import('./pages/app/BillingPage'));
 const TeamPage = lazy(() => import('./pages/app/TeamPage'));
 const JoinTeamPage = lazy(() => import('./pages/public/JoinTeamPage'));
+const SignUpPage = lazy(() => import('./pages/public/SignUpPage'));
+const PasswordRecoveryPage = lazy(() => import('./pages/public/PasswordRecoveryPage'));
 const AuditLogPage = lazy(() => import('./pages/app/AuditLogPage'));
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -85,6 +87,9 @@ export function AppRoutes() {
             <Route path="/billing/return" element={<BillingReturnPage />} />
             <Route path="/integrations/github/callback" element={<GitHubIntegrationCallbackPage />} />
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/signup" element={<SignUpPage />} />
+            <Route path="/forgot-password" element={<PasswordRecoveryPage mode="request" />} />
+            <Route path="/auth/reset-password" element={<PasswordRecoveryPage mode="update" />} />
             <Route path="/join" element={<JoinTeamPage />} />
 
             <Route path="/app" element={<ProtectedRoute><AppShell /></ProtectedRoute>}>
