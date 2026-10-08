@@ -16,6 +16,7 @@ Status vocabulary:
 - **Routing:** VERIFIED. React Router is the routed application source of truth.
 - **Authentication:** VERIFIED. Supabase-backed sign-in/session integration is wired into protected application routes.
 - **Organizations / workspace context:** VERIFIED. The routed app uses one workspace context; backend authorization remains authoritative. Session/token refresh preserves the currently selected authorized Organization, stale in-flight list responses are discarded, missing/failed reads do not display old tenant roles, and callers cannot select unauthorized Organization DTOs.
+- **Global first-run App gate:** ROUTED IN CODE. All `/app` child routes share a single onboarding gate when no authorized Organization is selected, while membership-loading and membership-error states do not render stale tenant pages. Once an Organization is present, switching to a different one remounts routed modules so local page state cannot flash between tenants. Requires real staging first-run/tenant-switch E2E proof.
 - **Backend API:** VERIFIED. Persistent product APIs are mounted under `/api/v1`.
 - **CI:** VERIFIED. Frontend lint/typecheck/build and backend check/test run as non-masked GitHub Actions jobs.
 - **Node baseline:** Node 24 / npm 11 contract is versioned in the repository.
