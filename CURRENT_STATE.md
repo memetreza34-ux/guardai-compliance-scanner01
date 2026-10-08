@@ -25,7 +25,7 @@ Status vocabulary:
 - **Multi-page public SaaS site:** IMPLEMENTED. Shared responsive navigation/footer now cover Home, Product, Security, Pricing, About and Contact.
 - **Public product claims:** bounded to real or explicitly upcoming capabilities. The site no longer presents the product as a generic prototype/rebuild status page.
 - **Pricing page:** IMPLEMENTED as packaging/launch information only. Paid checkout is not presented as publicly available until billing configuration and entitlements are released together.
-- **Login experience:** IMPLEMENTED with GuardAI public-site branding while preserving Supabase authentication behavior.
+- **Account lifecycle:** IMPLEMENTED IN CODE. Login, dedicated registration, and password-recovery request/update pages now use Supabase Auth; signup handles confirmation-required vs immediate-session outcomes without claiming delivery. Registration and reset delivery require the dedicated GuardAI Supabase Auth environment, email SMTP and allowlisted redirect URLs. Auth E2E is still BLOCKED pending dedicated staging.
 - **Public Trust publications:** remain a separate evidence-verification surface under `/trust/:slug`.
 
 ## 2. Website Targets and DNS ownership
