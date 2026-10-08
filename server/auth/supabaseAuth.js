@@ -58,6 +58,7 @@ async function verifySupabaseAccessToken(token) {
   return {
     userId: user.id,
     email: typeof user.email === 'string' ? user.email : null,
+    emailVerified: typeof user.email_confirmed_at === 'string' && Number.isFinite(Date.parse(user.email_confirmed_at)),
   };
 }
 
