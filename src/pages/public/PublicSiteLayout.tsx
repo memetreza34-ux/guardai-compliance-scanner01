@@ -84,7 +84,7 @@ export default function PublicSiteLayout() {
                 <Link to="/login" className="rounded-lg border border-white/10 px-3 py-2.5 text-center text-sm font-medium text-slate-300">
                   Anmelden
                 </Link>
-                <Link to="/login" className="rounded-lg bg-white px-3 py-2.5 text-center text-sm font-semibold text-slate-950">
+                <Link to="/signup" className="rounded-lg bg-white px-3 py-2.5 text-center text-sm font-semibold text-slate-950">
                   Starten
                 </Link>
               </div>
