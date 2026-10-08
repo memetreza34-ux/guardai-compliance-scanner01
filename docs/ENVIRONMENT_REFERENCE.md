@@ -36,6 +36,16 @@ DATABASE_POOL_MAX=10
 
 These point only to the dedicated GuardAI environment. The existing connected multi-application Supabase project is not a GuardAI runtime target.
 
+## Supabase Auth redirect allowlist and mail (staging/production prerequisites)
+
+Register the exact public origins and Auth callback URLs in the **dedicated** GuardAI Supabase project, never the existing multi-app project:
+
+- `https://<app-host>/login?confirmed=1` — registration email confirmation return;
+- `https://<app-host>/auth/reset-password` — password recovery return;
+- the base app host needed for ordinary authentication callbacks.
+
+Do not enable public registration or password recovery until Site URL, redirect allowlist, email sender/SMTP, confirmation settings, rate limits and recovery email deliverability are verified. Test both immediate-session and confirmation-required signup flows because Supabase Auth policy differs by environment. The reset UI requires a real Supabase-authenticated recovery session and does not itself validate a token in the browser. Use no third-party redirect input from query parameters.
+
 ## Security / general Worker runtime
 
 ```text

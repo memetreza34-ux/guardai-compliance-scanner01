@@ -70,7 +70,7 @@ export default function PricingPage() {
                 ))}
               </div>
               <Link
-                to={plan.name === 'Free' ? '/login' : '/contact'}
+                to={plan.name === 'Free' ? '/signup' : '/contact'}
                 className={`mt-8 inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold ${
                   plan.highlight
                     ? 'bg-white text-slate-950 hover:bg-slate-200'

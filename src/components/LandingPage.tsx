@@ -60,7 +60,7 @@ export function LandingPage() {
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link
-                to="/login"
+                to="/signup"
                 className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition-colors hover:bg-slate-200"
               >
                 Kostenlos starten <ArrowRight className="h-4 w-4" />
@@ -235,7 +235,7 @@ export function LandingPage() {
           <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-slate-400">
             Starte mit einem Workspace, verifiziere dein erstes Target und führe den verfügbaren Security-Scan aus.
           </p>
-          <Link to="/login" className="mt-7 inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-semibold text-slate-950 hover:bg-slate-200">
+          <Link to="/signup" className="mt-7 inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-semibold text-slate-950 hover:bg-slate-200">
             GuardAI öffnen <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
