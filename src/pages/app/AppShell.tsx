@@ -8,6 +8,7 @@ import {
   CreditCard,
   FileCheck,
   FileText,
+  FileClock,
   GitCompareArrows,
   LayoutDashboard,
   Link2,
@@ -76,6 +77,7 @@ const navSections = [
     label: 'Organization',
     items: [
       { name: 'Team', path: '/app/team', icon: Users },
+      { name: 'Audit Log', path: '/app/audit-log', icon: FileClock },
       { name: 'Billing', path: '/app/billing', icon: CreditCard },
     ],
   },
