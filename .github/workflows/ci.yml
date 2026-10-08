@@ -54,5 +54,7 @@ jobs:
         run: npm ci
       - name: Check
         run: npm run check
+      - name: SQL draft source preflight
+        run: node scripts/checkDatabaseDrafts.js
       - name: Test
         run: npm test
