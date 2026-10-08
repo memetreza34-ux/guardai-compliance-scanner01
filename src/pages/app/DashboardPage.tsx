@@ -132,7 +132,9 @@ export default function DashboardPage() {
   const needsVerification = websites.find(target => target.verificationState !== 'verified');
   const canCreateTarget = currentOrg.role === 'owner' || currentOrg.role === 'admin';
   const canScan = canCreateTarget || currentOrg.role === 'member';
-  const reviewedScan = scans.find(scan => scan.status === 'completed');
+  const reviewedScan = scans.find(scan => scan.status === 'completed' &&
+    scan.requestedModules.includes('security') &&
+    verifiedWebsites.some(target => target.id === scan.targetId));
   const recentScan = scans[0];
   const criticalCount = findings.filter(finding => finding.severity === 'critical').length;
   const currentStep = targetsError ? 'unavailable'
@@ -141,10 +143,11 @@ export default function DashboardPage() {
     : 'scan';
   const actionTarget = verifiedWebsites[0] ?? needsVerification;
   const actionPath = currentStep === 'add' ? '/app/targets'
+    : currentStep === 'scan' && reviewedScan ? `/app/scans/${reviewedScan.id}`
     : actionTarget ? `/app/targets/${actionTarget.id}` : '/app/targets';
   const actionLabel = currentStep === 'add' ? 'Add website target'
     : currentStep === 'verify' ? 'Verify domain ownership'
-    : 'Open verified target';
+    : reviewedScan ? 'Review security scan' : 'Open verified target';
 
   return (
     <div className="mx-auto max-w-6xl space-y-8 animate-in fade-in duration-500">
