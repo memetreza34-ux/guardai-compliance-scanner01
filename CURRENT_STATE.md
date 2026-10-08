@@ -106,7 +106,8 @@ The repository contains substantial foundations for additional domains, but rout
 - **Asset/file pipeline:** foundations exist but remain gated until runtime/storage/parser safety requirements are satisfied.
 - **Billing / entitlements:** ROUTED IN CODE at `/app/billing`. Admin/Owner can read the authoritative server-side subscription state and start Checkout only for server-configured Stripe plan codes when billing is enabled. Member/Viewer do not receive billing details. Checkout return never activates entitlements; verified Stripe webhook reconciliation remains authoritative. Missing/incomplete billing schema returns `BILLING_STORAGE_NOT_READY` rather than simulated client state.
 - **Billing storage:** commercial tables/invariants remain draft-gated by `database/006_entitlements_usage_draft.sql`, `016_stripe_billing_invariants_draft.sql` and `017_billing_checkout_idempotency_draft.sql`. No commercial prices or paid limits are invented in code.
-- **Team / granular enterprise administration:** not yet complete in routed product UI.
+- **Team management:** ROUTED IN CODE at `/app/team`. Tenant-scoped member list, safe Admin/Owner role changes and removals (no Owner mutation), seven-day expiring hashed one-time email-bound invitations, explicit manual invite sharing, authenticated confirmed-email acceptance at `/join`, revocation, and transactional Audit Events. No automated email delivery or owner-transfer flow is claimed.
+- **Team invitation storage:** BLOCKED until `database/033_team_invitations_draft.sql` is promoted through dedicated staging migration. The invite portion shows `TEAM_STORAGE_NOT_READY`; existing Membership reading remains available. Granular enterprise custom roles remain PLANNED.
 
 ## 6. Product truth invariants
 
@@ -131,6 +132,6 @@ AUTOMATED AI ASSESSMENT != LEGAL DETERMINATION
 
 1. Promote the Risk + Monitoring/Notification schema only in the dedicated GuardAI staging database and run tenant/invariant proof matrices.
 2. Add authoritative monitored-absence resolution before introducing `finding_cleared` Drift.
-3. Promote and validate AI Governance + Billing/Entitlement storage only through staging, then continue Organization/Team administration without weakening tenant isolation or auditability.
+3. Promote and validate Team invitations, AI Governance and Billing/Entitlement storage only through staging; prove cross-tenant isolation, invite replay/revocation/expiry, confirmed-email acceptance, and Admin/Owner guardrails before production.
 
 Do not expose placeholder enterprise modules merely to make the navigation look larger.

@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   Globe2,
   Target,
+  Users,
   X,
 } from 'lucide-react';
 import { useAuth } from '../../auth/AuthProvider';
@@ -74,6 +75,7 @@ const navSections = [
   {
     label: 'Organization',
     items: [
+      { name: 'Team', path: '/app/team', icon: Users },
       { name: 'Billing', path: '/app/billing', icon: CreditCard },
     ],
   },

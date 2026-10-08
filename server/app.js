@@ -29,6 +29,7 @@ const { riskRoutes } = require('./routes/riskRoutes');
 const { scanRoutes } = require('./routes/scanRoutes');
 const { secureProductRoutes } = require('./routes/secureProductRoutes');
 const { targetRoutes } = require('./routes/targetRoutes');
+const { teamRoutes } = require('./routes/teamRoutes');
 const { targetVerificationRoutes } = require('./routes/targetVerificationRoutes');
 const { trustPublicationRoutes } = require('./routes/trustPublicationRoutes');
 const { workspaceScanRoutes } = require('./routes/workspaceScanRoutes');
@@ -68,6 +69,7 @@ function createApp() {
   app.use('/api', healthRoutes);
   app.use('/api/v1', authRoutes);
   app.use('/api/v1', organizationRoutes);
+  app.use('/api/v1', teamRoutes);
   app.use('/api/v1', evidenceRoutes);
   app.use('/api/v1', findingRoutes);
   app.use('/api/v1', governanceRoutes);

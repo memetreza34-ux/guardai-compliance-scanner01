@@ -38,6 +38,8 @@ const IntegrationsPage = lazy(() => import('./pages/app/IntegrationsPage'));
 const AiGovernancePage = lazy(() => import('./pages/app/AiGovernancePage'));
 const AiGovernanceReviewPage = lazy(() => import('./pages/app/AiGovernanceReviewPage'));
 const BillingPage = lazy(() => import('./pages/app/BillingPage'));
+const TeamPage = lazy(() => import('./pages/app/TeamPage'));
+const JoinTeamPage = lazy(() => import('./pages/public/JoinTeamPage'));
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { session, isLoading, error } = useAuth();
@@ -82,6 +84,7 @@ export function AppRoutes() {
             <Route path="/billing/return" element={<BillingReturnPage />} />
             <Route path="/integrations/github/callback" element={<GitHubIntegrationCallbackPage />} />
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/join" element={<JoinTeamPage />} />
 
             <Route path="/app" element={<ProtectedRoute><AppShell /></ProtectedRoute>}>
               <Route index element={<DashboardPage />} />
@@ -106,6 +109,7 @@ export function AppRoutes() {
               <Route path="ai-governance" element={<AiGovernancePage />} />
               <Route path="ai-governance/reviews/:reviewId" element={<AiGovernanceReviewPage />} />
               <Route path="billing" element={<BillingPage />} />
+              <Route path="team" element={<TeamPage />} />
               <Route path="*" element={<Navigate to="/app" replace />} />
             </Route>
 
