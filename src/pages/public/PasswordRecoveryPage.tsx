@@ -7,7 +7,7 @@ import AuthLayout from '../../components/AuthLayout';
 const inputStyle = 'w-full rounded-xl border border-white/10 bg-slate-900 px-3.5 py-3 text-slate-100 outline-none transition focus:border-indigo-400/40 focus:ring-2 focus:ring-indigo-500/15';
 
 export default function PasswordRecoveryPage({ mode }: { mode: 'request' | 'update' }) {
-  const { session, supabase, isLoading, error: configurationError } = useAuth();
+  const { session, supabase, isLoading, error: configurationError, isPasswordRecoverySession, clearPasswordRecovery } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -33,7 +33,7 @@ export default function PasswordRecoveryPage({ mode }: { mode: 'request' | 'upda
 
   async function changePassword(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!supabase || !session || busy) return;
+    if (!supabase || !session || !isPasswordRecoverySession || busy) return;
     setError(null);
     if (password.length < 12 || password.length > 128) {
       setError('Das Passwort muss zwischen 12 und 128 Zeichen lang sein.');
@@ -50,6 +50,7 @@ export default function PasswordRecoveryPage({ mode }: { mode: 'request' | 'upda
       else {
         setPassword('');
         setConfirmPassword('');
+        clearPasswordRecovery();
         setDone(true);
       }
     } catch {
@@ -74,8 +75,8 @@ export default function PasswordRecoveryPage({ mode }: { mode: 'request' | 'upda
       </div>
       : <>
         {error && <div role="alert" className="mb-5 rounded-xl border border-rose-500/20 bg-rose-500/10 p-4 text-sm text-rose-300">{error}</div>}
-        {mode === 'update' && !session ? <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-200">
-          Der Bestätigungslink ist abgelaufen oder die Rücksetzung wurde nicht authentifiziert. <Link to="/forgot-password" className="underline">Neuen Link anfordern</Link>.
+        {mode === 'update' && !isPasswordRecoverySession ? <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-200">
+          Diese Sitzung wurde nicht durch einen gültigen Passwort-Recovery-Link bestätigt. Auch eine normale Anmeldung reicht hier nicht aus. <Link to="/forgot-password" className="underline">Neuen Link anfordern</Link>.
         </div>
         : mode === 'request' ? <form onSubmit={requestReset} className="space-y-5">
           <label className="block space-y-2"><span className="text-sm font-medium text-slate-300">E-Mail-Adresse</span>
