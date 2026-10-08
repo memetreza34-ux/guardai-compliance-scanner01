@@ -28,6 +28,10 @@ Status vocabulary:
 - **Account lifecycle:** IMPLEMENTED IN CODE. Password reset UI now requires an in-memory Supabase `PASSWORD_RECOVERY` auth event for the current identity rather than merely any authenticated session; grant is cleared on success/sign-out/account switch. Supabase auth initialization ignores stale initial session reads after newer auth events. Detailed staging verification remains mandatory (`docs/AUTH_RECOVERY_STAGING_MATRIX.md`).
 - **Public Trust publications:** remain a separate evidence-verification surface under `/trust/:slug`.
 
+## 1B. Dashboard data truth
+
+- **Technical Posture Dashboard:** IMPLEMENTED IN CODE with independent Target/Finding/Scan API outcomes; partial API outages do not masquerade as zero or block unaffected first-run actions. The dashboard uses persisted website ownership, scan execution state and open Finding records; up to 50 Findings are counted and a next cursor is shown as a lower bound rather than as an exact total. Unknown scan history remains unknown, and no-record messaging makes no blanket security claim. First-run CTAs respect Organization roles. Staging end-to-end validation remains required.
+
 ## 2. Website Targets and DNS ownership
 
 - **Website target create/list/detail:** VERIFIED.
