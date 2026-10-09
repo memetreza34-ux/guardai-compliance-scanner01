@@ -4,6 +4,8 @@
 
 This file records what the current GuardAI product code actually supports. Product plans and market research do not make a capability implemented.
 
+**Plan links (not implementation evidence):** [V1 scope/order](docs/V1_MASTER_EXECUTION_PLAN.md), [execution board](docs/V1_EXECUTION_BOARD.md), [design contract](docs/V1_DESIGN_SYSTEM.md), [competitor context](docs/COMPETITOR_POSITIONING_2026-10.md), [agent routine](AGENTS.md). GitHub Actions recent 0-step failures are a **validation blocker**, not proof the affected code passed/failed; open code PRs [#22](https://github.com/memetreza34-ux/guardai-compliance-scanner01/pull/22) and [#23](https://github.com/memetreza34-ux/guardai-compliance-scanner01/pull/23) remain unmerged pending executable CI.
+
 Status vocabulary:
 - **VERIFIED** — implemented and covered by the repository validation/CI gate.
 - **IMPLEMENTED** — code exists, but a stronger runtime/production verification may still be required.
