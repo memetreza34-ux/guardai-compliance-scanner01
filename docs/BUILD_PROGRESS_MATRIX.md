@@ -1,3 +1,7 @@
+> **HISTORICAL SNAPSHOT – NOT CURRENT IMPLEMENTATION TRUTH.** This phase table contains earlier implementation states and is deliberately preserved for provenance. For current code facts see [CURRENT_STATE.md](../CURRENT_STATE.md); for planned sequence and live ticket status see [V1_MASTER_EXECUTION_PLAN.md](V1_MASTER_EXECUTION_PLAN.md) and [V1_EXECUTION_BOARD.md](V1_EXECUTION_BOARD.md). Do **not** use historical `PARTIAL/NOT STARTED` entries to decide what features exist.
+
+---
+
 # GuardAI A-to-Z Build Progress Matrix
 
 > This matrix maps actual repository implementation against the numbered phases in `GUARDAI_MASTER_BUILD_GUIDE.md`.
