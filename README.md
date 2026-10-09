@@ -1,6 +1,7 @@
 # GuardAI — Technical Compliance Evidence & Risk Platform
 
 > **Arbeitsweise ab 2026-10-09:** [V1 Masterplan](docs/V1_MASTER_EXECUTION_PLAN.md) · [priorisierte Tickets](docs/V1_EXECUTION_BOARD.md) · [Designsystem](docs/V1_DESIGN_SYSTEM.md) · [Wettbewerbsanalyse](docs/COMPETITOR_POSITIONING_2026-10.md) · [Agent-Routine](AGENTS.md). Für den **IST-Zustand** immer [CURRENT_STATE.md](CURRENT_STATE.md) prüfen; ältere Phase-Matrizen sind teilweise historisch. Offene Code-PRs #22/#23 bleiben wegen GitHub Actions Jobs ohne ausgeführte Testschritte ungeprüft.
+> **Produkt vollständig durchdacht statt nur technische Features:** [Kundenerlebnis & jede Seite](docs/V1_CUSTOMER_EXPERIENCE_BLUEPRINT.md) · [Abos/Quoten/Zahlungen/Kündigungen](docs/V1_SUBSCRIPTIONS_BUSINESS_MODEL.md) · [EU AI Act/Datenschutz/Security](docs/V1_AI_ACT_PRIVACY_SECURITY_PLAYBOOK.md). Diese sind **Ziel-Spezifikationen**, kein Nachweis, dass die Funktionen heute betriebsbereit sind.
 
 
 GuardAI is being rebuilt from a broad SaaS/UI prototype into a real, evidence-first technical screening platform for websites, repositories and selected digital assets.
