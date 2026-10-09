@@ -135,7 +135,6 @@ export default function DashboardPage() {
   const reviewedScan = scans.find(scan => scan.status === 'completed' &&
     scan.requestedModules.includes('security') &&
     verifiedWebsites.some(target => target.id === scan.targetId));
-  const recentScan = scans[0];
   const criticalCount = findings.filter(finding => finding.severity === 'critical').length;
   const currentStep = targetsError ? 'unavailable'
     : websites.length === 0 ? 'add'
