@@ -1,7 +1,7 @@
 # GuardAI V1 – UI / Design System / Product UX Contract
 
 **Stand:** 2026-10-09 · verbindlicher Zielzustand, **kein Nachweis, dass jede Seite ihn schon erfüllt**.  
-**Gilt für:** public site, Auth, Workspace und responsive Desktop/Tablet/Mobile. Verweise: [Masterplan](V1_MASTER_EXECUTION_PLAN.md), [Board](V1_EXECUTION_BOARD.md).
+**Gilt für:** public site, Auth, Workspace und responsive Desktop/Tablet/Mobile. [Screen-by-Screen Customer Blueprint](V1_CUSTOMER_EXPERIENCE_BLUEPRINT.md), [Abos/UX](V1_SUBSCRIPTIONS_BUSINESS_MODEL.md) und [AI/Legal Claims](V1_AI_ACT_PRIVACY_SECURITY_PLAYBOOK.md) konkretisieren die Nutzersicht. Die Designsystem-Regeln dürfen ihren sicherheits-/rechtsbezogenen Zuständen nicht widersprechen. Verweise: [Masterplan](V1_MASTER_EXECUTION_PLAN.md), [Board](V1_EXECUTION_BOARD.md).
 
 ## 1. Gestalterische Richtung
 
