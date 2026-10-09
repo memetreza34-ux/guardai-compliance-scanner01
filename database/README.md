@@ -32,7 +32,7 @@ All files below are **design sources, not applied migrations**. Before first sta
 9. `009_finding_lifecycle_draft.sql` — remediation/finding lifecycle state.
 10. `010_finding_rediscovery_trigger_draft.sql` — deterministic finding rediscovery behavior.
 11. `011_scoring_profile_provenance_draft.sql` — historical scoring-profile provenance/seed design; **not canonical scoring seed source after Phase 16**.
-12. `012_immutable_scan_provenance_draft.sql` — historical provenance immutability constraints.
+12. `012_immutable_provenance_draft.sql` — historical provenance immutability constraints.
 13. `013_report_snapshots_draft.sql` — immutable technical report snapshots + snapshot hash.
 14. `014_scan_target_snapshot_draft.sql` — Target identity frozen at Scan submission time.
 15. `015_public_trust_publications_draft.sql` — report-backed public Trust publications, revocation actor and audit triggers.
@@ -53,6 +53,11 @@ All files below are **design sources, not applied migrations**. Before first sta
 30. `030_rule_definition_hash_provenance_draft.sql` — immutable Rule definition SHA-256, Finding-instance triple provenance and Rule-version rewrite prevention.
 31. `031_scoring_definition_hash_provenance_draft.sql` — immutable scoring-profile SHA-256, Scan triple provenance and scoring-version rewrite prevention.
 32. `032_risk_register_draft.sql` — tenant-safe Risk Register, Target/Finding/Control relations, treatment, review and ownership fields.
+33. `033_team_invitations_draft.sql` — expiring email-bound, hashed one-time Team invitations; role restrictions and backend-only acceptance.
+
+## Read-only migration dependency inventory
+
+From repository root, run `node server/scripts/inventoryDatabaseDrafts.js` for the per-file table/dependency/hash/seed report or add `--json` for structured output. Add `--check` to exit non-zero on unresolved references, forward ordering, missing RLS or other flagged issues. These are **heuristics**, not SQL parsing or staging proof; any finding must be reviewed manually. The tool does not connect to Supabase, run SQL, create credentials, or change files. Run `cd server && node --test test/inventoryDatabaseDrafts.test.js` to test the inventory behavior. For promotion gates consult `docs/GUARDAI_MIGRATION_STAGING_RUNBOOK.md`.
 
 ## Canonical generated seed sources
 
