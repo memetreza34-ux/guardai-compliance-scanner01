@@ -10,6 +10,9 @@ Ab jetzt gibt es einen klaren **IST-/SOLL-/AUSFÜHRUNG-/DESIGN-Vertrag** statt v
 | `docs/V1_MASTER_EXECUTION_PLAN.md` | **KANONISCH – V1-Scope/Reihenfolge** | User Journeys, Feature-Scope, Meilensteine, Architektur, Release-Gates und Abhängigkeiten. |
 | `docs/V1_EXECUTION_BOARD.md` | **KANONISCH – nächster ausführbarer Schritt** | P0/P1/P2 Tickets, verifizierbare Akzeptanz, offene PRs/Blocker, Statuspflege. |
 | `docs/V1_DESIGN_SYSTEM.md` | **KANONISCH – UI/UX-Qualitätsvertrag** | GuardAI-eigenes Design, Navigation, Interaktions- und Sonderzustände je Oberfläche. |
+| `docs/V1_CUSTOMER_EXPERIENCE_BLUEPRINT.md` | **KANONISCH – USER JOURNEY / UX SCOPE** | Nutzerrollen, alle relevanten Seiten, Error States, reale Customer-Acceptance und First-Run. |
+| `docs/V1_SUBSCRIPTIONS_BUSINESS_MODEL.md` | **KANONISCH – PRICING-/ENTITLEMENT-FREIGABEGATES** | Free/Starter/Growth/Business als Vorschlag; Quotas, Paid/Cancel/Lifecycle, Taxes; ohne Preise nicht kaufbar. |
+| `docs/V1_AI_ACT_PRIVACY_SECURITY_PLAYBOOK.md` | **KANONISCH – TECH/LEGAL/SECURITY KONTROLLMATRIX** | AI Act (Stand nach 2026 Omnibus), Human Review, Privacy, Threat Model; keine Rechtsberatung. |
 | `AGENTS.md` | **KANONISCH – Engineering-Agent-Routine** | Bei jedem „weiter“ erst Stand/Board prüfen, klein implementieren, CI/Staging prüfen, dokumentieren. |
 | `docs/COMPETITOR_POSITIONING_2026-10.md` | PRODUKTSTRATEGIE / QUELLEN | Wettbewerbspositionierung, bewusste Differenzierung und nicht belegte Marktannahmen. |
 | `docs/GUARDAI_MASTER_BUILD_GUIDE.md` | KANONISCH – TIEFENARCHITEKTUR | Langfristiges A-to-Z-Engineering, Security/Infra/ADRs; bei Aussagen zum IST gewinnt `CURRENT_STATE.md`. |
