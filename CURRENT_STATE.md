@@ -131,6 +131,14 @@ CONTROL STATUS != AUDITOR OPINION
 AUTOMATED AI ASSESSMENT != LEGAL DETERMINATION
 ```
 
+## 6A. Product completeness audit findings (2026-10-09)
+
+- **Customer experience specification (PLANNED/REVIEWED AS REQUIREMENTS):** Customer jobs, per-page UX states/CTAs, entitlement/cancel lifecycle and accessibility in `docs/V1_CUSTOMER_EXPERIENCE_BLUEPRINT.md`; **not** automatically implemented by adding docs.
+- **Public Signup CTA mismatch (SOURCE DEFECT TO FIX):** desktop `PublicSiteLayout.tsx` currently links "Kostenlos starten" to `/login`, while mobile links to `/signup`. Correct, add regression proof, and deploy only after actual CI.
+- **Subscription package mismatch (LAUNCH BLOCKER):** public `PricingPage.tsx` Free/Starter/Growth/Business wording is suggested commercial packaging, **not a verified quota contract**; `server/domain/entitlements.js` does not require a quota capability for the `security` module. Before paid or constrained Free launch the same server-versioned quotas and package descriptions must drive both Marketing and authorization. See `docs/V1_SUBSCRIPTIONS_BUSINESS_MODEL.md`.
+- **EU AI Act 2026 (LEGAL REVIEW BLOCKER):** the current guided review source registry contains only Articles 4/14/50 from the Regulation (EU) 2024/1689 origin; it does **not** automatically incorporate the AI Omnibus consolidated 27 July 2026 legal revisions. Any law applicability, dates, additional duties and marketing claims require source-versioned human/legal review; see `docs/V1_AI_ACT_PRIVACY_SECURITY_PLAYBOOK.md`.
+- **Security and GDPR readiness:** source has multiple controls, but the threat-model/retention/accessibility/operations matrix and real two-tenant staging tests remain release gates, not verified claims.
+
 ## 7. Immediate next product work
 
 1. Promote the Risk + Monitoring/Notification schema only in the dedicated GuardAI staging database and run tenant/invariant proof matrices.
