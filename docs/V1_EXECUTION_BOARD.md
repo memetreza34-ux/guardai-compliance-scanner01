@@ -27,6 +27,11 @@ Blocker: `BLOCKED_EXTERNAL` (Konto/Provider/Infra) bzw. `BLOCKED_TECH` (reproduz
 | P0-09 | NOT_STARTED | Deployment Smoke/API/Worker/Scheduler, `/api/health` vs `/api/ready`, Worker Queue drain und failed/reclaim; Backup-Restore-Testumgebung. | P0-04/05 |
 | P0-10 | NOT_STARTED | Produktions-Vorbedingungen: Hosting, TLS/CORS, Secret-Management, Security/RLS/SSRF, legal Privacy/Imprint/Terms, SMTP, Logs/Alerts, Restore, Performance, Launch Go/No-Go. | alle Launch-Musts |
 
+| P0-11 | NOT_STARTED | **Kunden-UX-Lückencheck**: alle realen Routen gegen [Customer Blueprint](V1_CUSTOMER_EXPERIENCE_BLUEPRINT.md) C01–C12; expliziter Befund auf Desktop: `PublicSiteLayout.tsx` primärer „Kostenlos starten“-CTA zeigt nach `/login`, während Mobile `/signup` benutzt. Ergänze Route-Regressionstests, kopiere keine UI-Platzhalter. | CI-Runner für Code-Merge; Design ohne Runner prüfbar |
+| P0-12 | NOT_STARTED | **AI Act 2026 Source Review**: `shared/legal-sources/eu-ai-act-guided-review-v1.json` ist noch der alte 2024-Quellenstand mit Art. 4/14/50. Prüfe konsolidierte Fassung nach 27.07.2026 AI Omnibus, Nachvollziehbarkeit/Source-Version und Human Review; keine stillen neuen Compliance-Klassen. | fachlicher Rechtsreview vor Product-Claims |
+| P0-13 | NOT_STARTED | **Subscription Integrity Plan**: public `PricingPage` bewirbt Free-Features/„1 Target“ als Packaging, während `server/domain/entitlements.js` `security` noch `null` zuordnet. Inventarisiere und teste tatsächliche Limits vor Angebot, schreibe verbindliche Upgrade/Downgrade/Cancel/Refund und Datenhaltungs-Semantik. | Stripe Test/Staging und Preis-/Limit-Beschluss für Verkauf |
+| P0-14 | NOT_STARTED | **SaaS Security Threat Model**: kontrollierte Checkliste für cross-tenant/RLS, SSRF, Worker, Webhook, Auth, AI-Input, Logging, Privacy und Restore in [Playbook](V1_AI_ACT_PRIVACY_SECURITY_PLAYBOOK.md) als ausführbare Positiv-/Negativtests; dokumentiere Owner und Mitigation. | echtes Staging und CI für Beweis |
+
 **Kann trotz P0-01/05 sofort umgesetzt werden (nur Repo, keine Fremd-DB):** P0-04 Entwurfsinventur/Generierung, P0-06 lokale Test-Harness, P0-08 Design-Audit und Wiederverwendung; dabei Code-Änderungen selbst erst mit ausführbarer CI mergen.
 
 ## P1 – komplette technische V1 (nicht mit „fertig“ verwechseln)
@@ -51,6 +56,14 @@ Blocker: `BLOCKED_EXTERNAL` (Konto/Provider/Infra) bzw. `BLOCKED_TECH` (reproduz
 | P1-16 | NOT_STARTED | Deterministische QA-/Visual-Regression | E2E Journey Tests, responsive Screenshots, axe/Keyboard, controlled API mocks **nur in Tests**, nicht in Produkt |
 
 **Status-Beleg:** `CURRENT_STATE.md` führt den zutreffenden Feature-Quellstand. `CODE_DONE` hier bedeutet **nicht** Production-ready oder dass externe Staging-Gates geschlossen sind.
+
+### Business-, Security- und Experience-Spezifikation – neue Umsetzungsquellen
+
+- [Customer Experience Blueprint](V1_CUSTOMER_EXPERIENCE_BLUEPRINT.md): 25+ Seiten/Journeys, Rollen, Fehlerzustände und Personas; C01–C12.
+- [Subscriptions & Business Model](V1_SUBSCRIPTIONS_BUSINESS_MODEL.md): Free/Starter/Growth/Business **als hypothetische Pakete**, konkrete BILL-01 bis BILL-08; Preis-/Quota-/Stripe-Vorgaben ohne erfundene Zahlen.
+- [EU AI Act / Privacy / Security Playbook](V1_AI_ACT_PRIVACY_SECURITY_PLAYBOOK.md): aktuelle EU-Rechtsgrundlage inkl. AI Omnibus, AI-01–AI-08, Privacy, Threat Model und Legal Gates.
+
+**Diese Dokumente sind Spezifikation, NICHT funktionierende Module.** Implementierungsstatus ausschließlich in `CURRENT_STATE.md` und belegter CI/Staging.
 
 ## P2 – wertvolle Erweiterungen nach stabiler V1
 
