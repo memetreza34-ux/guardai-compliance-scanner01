@@ -18,7 +18,9 @@
     "scheduler:monitor:once": "node workers/monitorSchedulerProcess.js --once",
     "parser:asset:sandbox": "node workers/parserSandboxProcess.js",
     "check": "node scripts/checkSource.js",
-    "test": "node --test"
+    "test": "node --test",
+    "db:inventory": "node scripts/inventoryDatabaseDrafts.js",
+    "db:inventory:json": "node scripts/inventoryDatabaseDrafts.js --json"
   },
   "engines": {
     "node": ">=24 <25"
