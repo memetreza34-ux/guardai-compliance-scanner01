@@ -48,7 +48,7 @@ export default function PublicSiteLayout() {
               Anmelden
             </Link>
             <Link
-              to="/login"
+              to="/signup"
               className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-slate-950 transition-colors hover:bg-slate-200"
             >
               Kostenlos starten <ArrowRight className="h-4 w-4" />
