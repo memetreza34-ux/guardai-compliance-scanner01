@@ -8,7 +8,8 @@
 2. `docs/V1_MASTER_EXECUTION_PLAN.md` – agreed product scope, critical path and release gates.
 3. `docs/V1_EXECUTION_BOARD.md` – first P0/P1 ticket that is not blocked.
 4. `docs/V1_DESIGN_SYSTEM.md` – shared UI and state architecture.
-5. Relevant source/API/schema/tests and ADRs. Read `docs/COMPETITOR_POSITIONING_2026-10.md` when changing strategy/feature scope.
+5. `docs/V1_CUSTOMER_EXPERIENCE_BLUEPRINT.md` – per-screen customer journey, what next, user errors, privacy-safe activation; `docs/V1_SUBSCRIPTIONS_BUSINESS_MODEL.md` – billing/business/usage; `docs/V1_AI_ACT_PRIVACY_SECURITY_PLAYBOOK.md` – up-to-date legal+AI governance+security claims.
+6. Relevant source/API/schema/tests and ADRs. Read `docs/COMPETITOR_POSITIONING_2026-10.md` when changing strategy/feature scope.
 
 Do not rely on the stale historical `docs/BUILD_PROGRESS_MATRIX.md` to infer current product completeness. `docs/GUARDAI_MASTER_BUILD_GUIDE.md` remains the detailed engineering/architecture reference.
 
