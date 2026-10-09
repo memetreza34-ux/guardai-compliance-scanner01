@@ -1,36 +1,34 @@
-# GuardAI Planning Document Status
+# GuardAI – Plan- und Dokumentenstatus
 
-Last reviewed: 2026-10-06
+**Zuletzt überprüft:** 2026-10-09
 
-GuardAI intentionally separates **product direction** from **repository truth**.
+Ab jetzt gibt es einen klaren **IST-/SOLL-/AUSFÜHRUNG-/DESIGN-Vertrag** statt vieler konkurrierender Roadmaps.
 
-| Document | Status | Purpose |
+| Dokument | Verbindlichkeit | Zweck |
 |---|---|---|
-| `CURRENT_STATE.md` | CANONICAL — IMPLEMENTATION STATUS | What the repository actually supports now. |
-| `docs/GUARDAI_MASTER_BUILD_GUIDE.md` | CANONICAL — ENGINEERING DIRECTION | Long-term architecture, safety principles and build order. It links to CURRENT_STATE instead of duplicating current implementation truth. |
-| Market/competitor research from October 2026 | SUPPORTING — PRODUCT STRATEGY | Establishes the Evidence-first Technical GRC positioning and competitive context. It does not prove implementation. |
-| Phase trackers / historical build matrices | SUPPORTING or HISTORICAL | Useful context only. Any feature-completeness statement that conflicts with source/CI/CURRENT_STATE is stale. |
+| `CURRENT_STATE.md` | **KANONISCH – IST/Beweisstand** | Welche Funktionen Quellcode, Tests, CI und Staging wirklich unterstützen; Blocker und Grenzen. |
+| `docs/V1_MASTER_EXECUTION_PLAN.md` | **KANONISCH – V1-Scope/Reihenfolge** | User Journeys, Feature-Scope, Meilensteine, Architektur, Release-Gates und Abhängigkeiten. |
+| `docs/V1_EXECUTION_BOARD.md` | **KANONISCH – nächster ausführbarer Schritt** | P0/P1/P2 Tickets, verifizierbare Akzeptanz, offene PRs/Blocker, Statuspflege. |
+| `docs/V1_DESIGN_SYSTEM.md` | **KANONISCH – UI/UX-Qualitätsvertrag** | GuardAI-eigenes Design, Navigation, Interaktions- und Sonderzustände je Oberfläche. |
+| `AGENTS.md` | **KANONISCH – Engineering-Agent-Routine** | Bei jedem „weiter“ erst Stand/Board prüfen, klein implementieren, CI/Staging prüfen, dokumentieren. |
+| `docs/COMPETITOR_POSITIONING_2026-10.md` | PRODUKTSTRATEGIE / QUELLEN | Wettbewerbspositionierung, bewusste Differenzierung und nicht belegte Marktannahmen. |
+| `docs/GUARDAI_MASTER_BUILD_GUIDE.md` | KANONISCH – TIEFENARCHITEKTUR | Langfristiges A-to-Z-Engineering, Security/Infra/ADRs; bei Aussagen zum IST gewinnt `CURRENT_STATE.md`. |
+| `docs/adr/*` | KANONISCH – EINZELNE ARCHITEKTURDECISIONS | Versionierte technische Entscheidungen. |
+| `docs/BUILD_PROGRESS_MATRIX.md`, alte Phase-Tracker, `docs/REPO_INVENTORY.md` | HISTORISCH / NACHRANGIG | Hilfreicher Ursprungskontext; einige Zeilen sind nach vielen PRs veraltet, **nicht** als aktuelle Feature-Freigabe verwenden. |
 
-## Product north star
+## Produkt-Nordstern
 
 ```text
-Target / Asset
-→ Scan
-→ Observation
-→ Evidence + Provenance
-→ Finding
-→ Remediation
-→ Re-Test
-→ Verified Resolved
-→ Control
-→ Framework Requirement
-→ Risk
-→ Monitoring / Drift
-→ Report / Audit / Trust
+Verified Target → Authorized Scan → Detector/Observation
+→ Evidence + Provenance → Finding → Remediation → Re-Test
+→ Verified Resolved → Control/Requirement → Risk/Monitoring
+→ immutable Report → curated Trust/Audit
 ```
 
-Later governance domains (Policies, Vendors, Access Reviews, AI Governance, Questionnaires) should attach to the same canonical evidence/control/risk graph instead of becoming isolated truth systems.
+## Was beim Fortschreiben gilt
 
-## Change rule
-
-A planning document may propose a future capability, but only source + tests + validation may move it to IMPLEMENTED or VERIFIED.
+- Nur `CURRENT_STATE.md` darf behaupten, dass etwas im Code implementiert/extern verifiziert ist, und nur mit passenden Belegen.
+- Nur `docs/V1_EXECUTION_BOARD.md` bestimmt den nächsten geplanten Block; Roadmap darf keine erledigten Tickets vortäuschen.
+- Ein ausführbarer Code-PR erfordert grünes **ausgeführtes** CI/Tests, nicht nur Workflow-Dateien oder Jobs mit 0 Steps.
+- SQL-Entwürfe sind keine angewendeten Migrationen. Das verbundene Supabase-Projekt darf nicht ohne eindeutige GuardAI-Zuordnung verändert werden.
+- Das Plan-/Design-/Competition-Dokument beschreibt **Ziele und Hypothesen**, nicht bestehende Produktfähigkeit.

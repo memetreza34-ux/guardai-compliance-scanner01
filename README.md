@@ -1,5 +1,8 @@
 # GuardAI — Technical Compliance Evidence & Risk Platform
 
+> **Arbeitsweise ab 2026-10-09:** [V1 Masterplan](docs/V1_MASTER_EXECUTION_PLAN.md) · [priorisierte Tickets](docs/V1_EXECUTION_BOARD.md) · [Designsystem](docs/V1_DESIGN_SYSTEM.md) · [Wettbewerbsanalyse](docs/COMPETITOR_POSITIONING_2026-10.md) · [Agent-Routine](AGENTS.md). Für den **IST-Zustand** immer [CURRENT_STATE.md](CURRENT_STATE.md) prüfen; ältere Phase-Matrizen sind teilweise historisch. Offene Code-PRs #22/#23 bleiben wegen GitHub Actions Jobs ohne ausgeführte Testschritte ungeprüft.
+
+
 GuardAI is being rebuilt from a broad SaaS/UI prototype into a real, evidence-first technical screening platform for websites, repositories and selected digital assets.
 
 > **Status:** active engineering rebuild. Major backend/product foundations now exist in source, but clean installs, full test execution, real staging migrations and provider integrations have not all executed yet. GuardAI is therefore **not production-ready**.
@@ -169,13 +172,13 @@ See `docs/PHASE_12_AI_GOVERNANCE_TRACKER.md`.
 
 ## Frontend state
 
-The active public/prototype shell has been stripped of known mock success claims. Real persistent product components exist for authenticated Workspace, Reports, Trust, Billing, Monitoring, GitHub integration and AI Governance Guided Review, but the final Supabase session adapter and final production router are still pending staging infrastructure.
+Public and authenticated pages now use the real React Router source and Supabase session adapter in code. Workspace, Targets, Scans, Findings, Evidence, Controls, Frameworks, Risks, Monitoring/Notifications/Drift, Reports/Trust, GitHub integration, AI Governance, Team, Billing and Audit Log have routed source surfaces. This is **not** proof that all storage migrations/providers are provisioned or that staging E2E has passed; see `CURRENT_STATE.md`.
 
 Legacy visual prototype components remain reference-only and must not be reactivated as production truth without real backend state.
 
 ## Database state
 
-`database/` contains GuardAI-only SQL **design drafts**, currently through `027_*`.
+`database/` contains GuardAI-only SQL **design drafts**, currently through `033_*`.
 
 They are **not applied migrations**.
 
@@ -247,13 +250,13 @@ Do not interpret the presence of these commands as proof they have passed in a c
 
 `.github/workflows/ci.yml` contains the repository quality workflow and history secret scan.
 
-A real GitHub Actions run was previously registered but GitHub allocated no runner because the account reported a billing/spending condition. The jobs therefore executed **zero steps**. This is an external GitHub account blocker, not evidence that GuardAI code passed or failed.
+Multiple earlier GitHub Actions runs completed successfully (including frontend and backend jobs). More recent runs for open PRs #22/#23 and one `main` run ended with **zero executed steps / no runner allocation**. The present root cause is not confirmed; inspect GitHub Actions/billing/runner settings before diagnosing code failure. Never treat a zero-step job as a validation result.
 
 Until runner access is restored, all clean install/lint/typecheck/build/test gates remain open.
 
 ## Current hard gates before production
 
-1. Restore executable GitHub Actions / clean validation environment.
+1. Restore executable GitHub Actions where recent jobs ended without starting and re-run validation on current commit SHAs.
 2. Run frontend clean install, lint, typecheck and production build.
 3. Run backend clean install and regenerate/verify backend lockfile.
 4. Execute backend syntax/unit suite and fix every failure.
