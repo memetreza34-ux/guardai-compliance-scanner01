@@ -10,6 +10,9 @@
 1. **`CURRENT_STATE.md` = IST-Zustand**. Was Code/Tests wirklich belegen, inkl. BLOCKED. Bei Widerspruch zu diesem Plan gewinnt geprüfter Quellcode + Runtime-Evidence.
 2. **Dieses Dokument = freigegebene V1-Ziele, Reihenfolge und Abnahmekriterien**; **`docs/V1_EXECUTION_BOARD.md` = jeweils nächste ausführbare Arbeit**.
 3. **`docs/V1_DESIGN_SYSTEM.md` = UI-/UX-Vertrag** für alle neuen/überarbeiteten Oberflächen.
+   - **`docs/V1_CUSTOMER_EXPERIENCE_BLUEPRINT.md`** = konkrete Jobs-to-be-done, Seitenmatrix, Klickwege und Customer Success/Failure Cases.
+   - **`docs/V1_SUBSCRIPTIONS_BUSINESS_MODEL.md`** = kommerzielle Pakethypothesen, echte Entitlements/Quota-Races, kompletter Stripe-/Kündigungs-/Steuerlebenszyklus.
+   - **`docs/V1_AI_ACT_PRIVACY_SECURITY_PLAYBOOK.md`** = geltungsstandabhängige EU AI Act Human Reviews, DSGVO, Sicherheit und Release-Kontrollen.
 4. **`docs/COMPETITOR_POSITIONING_2026-10.md` = Marktbeobachtung / bewusste Abgrenzung**, nicht Funktionsbeweis oder rechtliche Freigabe.
 5. `docs/GUARDAI_MASTER_BUILD_GUIDE.md` + ADRs = technische Tiefenarchitektur; historische Phase-Tracker und `docs/BUILD_PROGRESS_MATRIX.md` sind **nicht** aktuelle Fortschrittsnachweise, wenn sie dem Code widersprechen.
 6. `AGENTS.md` = obligatorische Arbeitsroutine vor jeder neuen Änderung im Repo.
@@ -131,6 +134,7 @@ Wenn Actions **0 Steps** ausführt: **BLOCKED_INFRA, nicht „Code fail“ oder 
 **Exit:** zeitbasierte Monitoring-Journey + Risk-Behandlung + Audit/Trust nachweislich funktionsfähig.
 
 **Milestone M4 – Integrations und kommerzielle Betriebsfähigkeit [P1]**
+- [ ] Vor kommerziellem Release alle Freigaben aus `docs/V1_SUBSCRIPTIONS_BUSINESS_MODEL.md`: echte Tier-Limits, Preis/Terms/VAT, Checkout/Webhook/Portal, Renewal, Upgrade/Downgrade, Cancellation, over-quota/Grace, Datenexport und Quota-Concurrency.
 - [ ] GitHub App staging: Install/Callback/Repo authorization/Revoke/Suspend/Webhook replay; Repository-Scanner nur bei sicherem Runtime-Proof aktivieren.
 - [ ] Stripe **test**: Billing Migration/Price-Konfiguration, Checkout, signierter Webhook, Portal, periodische Entitlements, Upgrade/Downgrade, Idempotenz/Reconciliation.
 - [ ] Rollen-/Nutzungsgrenzen, Planwechsel, Soft-/Hard-limit UX; keine erfundenen Preise.
@@ -145,6 +149,8 @@ Wenn Actions **0 Steps** ausführt: **BLOCKED_INFRA, nicht „Code fail“ oder 
 **Exit:** jedes neu freigegebene Modul hat nachvollziehbare Coverage und explizite Unsupported/Not-assessed States.
 
 **Milestone M6 – Release-/Business-/Operations-Gates [P0 vor Öffentlichkeit]**
+- [ ] Kunden-Journeys `C01-C12` aus Customer Experience Blueprint gegen reale Org/Scan/Role/Billing-Fälle prüfen, keine Desktop/Mobile CTA-Abweichungen.
+- [ ] AI-Act-/DSGVO-/Threat-Model Kontrollmatrix aus `docs/V1_AI_ACT_PRIVACY_SECURITY_PLAYBOOK.md` mit konsolidiertem EU-Rechtsstand und Human Review abnehmen.
 - [ ] Security: SSRF/RLS/Auth/Tenant, SCA, sensitive logs, rate limits, signed webhook, abuse prevention, security review.
 - [ ] Privacy/Legal: geprüfte Privacy-/Terms-/Imprint-/Contact-Lösung, Retention/Deletion, DSAR-Prozess, Trust/public claims/Datenschutzfreigabe.
 - [ ] Operations: produktionsnahe Deployments, Backups **mit Restore-Drill**, Monitoring/Alerts, Queue-/Worker Recovery, incident runbook, rollbacks.
