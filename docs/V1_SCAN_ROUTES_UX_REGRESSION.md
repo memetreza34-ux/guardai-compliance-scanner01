@@ -10,6 +10,12 @@
 - Polling failures continue to display a clear stale-data warning for a previously loaded **same-scope** scan. A failed/cancelled/completed status must not claim full site security.
 - Report-generation responses and errors from a previous auth/workspace/scan context are ignored; only the active scope can navigate to the newly created report. Backend RBAC, immutable snapshot creation and RLS remain authoritative.
 
+## Executable UI-scope unit checks (not yet run in CI)
+
+The focused `src/lib/scanViewScope.ts` functions are imported by both routed pages and directly exercised through six `node:test` cases in `tests/scanViewScope.test.mjs`: no unauthorized scope without user/Organization/Scan IDs; cross-tenant and cross-user list isolation; scan-ID isolation; first API error vs successful loaded data; same-scope stale polling observation; and scope-change unknown state. The root `npm run test:ui-state` script uses Node 24 native TypeScript type stripping and is included in the frontend GitHub Actions job before Vite build.
+
+These pure function tests **do not simulate HTTP latency, report mutation races or React rendering**; the browser/staging scenarios below remain mandatory.
+
 ## Required scenarios before merge
 
 | Scenario | Expected UX and provenance |
@@ -27,6 +33,6 @@
 | 320/390/768/1024/1440px mobile/desktop | Actions and long Scan IDs/Hashes usable with keyboard and screen readers |
 | Scan completed, failed, cancelled, queued, running | Correct execution statuses; never inferred security score or legal compliance |
 
-**Required gates:** root `npm ci && npm run lint && npm run typecheck && npm run build` plus `cd server && npm ci && npm run check && npm test` on the **exact PR HEAD SHA**, actual two-user/two-org staging/browser tests (including request latency), mobile keyboard/accessibility checks and backend authorization review. GitHub Actions failing before any job step = `BLOCKED_INFRA`, not passing QA. No production merge.
+**Required gates:** root `npm ci && npm run lint && npm run typecheck && npm run test:ui-state && npm run build` plus `cd server && npm ci && npm run check && npm test` on the **exact PR HEAD SHA**, actual two-user/two-org staging/browser tests (including request latency), mobile keyboard/accessibility checks and backend authorization review. GitHub Actions failing before any job step = `BLOCKED_INFRA`, not passing QA. No production merge.
 
 **Related open changes:** #22 first-run shell, #23 dashboard, #30 Evidence route, #31 Findings route. This patch intentionally does not edit any of those pages. CI runner tracking: issue #28.
