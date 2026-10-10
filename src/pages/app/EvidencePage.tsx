@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Clock3, ExternalLink, FileCheck2, RefreshCw, TriangleAlert } from 'lucide-react';
 import { useAuth } from '../../auth/AuthProvider';
@@ -47,7 +47,7 @@ function collectionBadge(item: EvidenceExplorerItem) {
 
 export default function EvidencePage() {
   const { session } = useAuth();
-  const { currentOrg, isLoading: orgLoading } = useWorkspace();
+  const { currentOrg, isLoading: orgLoading, error: orgError } = useWorkspace();
   const navigate = useNavigate();
 
   const [evidence, setEvidence] = useState<EvidenceExplorerItem[]>([]);
@@ -57,11 +57,26 @@ export default function EvidencePage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [retry, setRetry] = useState(0);
+  // A list and its pagination cursor are only valid for the identity that fetched them.
+  const scopeKey = session?.user.id && currentOrg?.id
+    ? `${session.user.id}:${currentOrg.id}`
+    : null;
+  const [loadedScope, setLoadedScope] = useState<string | null>(null);
+  const [failedScope, setFailedScope] = useState<string | null>(null);
+  const requestEpoch = useRef(0);
+
+  // Invalidate in-flight pagination before a different workspace can render.
+  useLayoutEffect(() => {
+    requestEpoch.current += 1;
+    setLoadingMore(false);
+  }, [session, currentOrg, orgLoading, scopeKey, retry]);
 
   useEffect(() => {
     let cancelled = false;
     setEvidence([]);
     setNextCursor(null);
+    setLoadedScope(null);
+    setFailedScope(null);
     setError(null);
 
     if (orgLoading) {
@@ -81,8 +96,12 @@ export default function EvidencePage() {
         if (cancelled) return;
         setEvidence(page.evidence);
         setNextCursor(page.nextCursor);
+        setLoadedScope(scopeKey);
       } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Failed to load evidence.');
+        if (!cancelled) {
+          setFailedScope(scopeKey);
+          setError(err instanceof Error ? err.message : 'Failed to load evidence.');
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -90,21 +109,27 @@ export default function EvidencePage() {
 
     void load();
     return () => { cancelled = true; };
-  }, [session, currentOrg, orgLoading, retry]);
+  }, [session, currentOrg, orgLoading, retry, scopeKey]);
 
   async function loadMore() {
-    if (!session?.access_token || !currentOrg || !nextCursor || loadingMore) return;
+    if (!session?.access_token || !currentOrg || !nextCursor || loadingMore || loadedScope !== scopeKey) return;
+    const epoch = requestEpoch.current;
+    const organizationId = currentOrg.id;
+    const cursor = nextCursor;
     setLoadingMore(true);
     setError(null);
     try {
       const api = createEvidenceApi(async () => session.access_token);
-      const page = await api.listEvidence(currentOrg.id, { limit: 50, cursor: nextCursor });
+      const page = await api.listEvidence(organizationId, { limit: 50, cursor });
+      if (requestEpoch.current !== epoch) return;
       setEvidence(current => [...current, ...page.evidence]);
       setNextCursor(page.nextCursor);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load more evidence.');
+      if (requestEpoch.current === epoch) {
+        setError(err instanceof Error ? err.message : 'Failed to load more evidence.');
+      }
     } finally {
-      setLoadingMore(false);
+      if (requestEpoch.current === epoch) setLoadingMore(false);
     }
   }
 
@@ -116,8 +141,36 @@ export default function EvidencePage() {
   const supersededCount = evidence.filter(item => item.freshnessState === 'superseded').length;
   const unhealthyCount = evidence.filter(item => item.collectionHealth !== 'healthy').length;
 
-  if (orgLoading || loading) {
-    return <div className="flex items-center justify-center p-12 text-slate-400">Loading evidence...</div>;
+  const isCurrent = !!scopeKey && loadedScope === scopeKey;
+  const initialFailed = !!scopeKey && failedScope === scopeKey && !isCurrent;
+
+  if (orgLoading || loading || (scopeKey && !isCurrent && !initialFailed)) {
+    return <div role="status" className="flex items-center justify-center p-12 text-slate-400">Loading evidence...</div>;
+  }
+
+  if (orgError) {
+    return <div role="alert" className="rounded-xl border border-rose-500/20 bg-rose-500/10 p-5 text-sm text-rose-300">Workspace access could not be verified: {orgError}</div>;
+  }
+
+  if (!scopeKey) {
+    return (
+      <div className="rounded-xl border border-slate-800 bg-slate-900 p-6 text-slate-300">
+        Select or create a workspace before browsing evidence.
+        <button type="button" onClick={() => navigate('/app')} className="ml-3 rounded-lg border border-slate-700 px-3 py-2 text-sm hover:bg-slate-800">Go to dashboard</button>
+      </div>
+    );
+  }
+
+  if (initialFailed) {
+    return (
+      <div role="alert" className="rounded-xl border border-rose-500/20 bg-rose-500/10 p-5 text-sm text-rose-300">
+        <p className="font-medium">Evidence could not be loaded for this workspace.</p>
+        <p className="mt-2">{error || 'The Evidence API did not return a usable result.'}</p>
+        <button type="button" onClick={() => setRetry(value => value + 1)} className="mt-4 inline-flex items-center gap-2 rounded-lg border border-rose-500/30 px-3 py-2 hover:bg-rose-500/10">
+          <RefreshCw className="h-4 w-4" /> Retry
+        </button>
+      </div>
+    );
   }
 
   return (
