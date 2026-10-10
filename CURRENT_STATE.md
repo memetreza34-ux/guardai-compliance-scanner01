@@ -19,7 +19,7 @@ Status vocabulary:
 - **Authentication:** VERIFIED. Supabase-backed sign-in/session integration is wired into protected application routes.
 - **Organizations / workspace context:** VERIFIED. The routed app uses one workspace context; backend authorization remains authoritative. Session/token refresh preserves the currently selected authorized Organization, stale in-flight list responses are discarded, missing/failed reads do not display old tenant roles, and callers cannot select unauthorized Organization DTOs.
 - **Backend API:** VERIFIED. Persistent product APIs are mounted under `/api/v1`.
-- **CI:** VERIFIED. Frontend lint/typecheck/build and backend check/test run as non-masked GitHub Actions jobs.
+- **CI:** BLOCKED_EXTERNAL (2026-10-10): GitHub Actions jobs fail with zero executed steps before frontend/backend checks. Workflow definitions are committed, but no executable test evidence has been produced for current draft PRs. See issue #28.
 - **Node baseline:** Node 24 / npm 11 contract is versioned in the repository.
 
 ## 1A. Public website
@@ -36,6 +36,7 @@ Status vocabulary:
 - **DNS TXT ownership verification:** VERIFIED.
 - **Ownership semantics:** VERIFIED. A verified domain proves control of the target only; it is not displayed as proof of security or legal compliance.
 - **Workspace-switch safety:** IMPLEMENTED. Target create and DNS verification actions invalidate stale async results when organization/route context changes.
+- **P0-08 Target UX hardening:** CODE UNVERIFIED in draft [PR #33](https://github.com/memetreza34-ux/guardai-compliance-scanner01/pull/33). Target lists/details require an active user + organization (+target ID) and reject inconsistent API response ownership; DNS writes, TXT clipboard state and scan-submit redirects now check the current identity and role. Eight pure scope tests exist and are in the frontend CI workflow, but the actual GitHub runner still executes zero steps. Browser, role, two-tenant staging and DB authorization validation remain OPEN; see `docs/V1_TARGET_ROUTES_UX_REGRESSION.md`.
 - **Terminal challenge handling:** IMPLEMENTED. Verified, failed and expired challenge outcomes refresh authoritative target state.
 - **Rate-limit UX:** IMPLEMENTED for target/DNS actions; HTTP 429 is surfaced without aggressive retry.
 - **Ephemeral DNS secret handling:** challenge values remain one-time UI state and are not treated as retrievable durable product data.
