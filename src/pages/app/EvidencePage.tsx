@@ -69,7 +69,7 @@ export default function EvidencePage() {
   useLayoutEffect(() => {
     requestEpoch.current += 1;
     setLoadingMore(false);
-  }, [scopeKey, retry]);
+  }, [session, currentOrg, orgLoading, scopeKey, retry]);
 
   useEffect(() => {
     let cancelled = false;
