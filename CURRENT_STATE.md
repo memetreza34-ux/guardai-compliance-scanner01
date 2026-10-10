@@ -53,6 +53,7 @@ Status vocabulary:
 - **Tenant-scoped scan history:** IMPLEMENTED and covered by repository tests.
 - **Routed scan history UI:** IMPLEMENTED.
 - **Routed scan detail UI:** IMPLEMENTED.
+- **Scan route tenant/error/report UX hardening:** CODE UNVERIFIED in the P0-08 `guardai-p0-08-scan-route-tenant-state` branch (pending PR). Scan history uses the current user/Organization scope; Scan Detail also binds to its requested scan ID and discards stale report-create responses before redirect. First-page errors are unavailable rather than empty; same-scope scan poll failures still explicitly identify stale data. Tests and staging two-tenant proof remain outstanding; see `docs/V1_SCAN_ROUTES_UX_REGRESSION.md`. This is not backend RLS validation.
 - **Target → security scan launch:** IMPLEMENTED for verified website targets and authorized roles.
 - **Scan polling:** IMPLEMENTED. Queued/running scans refresh; refresh failures are shown as stale-state warnings rather than silently implying live data.
 
