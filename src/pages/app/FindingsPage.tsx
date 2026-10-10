@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, CheckCircle2, ExternalLink, RefreshCw, RotateCcw, ShieldAlert } from 'lucide-react';
 import { useAuth } from '../../auth/AuthProvider';
@@ -29,7 +29,7 @@ function statusLabel(finding: WorkspaceFindingSummary) {
 
 export default function FindingsPage() {
   const { session } = useAuth();
-  const { currentOrg, isLoading: orgLoading } = useWorkspace();
+  const { currentOrg, isLoading: orgLoading, error: orgError } = useWorkspace();
   const navigate = useNavigate();
 
   const [findings, setFindings] = useState<WorkspaceFindingSummary[]>([]);
@@ -41,11 +41,31 @@ export default function FindingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [actionBusy, setActionBusy] = useState<string | null>(null);
   const [retry, setRetry] = useState(0);
+  const [targetNameLookupFailed, setTargetNameLookupFailed] = useState(false);
+
+  // Each page/cursor belongs to the authenticated user, Organization and status filter.
+  const scopeKey = session?.user.id && currentOrg?.id
+    ? `${session.user.id}:${currentOrg.id}:${status}`
+    : null;
+  const [loadedScope, setLoadedScope] = useState<string | null>(null);
+  const [failedScope, setFailedScope] = useState<string | null>(null);
+  const requestEpoch = useRef(0);
+
+  // Invalidate pagination and mutations before a changed workspace/filter is painted.
+  useLayoutEffect(() => {
+    requestEpoch.current += 1;
+    setLoadingMore(false);
+    setActionBusy(null);
+  }, [session, currentOrg, orgLoading, status, retry]);
 
   useEffect(() => {
     let cancelled = false;
     setFindings([]);
+    setTargetNames({});
+    setTargetNameLookupFailed(false);
     setNextCursor(null);
+    setLoadedScope(null);
+    setFailedScope(null);
     setError(null);
 
     if (orgLoading) {
@@ -59,22 +79,34 @@ export default function FindingsPage() {
 
     async function load() {
       setLoading(true);
+      const token = session!.access_token;
+      const orgId = currentOrg!.id;
+      const workspaceApi = createWorkspaceApi(async () => token);
+
+      // Target names are supplemental. Failure here must not hide real Findings.
+      void workspaceApi.listTargets(orgId).then(targets => {
+        if (!cancelled) {
+          setTargetNames(Object.fromEntries(targets.map(target => [target.id, target.displayName])));
+        }
+      }).catch(() => {
+        if (!cancelled) setTargetNameLookupFailed(true);
+      });
+
       try {
-        const findingApi = createFindingApi(async () => session!.access_token);
-        const workspaceApi = createWorkspaceApi(async () => session!.access_token);
-        const [page, targets] = await Promise.all([
-          findingApi.listFindings(currentOrg!.id, {
-            status: status === 'all' ? undefined : status,
-            limit: 50,
-          }),
-          workspaceApi.listTargets(currentOrg!.id),
-        ]);
+        const findingApi = createFindingApi(async () => token);
+        const page = await findingApi.listFindings(orgId, {
+          status: status === 'all' ? undefined : status,
+          limit: 50,
+        });
         if (cancelled) return;
         setFindings(page.findings);
         setNextCursor(page.nextCursor);
-        setTargetNames(Object.fromEntries(targets.map(target => [target.id, target.displayName])));
+        setLoadedScope(scopeKey);
       } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Failed to load findings.');
+        if (!cancelled) {
+          setFailedScope(scopeKey);
+          setError(err instanceof Error ? err.message : 'Failed to load findings.');
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -82,7 +114,7 @@ export default function FindingsPage() {
 
     void load();
     return () => { cancelled = true; };
-  }, [session, currentOrg, orgLoading, status, retry]);
+  }, [session, currentOrg, orgLoading, status, retry, scopeKey]);
 
   async function loadMore() {
     if (!session?.access_token || !currentOrg || !nextCursor || loadingMore) return;
