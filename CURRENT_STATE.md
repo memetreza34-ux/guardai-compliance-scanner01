@@ -1,6 +1,6 @@
 # CURRENT_STATE.md
 
-## Repository truth — 2026-10-07
+## Repository truth — 2026-10-10 (source-only P0-08 integration candidate)
 
 This file records what the current GuardAI product code actually supports. Product plans and market research do not make a capability implemented.
 
@@ -36,6 +36,7 @@ Status vocabulary:
 - **DNS TXT ownership verification:** VERIFIED.
 - **Ownership semantics:** VERIFIED. A verified domain proves control of the target only; it is not displayed as proof of security or legal compliance.
 - **Workspace-switch safety:** IMPLEMENTED. Target create and DNS verification actions invalidate stale async results when organization/route context changes.
+- **P0-08 cross-route integration:** CODE UNVERIFIED in draft [PR #34](https://github.com/memetreza34-ux/guardai-compliance-scanner01/pull/34). This review branch combines the distinct code changes in #30 Evidence, #31 Findings, #32 Scans + Scan Detail, and #33 Targets + Target Detail. It reconciles duplicate CI/UI-test script edits. Two new backend files exercise **13** auth/role/DNS/Scan/Finding/re-test/Report service scenarios using in-memory repository fakes, and **14** `node:test` UI scope cases are present. Both backend files passed a JavaScript syntax parse; **none of these checks have executed as tests**. No real browser, runner, HTTP, Supabase RLS, worker, Stripe or staging evidence exists from this integration. See [integration matrix](docs/V1_P0_08_INTEGRATION_MATRIX.md). Dashboard remains in separate draft #23.
 - **P0-08 Target UX hardening:** CODE UNVERIFIED in draft [PR #33](https://github.com/memetreza34-ux/guardai-compliance-scanner01/pull/33). Target lists/details require an active user + organization (+target ID) and reject inconsistent API response ownership; DNS writes, TXT clipboard state and scan-submit redirects now check the current identity and role. Non-website repository/asset targets no longer render website DNS or website security scanner actions. Target creation ignores stale redirects after an auth-token or workspace/role transition. Eight pure scope tests exist and are in the frontend CI workflow, but the actual GitHub runner still executes zero steps. Browser, role, two-tenant staging and DB authorization validation remain OPEN; see `docs/V1_TARGET_ROUTES_UX_REGRESSION.md`.
 - **Terminal challenge handling:** IMPLEMENTED. Verified, failed and expired challenge outcomes refresh authoritative target state.
 - **Rate-limit UX:** IMPLEMENTED for target/DNS actions; HTTP 429 is surfaced without aggressive retry.
@@ -56,6 +57,7 @@ Status vocabulary:
 - **Routed scan detail UI:** IMPLEMENTED.
 - **Target → security scan launch:** IMPLEMENTED for verified website targets and authorized roles.
 - **Scan polling:** IMPLEMENTED. Queued/running scans refresh; refresh failures are shown as stale-state warnings rather than silently implying live data.
+- **P0-08 Scan history/detail async hardening:** CODE UNVERIFIED in combined draft #34 (origin #32). History never renders old tenant results during a new scope; Scan Detail also binds the requested Scan ID. Initial API failures show unavailable/Retry rather than an empty success; old report-creation results cannot redirect after a scope change.
 
 A completed scan means the requested automated checks executed and their result was persisted. It does **not** mean the target is secure, legally compliant, certified, or free of vulnerabilities.
 
@@ -69,6 +71,7 @@ A completed scan means the requested automated checks executed and their result 
 - **Evidence freshness semantics:** IMPLEMENTED without arbitrary expiry claims. Each Evidence item is classified as current or superseded relative to the same Target + Detector, while absolute age is shown separately.
 - **Evidence collection health:** IMPLEMENTED from the authoritative source Scan state. Completed, pending, failed and cancelled collection states remain distinct; collection uncertainty never becomes a pass.
 - **Standalone routed Findings workspace:** IMPLEMENTED; tenant-scoped and enriched with the newest persisted technical observation.
+- **P0-08 Evidence/Findings async hardening:** CODE UNVERIFIED in combined draft #34 (origin #30/#31). Evidence and Finding paging ignore results after auth/Organization/filter transitions; first fetch failure is unavailable, not a zero assessment. Findings still display when optional Target label lookup fails. The backend/DB remains the mandatory authorization barrier.
 - **Remediation / re-test workflow:** IMPLEMENTED on the V1 core path. Members can mark a finding fixed-but-unverified and launch a dedicated re-test through the same persistent security worker. A finding is shown as **Verified Resolved** only when the matching detector assesses the same target and the original fingerprint is absent; the verifying Scan ID is recorded in status history.
 
 No-result messaging explicitly avoids claiming that zero findings means zero vulnerabilities or compliance issues.
