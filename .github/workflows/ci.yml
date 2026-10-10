@@ -28,6 +28,8 @@ jobs:
         run: npm run lint
       - name: Typecheck
         run: npm run typecheck
+      - name: UI state regression tests
+        run: npm run test:ui-state
       - name: Build
         run: npm run build
 
