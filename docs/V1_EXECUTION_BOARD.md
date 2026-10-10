@@ -1,6 +1,6 @@
 # GuardAI V1 Execution Board – der nächste konkrete Arbeitsauftrag
 
-**Stand:** 2026-10-09 · **Plan:** [V1_MASTER_EXECUTION_PLAN.md](V1_MASTER_EXECUTION_PLAN.md)  
+**Stand:** 2026-10-10 · **Plan:** [V1_MASTER_EXECUTION_PLAN.md](V1_MASTER_EXECUTION_PLAN.md)  
 Dies ist die **priorisierte, maschinen- und menschenlesbare Arbeitsliste**. Sie ersetzt keine unabhängigen QA-/Security-Nachweise. Nach jedem PR genau die betroffenen Zeilen aktualisieren. **Nichts abhaken ohne ausgeführte Evidence.**
 
 ## Workflow
@@ -23,7 +23,7 @@ Blocker: `BLOCKED_EXTERNAL` (Konto/Provider/Infra) bzw. `BLOCKED_TECH` (reproduz
 | P0-05 | BLOCKED_EXTERNAL | GuardAI-only Supabase staging project ref eindeutig mit verbundenem Projekt vergleichen; dazu Site/Redirect/CORS-Konfiguration. Keine Nutzung von KlarKI/allgemeinem Supabase ohne ausdrückliche Zuordnung. | User nennt **project ref**, Zugang |
 | P0-06 | NOT_STARTED | RLS/tenant/cross-tenant/auth/last-owner/invite/replay/Scan-Worker-lease Testmatrix als ausführbare Staging-Tests; jeder fremd-Org-Aufruf 403/404 ohne Datenaustritt; keine privaten Daten in Logs. | P0-04/05 |
 | P0-07 | NOT_STARTED | End-to-end `Signup → Confirm → Org → Website → DNS → Security Scan → Evidence → Finding/No Finding Coverage → Re-Test → Report`. Zwei Testnutzer, zwei Orgs, Scannerfehler, Retry, Rate Limit, Expiry. Evidence inklusive Job/Detector/Hash. | P0-01/04/05/06 |
-| P0-08 | NOT_STARTED | UI-Design Audit der V1 Kern-Routen `Dashboard/Targets/TargetDetail/Scans/ScanDetail/Findings/Evidence`; Komponentenbibliothek für Loading/Error/Empty/Permission/Not-Assessed, Mobile und Keyboard. Keine divergierenden Routen. | `V1_DESIGN_SYSTEM.md` |
+| P0-08 | IN_PROGRESS (SCAN ROUTES CODE UNVERIFIED; PRs #30/#31 ALSO OPEN) | UI-Design Audit der V1 Kern-Routen `Dashboard/Targets/TargetDetail/Scans/ScanDetail/Findings/Evidence`; Komponentenbibliothek für Loading/Error/Empty/Permission/Not-Assessed, Mobile und Keyboard. Keine divergierenden Routen. | `V1_DESIGN_SYSTEM.md` |
 | P0-09 | NOT_STARTED | Deployment Smoke/API/Worker/Scheduler, `/api/health` vs `/api/ready`, Worker Queue drain und failed/reclaim; Backup-Restore-Testumgebung. | P0-04/05 |
 | P0-10 | NOT_STARTED | Produktions-Vorbedingungen: Hosting, TLS/CORS, Secret-Management, Security/RLS/SSRF, legal Privacy/Imprint/Terms, SMTP, Logs/Alerts, Restore, Performance, Launch Go/No-Go. | alle Launch-Musts |
 | P0-11 | NOT_STARTED | **Kunden-UX-Lückencheck**: alle realen Routen gegen [Customer Blueprint](V1_CUSTOMER_EXPERIENCE_BLUEPRINT.md) C01–C12; expliziter Befund auf Desktop: `PublicSiteLayout.tsx` primärer „Kostenlos starten“-CTA zeigt nach `/login`, während Mobile `/signup` benutzt. Ergänze Route-Regressionstests, kopiere keine UI-Platzhalter. | CI-Runner für Code-Merge; Design ohne Runner prüfbar |
@@ -31,7 +31,7 @@ Blocker: `BLOCKED_EXTERNAL` (Konto/Provider/Infra) bzw. `BLOCKED_TECH` (reproduz
 | P0-13 | NOT_STARTED | **Subscription Integrity Plan**: public `PricingPage` bewirbt Free-Features/„1 Target“ als Packaging, während `server/domain/entitlements.js` `security` noch `null` zuordnet. Inventarisiere und teste tatsächliche Limits vor Angebot, schreibe verbindliche Upgrade/Downgrade/Cancel/Refund und Datenhaltungs-Semantik. | Stripe Test/Staging und Preis-/Limit-Beschluss für Verkauf |
 | P0-14 | NOT_STARTED | **SaaS Security Threat Model**: kontrollierte Checkliste für cross-tenant/RLS, SSRF, Worker, Webhook, Auth, AI-Input, Logging, Privacy und Restore in [Playbook](V1_AI_ACT_PRIVACY_SECURITY_PLAYBOOK.md) als ausführbare Positiv-/Negativtests; dokumentiere Owner und Mitigation. | echtes Staging und CI für Beweis |
 
-**Kann trotz P0-01/05 sofort umgesetzt werden (nur Repo, keine Fremd-DB):** P0-04 Entwurfsinventur/Generierung, P0-06 lokale Test-Harness, P0-08 Design-Audit und Wiederverwendung; dabei Code-Änderungen selbst erst mit ausführbarer CI mergen.
+**P0-08 Scan routes:** New source patch `guardai-p0-08-scan-route-tenant-state` scopes scan-history rows and scan-detail jobs/evidence/findings to active auth/Organization/Scan, prevents stale report-create redirects, and distinguishes initial API failure from an empty workspace. Regression matrix: [V1_SCAN_ROUTES_UX_REGRESSION.md](V1_SCAN_ROUTES_UX_REGRESSION.md). Companion open draft PRs [#30](https://github.com/memetreza34-ux/guardai-compliance-scanner01/pull/30) (Evidence) and [#31](https://github.com/memetreza34-ux/guardai-compliance-scanner01/pull/31) (Findings) are also **CODE UNVERIFIED**. P0-08 is NOT DONE; exact-SHA CI plus mobile/staging negative tests remain required.\n\n**Kann trotz P0-01/05 sofort umgesetzt werden (nur Repo, keine Fremd-DB):** P0-04 Entwurfsinventur/Generierung, P0-06 lokale Test-Harness, P0-08 Design-Audit und Wiederverwendung; dabei Code-Änderungen selbst erst mit ausführbarer CI mergen.
 
 ## P1 – komplette technische V1 (nicht mit „fertig“ verwechseln)
 
