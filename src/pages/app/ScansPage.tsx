@@ -5,6 +5,7 @@ import { useAuth } from '../../auth/AuthProvider';
 import { createWorkspaceApi } from '../../api/workspaceApi';
 import { useWorkspace } from '../../providers/WorkspaceProvider';
 import type { PersistentScan, PersistentScanStatus } from '../../types/workspace';
+import { isInitialLoadFailedForActiveScope, isLoadedForActiveScope, scanHistoryScope } from '../../lib/scanViewScope';
 
 function formatDate(value?: string | null) {
   if (!value) return 'Unavailable';
@@ -41,9 +42,7 @@ export default function ScansPage() {
   const [loadedScope, setLoadedScope] = useState<string | null>(null);
   const [failedScope, setFailedScope] = useState<string | null>(null);
   // Do not render a previous tenant's scan history while the new request is pending.
-  const scopeKey = session?.user.id && currentOrg?.id
-    ? `${session.user.id}:${currentOrg.id}`
-    : null;
+  const scopeKey = scanHistoryScope(session?.user.id, currentOrg?.id);
 
   useEffect(() => {
     let cancelled = false;
@@ -87,8 +86,8 @@ export default function ScansPage() {
     };
   }, [session, currentOrg, orgLoading, retry, scopeKey]);
 
-  const hasCurrentData = !!scopeKey && loadedScope === scopeKey;
-  const initialFailed = !!scopeKey && failedScope === scopeKey && !hasCurrentData;
+  const hasCurrentData = isLoadedForActiveScope(scopeKey, loadedScope);
+  const initialFailed = isInitialLoadFailedForActiveScope(scopeKey, loadedScope, failedScope);
 
   if (orgLoading || loading || (scopeKey && !hasCurrentData && !initialFailed)) {
     return <div role="status" className="flex items-center justify-center p-12 text-slate-400">Loading scan history...</div>;
