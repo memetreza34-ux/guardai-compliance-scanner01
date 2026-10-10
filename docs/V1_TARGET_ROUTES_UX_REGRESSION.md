@@ -7,8 +7,8 @@
 - `TargetsPage.tsx` may show listed Targets only after a successful read for its currently authenticated `userId:organizationId`. Target list API responses containing any unexpected `organizationId` fail the page closed. Workspace membership API errors are shown distinctly from a fresh empty list.
 - Target creation redirects are rejected if the request completes after the user switches to a different Organization, changes login identity or loses Owner/Admin role. Buttons are guarded against concurrent creates. HTTP 429 still gives a no-retry-storm error.
 - `TargetDetailPage.tsx` requires successful target retrieval with the **expected target ID and organization ID** before displaying ownership challenge, verification data, scanner action or other details. On initial failure, a retry is available and there is no stale Target from a previous workspace/route.
-- DNS challenge issue/check and scan submission responses are guarded against changes in auth identity, active Organization, Target or role. Client checks are not authorization: backend must enforce Owner/Admin for DNS writes and Member+ for scanning. The only exposed scan module remains `security` and only DNS-verified website Targets may be scanned according to the server.
-- One-time DNS TXT values and copy UI only render to an Owner/Admin in the active Target context. Async clipboard confirmation and its reset timers are invalidated if the context changes. Challenge values are ephemeral UI state, never persisted or logged by this patch.
+- DNS challenge issue/check and scan submission responses are guarded against changes in auth identity, active Organization, Target or role. Target creation also rejects redirects after an auth access-token transition. Client checks are not authorization: backend must enforce Owner/Admin for DNS writes and Member+ for scanning. The only exposed scan module remains `security` and only DNS-verified website Targets may be scanned according to the server.
+- Non-website repository/asset Targets do not render website DNS challenge or website security scan controls. One-time DNS TXT values and copy UI only render to an Owner/Admin in the active Target context. Async clipboard confirmation and its reset timers are invalidated if the context changes. Challenge values are ephemeral UI state, never persisted or logged by this patch.
 - `src/lib/targetViewScope.ts` centralizes conservative client display predicates and organization-ID checking; `tests/targetViewScope.test.mjs` provides **eight pure-function regression cases**, registered as `npm run test:ui-state` in frontend CI.
 
 ## Required staging/browser test matrix (not yet executed)
@@ -29,7 +29,7 @@
 | Member attempts scan on verified Target | Server authorizes Member+; submits only supported `security` module |
 | Scan request pending then Org, Target, role or user changes | Old response never redirects to Scan detail under new identity; idempotency enforced by backend |
 | Multiple quick clicks / 429 throttling | No duplicate active submission, explicit rate limit message, no automatic aggressive retries |
-| Source Target is repository/asset, not website | Server rejects unsupported DNS/security ownership checks, frontend never represents verification as website security |
+| Source Target is repository/asset, not website | Frontend hides DNS / website scan actions and displays explanation; backend must also reject unsupported operations |
 | 320/390/768/1024/1440px widths, keyboard navigation, screen reader | Form labels/errors, long URLs, hashes and DNS copy controls remain accessible |
 
 ## Validation gates
