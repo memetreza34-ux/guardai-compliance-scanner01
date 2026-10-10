@@ -154,7 +154,7 @@ export default function TargetDetailPage() {
   }
 
   async function handleStartVerification() {
-    if (!currentOrg || !session || !target || !scopeKey || !hasCurrentData || !isAdmin || actionBusy) return;
+    if (!currentOrg || !session || !target || !scopeKey || !hasCurrentData || !isAdmin || actionBusy || target.type !== 'website') return;
 
     const organizationId = currentOrg.id;
     const targetIdValue = target.id;
@@ -189,7 +189,7 @@ export default function TargetDetailPage() {
   }
 
   async function handleCheckVerification() {
-    if (!currentOrg || !session || !target || !scopeKey || !hasCurrentData || !isAdmin || actionBusy) return;
+    if (!currentOrg || !session || !target || !scopeKey || !hasCurrentData || !isAdmin || actionBusy || target.type !== 'website') return;
 
     const organizationId = currentOrg.id;
     const targetIdValue = target.id;
@@ -242,7 +242,7 @@ export default function TargetDetailPage() {
 
   async function handleRunSecurityScan() {
     if (!currentOrg || !session || !target || !scopeKey || !hasCurrentData ||
-        target.verificationState !== 'verified' || !canRunScans || scanBusy || actionBusy) return;
+        target.type !== 'website' || target.verificationState !== 'verified' || !canRunScans || scanBusy || actionBusy) return;
 
     const organizationId = currentOrg.id;
     const targetIdValue = target.id;
@@ -391,8 +391,9 @@ export default function TargetDetailPage() {
         </div>
       )}
 
-      <section className="bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
-        <h2 className="text-lg font-medium text-slate-200">DNS Ownership Verification</h2>
+      {target.type === 'website' ? (
+        <section className="bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
+          <h2 className="text-lg font-medium text-slate-200">DNS Ownership Verification</h2>
 
         {target.verificationState === 'verified' ? (
           <div className="text-sm text-slate-400">
@@ -501,9 +502,15 @@ export default function TargetDetailPage() {
             )}
           </div>
         )}
-      </section>
+        </section>
+      ) : (
+        <div role="status" className="rounded-xl border border-slate-800 bg-slate-900 p-5 text-sm text-slate-400">
+          DNS ownership challenges and the website security baseline apply only to website targets.
+          This {target.type} target cannot use the website scanner from this page.
+        </div>
+      )}
 
-      {target.verificationState === 'verified' && (
+      {target.type === 'website' && target.verificationState === 'verified' && (
         <section className="bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-sm space-y-5">
           <div>
             <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Available scanner</div>
