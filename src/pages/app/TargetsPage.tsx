@@ -7,6 +7,7 @@ import type { WorkspaceTarget } from '../../types/workspace';
 import { Target, CheckCircle2, Clock, XCircle, HelpCircle, RefreshCw } from 'lucide-react';
 import { GuardApiError } from '../../api/apiClient';
 import WorkspaceOnboarding from '../../components/WorkspaceOnboarding';
+import { isCurrentTargetScope, isTargetInitialFailure, targetListScope, targetsBelongToOrganization } from '../../lib/targetViewScope';
 
 function TargetStatusBadge({ state }: { state: WorkspaceTarget['verificationState'] }) {
   switch (state) {
@@ -28,7 +29,7 @@ function formatDate(value: string) {
 
 export default function TargetsPage() {
   const { session } = useAuth();
-  const { currentOrg, isLoading: orgLoading } = useWorkspace();
+  const { currentOrg, isLoading: orgLoading, error: orgError } = useWorkspace();
   const navigate = useNavigate();
 
   const [targets, setTargets] = useState<WorkspaceTarget[]>([]);
@@ -41,10 +42,15 @@ export default function TargetsPage() {
   const [createError, setCreateError] = useState<string | null>(null);
 
   const [retryCount, setRetryCount] = useState(0);
-  const activeOrgIdRef = useRef<string | null>(currentOrg?.id ?? null);
+  const [loadedScope, setLoadedScope] = useState<string | null>(null);
+  const [failedScope, setFailedScope] = useState<string | null>(null);
+  const scopeKey = targetListScope(session?.user.id, currentOrg?.id);
+  const activeScopeRef = useRef<string | null>(scopeKey);
+  const roleRef = useRef(currentOrg?.role);
   const createRequestRef = useRef(0);
 
-  activeOrgIdRef.current = currentOrg?.id ?? null;
+  activeScopeRef.current = scopeKey;
+  roleRef.current = currentOrg?.role;
 
   useEffect(() => {
     let cancelled = false;
@@ -52,6 +58,8 @@ export default function TargetsPage() {
     createRequestRef.current += 1;
     setCreating(false);
     setTargets([]);
+    setLoadedScope(null);
+    setFailedScope(null);
     setError(null);
     setCreateError(null);
     setTargetUrl('');
@@ -73,12 +81,17 @@ export default function TargetsPage() {
       try {
         const api = createWorkspaceApi(async () => session!.access_token);
         const list = await api.listTargets(currentOrg!.id);
+        if (!targetsBelongToOrganization(list, currentOrg!.id)) {
+          throw new Error('Target list returned a different organization. No results were displayed.');
+        }
         if (!cancelled) {
           setTargets(list);
+          setLoadedScope(scopeKey);
           setError(null);
         }
       } catch (err) {
         if (!cancelled) {
+          setFailedScope(scopeKey);
           setError(err instanceof Error ? err.message : 'Failed to load targets.');
         }
       } finally {
@@ -91,10 +104,17 @@ export default function TargetsPage() {
     return () => {
       cancelled = true;
     };
-  }, [session, currentOrg, orgLoading, retryCount]);
+  }, [session, currentOrg, orgLoading, retryCount, scopeKey]);
 
-  if (orgLoading) {
-    return <div className="animate-pulse flex items-center justify-center p-12 text-slate-400">Loading workspace...</div>;
+  const hasCurrentData = isCurrentTargetScope(scopeKey, loadedScope);
+  const initialFailed = isTargetInitialFailure(scopeKey, loadedScope, failedScope);
+
+  if (orgLoading || (scopeKey && !hasCurrentData && !initialFailed)) {
+    return <div role="status" className="animate-pulse flex items-center justify-center p-12 text-slate-400">Loading website targets...</div>;
+  }
+
+  if (orgError) {
+    return <div role="alert" className="rounded-xl border border-rose-500/20 bg-rose-500/10 p-5 text-sm text-rose-300">Workspace access could not be verified: {orgError}</div>;
   }
 
   if (!currentOrg) {
@@ -115,12 +135,14 @@ export default function TargetsPage() {
 
   async function handleCreateTarget(e: React.FormEvent) {
     e.preventDefault();
-    if (!currentOrg || !session) return;
+    if (!currentOrg || !session || !canCreate || creating) return;
 
     const activeOrgId = currentOrg.id;
     const requestId = ++createRequestRef.current;
     const isCurrentRequest = () =>
-      createRequestRef.current === requestId && activeOrgIdRef.current === activeOrgId;
+      createRequestRef.current === requestId &&
+      activeScopeRef.current === scopeKey &&
+      (roleRef.current === 'owner' || roleRef.current === 'admin');
 
     setCreating(true);
     setCreateError(null);
@@ -205,7 +227,7 @@ export default function TargetsPage() {
       )}
 
       {loading ? (
-        <div className="animate-pulse flex items-center justify-center p-12 text-slate-400">Loading targets...</div>
+        <div role="status" className="animate-pulse flex items-center justify-center p-12 text-slate-400">Loading targets...</div>
       ) : error ? (
         <div role="alert" className="rounded-xl border border-destructive/40 bg-destructive/10 p-5 flex items-center justify-between gap-4">
           <p className="text-sm text-destructive-foreground">{error}</p>
@@ -221,7 +243,7 @@ export default function TargetsPage() {
           {targets.length === 0 ? (
             <div className="p-12 text-center">
               <Target className="w-8 h-8 text-slate-600 mx-auto mb-3" />
-              <p className="text-slate-400 text-sm">No website targets found in this organization.</p>
+              <p className="text-slate-400 text-sm">No website targets have been created in this organization yet. This is not a security assessment.</p>
             </div>
           ) : (
             <div className="divide-y divide-slate-800/60">
@@ -231,9 +253,9 @@ export default function TargetsPage() {
                   onClick={() => navigate(`/app/targets/${target.id}`)}
                   className="w-full text-left p-4 hover:bg-slate-800/30 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                 >
-                  <div>
-                    <h3 className="font-medium text-slate-200">{target.displayName}</h3>
-                    <p className="text-sm text-slate-500 mt-0.5 font-mono">{target.canonicalUrl}</p>
+                  <div className="min-w-0">
+                    <h3 className="font-medium text-slate-200 break-words">{target.displayName}</h3>
+                    <p className="text-sm text-slate-500 mt-0.5 font-mono break-all">{target.canonicalUrl}</p>
                   </div>
                   <div className="flex items-center gap-4">
                     <TargetStatusBadge state={target.verificationState} />
