@@ -14,6 +14,7 @@
     "dev:client": "vite",
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b --pretty false",
+    "test:ui-state": "node --test tests/*.test.mjs",
     "lint": "oxlint",
     "check": "npm run lint && npm run build",
     "preview": "vite preview"
