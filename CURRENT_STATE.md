@@ -64,7 +64,7 @@ A completed scan means the requested automated checks executed and their result 
 - **Persistent finding instances linked to scan evidence/rules:** VERIFIED foundation.
 - **Evidence shown inside Scan Detail:** IMPLEMENTED with detector/version/source/hash/timestamp provenance where available.
 - **Findings shown inside Scan Detail:** IMPLEMENTED with severity, lifecycle state, rule provenance, remediation and linked-evidence count.
-- **Standalone routed Evidence library:** IMPLEMENTED; tenant-scoped, paginated and provenance-first.
+- **Standalone routed Evidence library:** IMPLEMENTED; tenant-scoped, paginated and provenance-first.\n- **Evidence route scope/error UX improvement:** CODE UNVERIFIED in separate P0-08 branch `guardai-p0-08-evidence-page-states` (not merged): initial data scoped to authenticated user + Organization, late pagination responses ignored after workspace change/retry, failed first fetch displayed as unavailable instead of zero metrics. Requires exact-SHA frontend CI and cross-tenant browser QA; see `docs/V1_CORE_ROUTE_UX_AUDIT.md`. This is NOT proof of backend RLS.
 - **Evidence freshness semantics:** IMPLEMENTED without arbitrary expiry claims. Each Evidence item is classified as current or superseded relative to the same Target + Detector, while absolute age is shown separately.
 - **Evidence collection health:** IMPLEMENTED from the authoritative source Scan state. Completed, pending, failed and cancelled collection states remain distinct; collection uncertainty never becomes a pass.
 - **Standalone routed Findings workspace:** IMPLEMENTED; tenant-scoped and enriched with the newest persisted technical observation.
