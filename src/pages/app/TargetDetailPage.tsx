@@ -287,7 +287,7 @@ export default function TargetDetailPage() {
   }
 
   async function copyToClipboard(text: string, type: 'name' | 'value') {
-    if (!hasCurrentData || !scopeKey || !challenge) return;
+    if (!hasCurrentData || !scopeKey || !challenge || !isAdmin) return;
     const requestId = ++copyRequestRef.current;
     const isCurrentCopy = () => copyRequestRef.current === requestId && contextRef.current.scopeKey === scopeKey;
     setCopyError(null);
@@ -411,7 +411,7 @@ export default function TargetDetailPage() {
               </div>
             )}
 
-            {challenge && (
+            {challenge && isAdmin && (
               <div className="bg-slate-950 border border-slate-800 rounded-xl p-5 space-y-4">
                 <div className="text-sm font-medium text-slate-200">Publish this TXT Record</div>
 
