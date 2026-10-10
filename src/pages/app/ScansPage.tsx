@@ -32,16 +32,24 @@ function targetLabel(scan: PersistentScan) {
 
 export default function ScansPage() {
   const { session } = useAuth();
-  const { currentOrg, isLoading: orgLoading } = useWorkspace();
+  const { currentOrg, isLoading: orgLoading, error: orgError } = useWorkspace();
   const navigate = useNavigate();
   const [scans, setScans] = useState<PersistentScan[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [retry, setRetry] = useState(0);
+  const [loadedScope, setLoadedScope] = useState<string | null>(null);
+  const [failedScope, setFailedScope] = useState<string | null>(null);
+  // Do not render a previous tenant's scan history while the new request is pending.
+  const scopeKey = session?.user.id && currentOrg?.id
+    ? `${session.user.id}:${currentOrg.id}`
+    : null;
 
   useEffect(() => {
     let cancelled = false;
     setScans([]);
+    setLoadedScope(null);
+    setFailedScope(null);
     setError(null);
 
     if (orgLoading) {
@@ -59,9 +67,13 @@ export default function ScansPage() {
       try {
         const api = createWorkspaceApi(async () => session!.access_token);
         const result = await api.listScans(currentOrg!.id, 50);
-        if (!cancelled) setScans(result.scans);
+        if (!cancelled) {
+          setScans(result.scans);
+          setLoadedScope(scopeKey);
+        }
       } catch (err) {
         if (!cancelled) {
+          setFailedScope(scopeKey);
           setError(err instanceof Error ? err.message : 'Failed to load scan history.');
         }
       } finally {
@@ -73,10 +85,33 @@ export default function ScansPage() {
     return () => {
       cancelled = true;
     };
-  }, [session, currentOrg, orgLoading, retry]);
+  }, [session, currentOrg, orgLoading, retry, scopeKey]);
 
-  if (orgLoading || loading) {
-    return <div className="flex items-center justify-center p-12 text-slate-400">Loading scan history...</div>;
+  const hasCurrentData = !!scopeKey && loadedScope === scopeKey;
+  const initialFailed = !!scopeKey && failedScope === scopeKey && !hasCurrentData;
+
+  if (orgLoading || loading || (scopeKey && !hasCurrentData && !initialFailed)) {
+    return <div role="status" className="flex items-center justify-center p-12 text-slate-400">Loading scan history...</div>;
+  }
+
+  if (orgError) {
+    return (
+      <div role="alert" className="rounded-xl border border-rose-500/20 bg-rose-500/10 p-5 text-sm text-rose-300">
+        Workspace access could not be verified: {orgError}
+      </div>
+    );
+  }
+
+  if (initialFailed) {
+    return (
+      <div role="alert" className="rounded-xl border border-rose-500/20 bg-rose-500/10 p-5 text-sm text-rose-300">
+        <p className="font-medium">Scan history is unavailable for this workspace.</p>
+        <p className="mt-2">{error || 'The scan history API did not return usable data.'}</p>
+        <button type="button" onClick={() => setRetry(value => value + 1)} className="mt-4 inline-flex items-center gap-2 rounded-lg border border-rose-500/30 px-3 py-2 hover:bg-rose-500/10">
+          <RefreshCw className="h-4 w-4" /> Retry
+        </button>
+      </div>
+    );
   }
 
   if (!currentOrg) {
@@ -123,7 +158,7 @@ export default function ScansPage() {
         </div>
       ) : (
         <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900">
-          <div className="border-b border-slate-800 px-5 py-3 text-xs text-slate-500">Showing up to the 50 most recent scans. No hidden total is inferred.</div>
+          <div className="border-b border-slate-800 px-5 py-3 text-xs text-slate-500">Showing up to 50 recent scans returned by this workspace. This is not a complete historical total.</div>
           <div className="divide-y divide-slate-800/70">
             {scans.map(scan => (
               <button
