@@ -1,6 +1,6 @@
 # GuardAI V1 Execution Board – der nächste konkrete Arbeitsauftrag
 
-**Stand:** 2026-10-09 · **Plan:** [V1_MASTER_EXECUTION_PLAN.md](V1_MASTER_EXECUTION_PLAN.md)  
+**Stand:** 2026-10-10 · **Plan:** [V1_MASTER_EXECUTION_PLAN.md](V1_MASTER_EXECUTION_PLAN.md)  
 Dies ist die **priorisierte, maschinen- und menschenlesbare Arbeitsliste**. Sie ersetzt keine unabhängigen QA-/Security-Nachweise. Nach jedem PR genau die betroffenen Zeilen aktualisieren. **Nichts abhaken ohne ausgeführte Evidence.**
 
 ## Workflow
@@ -21,7 +21,7 @@ Blocker: `BLOCKED_EXTERNAL` (Konto/Provider/Infra) bzw. `BLOCKED_TECH` (reproduz
 | P0-03 | BLOCKED_EXTERNAL | PR [#23](https://github.com/memetreza34-ux/guardai-compliance-scanner01/pull/23): Dashboard + echte Findings/Scans integrieren; Daten-Ausfälle, Scan-/Website-Provenance, Rollen und Empty-States gegen P0-02 abgleichen; CI grün. | P0-01, Konfliktprüfung P0-02 |
 | P0-04 | NOT_STARTED | **SQL-Migration Inventory & Generation**, 33 Drafts in Abhängigkeitsreihenfolge: Tabellen/Typen/Functions/Triggers/Seeds/FKs/RLS/Grants erfassen, versionierte kontrollierte Migrationen vorbereiten, `up` idempotent bewerten und DB-Safety-Plan; **nicht** direkt in unbekanntes Projekt schreiben. | dedizierte staging DB für Ausführung |
 | P0-05 | BLOCKED_EXTERNAL | GuardAI-only Supabase staging project ref eindeutig mit verbundenem Projekt vergleichen; dazu Site/Redirect/CORS-Konfiguration. Keine Nutzung von KlarKI/allgemeinem Supabase ohne ausdrückliche Zuordnung. | User nennt **project ref**, Zugang |
-| P0-06 | NOT_STARTED | RLS/tenant/cross-tenant/auth/last-owner/invite/replay/Scan-Worker-lease Testmatrix als ausführbare Staging-Tests; jeder fremd-Org-Aufruf 403/404 ohne Datenaustritt; keine privaten Daten in Logs. | P0-04/05 |
+| P0-06 | IN_PROGRESS (PR #35 AUTH-FIRST FIX + 8 UNEXECUTED TESTS; STAGING BLOCKED) | RLS/tenant/cross-tenant/auth/last-owner/invite/replay/Scan-Worker-lease Testmatrix als ausführbare Staging-Tests; jeder fremd-Org-Aufruf 403/404 ohne Datenaustritt; keine privaten Daten in Logs. | P0-04/05 |
 | P0-07 | NOT_STARTED | End-to-end `Signup → Confirm → Org → Website → DNS → Security Scan → Evidence → Finding/No Finding Coverage → Re-Test → Report`. Zwei Testnutzer, zwei Orgs, Scannerfehler, Retry, Rate Limit, Expiry. Evidence inklusive Job/Detector/Hash. | P0-01/04/05/06 |
 | P0-08 | NOT_STARTED | UI-Design Audit der V1 Kern-Routen `Dashboard/Targets/TargetDetail/Scans/ScanDetail/Findings/Evidence`; Komponentenbibliothek für Loading/Error/Empty/Permission/Not-Assessed, Mobile und Keyboard. Keine divergierenden Routen. | `V1_DESIGN_SYSTEM.md` |
 | P0-09 | NOT_STARTED | Deployment Smoke/API/Worker/Scheduler, `/api/health` vs `/api/ready`, Worker Queue drain und failed/reclaim; Backup-Restore-Testumgebung. | P0-04/05 |
@@ -30,6 +30,8 @@ Blocker: `BLOCKED_EXTERNAL` (Konto/Provider/Infra) bzw. `BLOCKED_TECH` (reproduz
 | P0-12 | NOT_STARTED | **AI Act 2026 Source Review**: `shared/legal-sources/eu-ai-act-guided-review-v1.json` ist noch der alte 2024-Quellenstand mit Art. 4/14/50. Prüfe konsolidierte Fassung nach 27.07.2026 AI Omnibus, Nachvollziehbarkeit/Source-Version und Human Review; keine stillen neuen Compliance-Klassen. | fachlicher Rechtsreview vor Product-Claims |
 | P0-13 | NOT_STARTED | **Subscription Integrity Plan**: public `PricingPage` bewirbt Free-Features/„1 Target“ als Packaging, während `server/domain/entitlements.js` `security` noch `null` zuordnet. Inventarisiere und teste tatsächliche Limits vor Angebot, schreibe verbindliche Upgrade/Downgrade/Cancel/Refund und Datenhaltungs-Semantik. | Stripe Test/Staging und Preis-/Limit-Beschluss für Verkauf |
 | P0-14 | NOT_STARTED | **SaaS Security Threat Model**: kontrollierte Checkliste für cross-tenant/RLS, SSRF, Worker, Webhook, Auth, AI-Input, Logging, Privacy und Restore in [Playbook](V1_AI_ACT_PRIVACY_SECURITY_PLAYBOOK.md) als ausführbare Positiv-/Negativtests; dokumentiere Owner und Mitigation. | echtes Staging und CI für Beweis |
+
+**P0-06 auth-first concrete fix:** Draft [PR #35](https://github.com/memetreza34-ux/guardai-compliance-scanner01/pull/35) changes Finding mutation handler order so Member/Admin authorization precedes tenant Finding lookup and status-dependent validation; stronger Admin role still applies on accepted-risk transitions. Eight `node:test` regression scenarios added, **not executed** due to GitHub Actions zero-step failures. [Review/test contract](V1_FINDING_MUTATION_AUTH_PRECHECK.md). Integrated core-route draft [#34](https://github.com/memetreza34-ux/guardai-compliance-scanner01/pull/34) remains separate and likewise unverified. Do not mark P0-06 DONE without actual staging/RLS/negative testing.
 
 **Kann trotz P0-01/05 sofort umgesetzt werden (nur Repo, keine Fremd-DB):** P0-04 Entwurfsinventur/Generierung, P0-06 lokale Test-Harness, P0-08 Design-Audit und Wiederverwendung; dabei Code-Änderungen selbst erst mit ausführbarer CI mergen.
 
