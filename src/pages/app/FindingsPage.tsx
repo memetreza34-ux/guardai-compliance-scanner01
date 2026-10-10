@@ -202,8 +202,36 @@ export default function FindingsPage() {
     return result;
   }, [findings]);
 
-  if (orgLoading || loading) {
-    return <div className="flex items-center justify-center p-12 text-slate-400">Loading findings...</div>;
+  const hasCurrentData = !!scopeKey && loadedScope === scopeKey;
+  const initialFailed = !!scopeKey && failedScope === scopeKey && !hasCurrentData;
+
+  if (orgLoading || loading || (scopeKey && !hasCurrentData && !initialFailed)) {
+    return <div role="status" className="flex items-center justify-center p-12 text-slate-400">Loading findings...</div>;
+  }
+
+  if (orgError) {
+    return <div role="alert" className="rounded-xl border border-rose-500/20 bg-rose-500/10 p-5 text-sm text-rose-300">Workspace access could not be verified: {orgError}</div>;
+  }
+
+  if (!scopeKey) {
+    return (
+      <div className="rounded-xl border border-slate-800 bg-slate-900 p-6 text-slate-300">
+        Select or create a workspace before browsing findings.
+        <button type="button" onClick={() => navigate('/app')} className="ml-3 rounded-lg border border-slate-700 px-3 py-2 text-sm hover:bg-slate-800">Go to dashboard</button>
+      </div>
+    );
+  }
+
+  if (initialFailed) {
+    return (
+      <div role="alert" className="rounded-xl border border-rose-500/20 bg-rose-500/10 p-5 text-sm text-rose-300">
+        <p className="font-medium">Findings could not be loaded for this workspace.</p>
+        <p className="mt-2">{error || 'The Findings API did not return a usable result.'}</p>
+        <button type="button" onClick={() => setRetry(value => value + 1)} className="mt-4 inline-flex items-center gap-2 rounded-lg border border-rose-500/30 px-3 py-2 hover:bg-rose-500/10">
+          <RefreshCw className="h-4 w-4" /> Retry
+        </button>
+      </div>
+    );
   }
 
   return (
@@ -214,6 +242,8 @@ export default function FindingsPage() {
           Technical issues derived from persisted scan evidence. A manual resolved state is not the same as a scan-verified fix.
         </p>
       </div>
+
+      <p className="text-xs text-slate-500">Severity counts cover loaded findings for the selected filter only, not all vulnerabilities or risks.</p>
 
       <div className="grid gap-3 sm:grid-cols-4">
         {[
@@ -238,6 +268,8 @@ export default function FindingsPage() {
         ] as const).map(([value, label]) => (
           <button
             key={value}
+            type="button"
+            aria-pressed={status === value}
             onClick={() => setStatus(value)}
             className={`rounded-lg border px-3 py-2 text-sm transition-colors ${
               status === value
@@ -249,6 +281,10 @@ export default function FindingsPage() {
           </button>
         ))}
       </div>
+
+      {targetNameLookupFailed && (
+        <p role="status" className="text-xs text-amber-300">Target names are temporarily unavailable. Findings remain accessible using Target IDs.</p>
+      )}
 
       {error && (
         <div role="alert" className="flex items-center justify-between gap-4 rounded-xl border border-rose-500/20 bg-rose-500/10 p-4 text-sm text-rose-300">
