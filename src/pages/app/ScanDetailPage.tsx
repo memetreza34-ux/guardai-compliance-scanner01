@@ -10,6 +10,7 @@ import type {
   PersistentScanResult,
   PersistentScanStatus,
 } from '../../types/workspace';
+import { isInitialLoadFailedForActiveScope, isLoadedForActiveScope, scanDetailScope } from '../../lib/scanViewScope';
 
 function formatDate(value?: string | null) {
   if (!value) return 'Unavailable';
@@ -46,9 +47,7 @@ export default function ScanDetailPage() {
   const [reportError, setReportError] = useState<string | null>(null);
   const [resultScope, setResultScope] = useState<string | null>(null);
   const [failedScope, setFailedScope] = useState<string | null>(null);
-  const scopeKey = session?.user.id && currentOrg?.id && scanId
-    ? `${session.user.id}:${currentOrg.id}:${scanId}`
-    : null;
+  const scopeKey = scanDetailScope(session?.user.id, currentOrg?.id, scanId);
   const mutationEpoch = useRef(0);
 
   // A completed report request may only redirect within its original scan scope.
@@ -116,8 +115,8 @@ export default function ScanDetailPage() {
     };
   }, [session, currentOrg, scanId, orgLoading, manualRefresh, scopeKey]);
 
-  const hasCurrentData = !!scopeKey && resultScope === scopeKey;
-  const initialFailed = !!scopeKey && failedScope === scopeKey && !hasCurrentData;
+  const hasCurrentData = isLoadedForActiveScope(scopeKey, resultScope);
+  const initialFailed = isInitialLoadFailedForActiveScope(scopeKey, resultScope, failedScope);
 
   if (orgLoading || loading || (scopeKey && !hasCurrentData && !initialFailed)) {
     return <div role="status" className="flex items-center justify-center p-12 text-slate-400">Loading scan...</div>;
