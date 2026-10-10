@@ -19,7 +19,7 @@ Status vocabulary:
 - **Authentication:** VERIFIED. Supabase-backed sign-in/session integration is wired into protected application routes.
 - **Organizations / workspace context:** VERIFIED. The routed app uses one workspace context; backend authorization remains authoritative. Session/token refresh preserves the currently selected authorized Organization, stale in-flight list responses are discarded, missing/failed reads do not display old tenant roles, and callers cannot select unauthorized Organization DTOs.
 - **Backend API:** VERIFIED. Persistent product APIs are mounted under `/api/v1`.
-- **CI:** VERIFIED. Frontend lint/typecheck/build and backend check/test run as non-masked GitHub Actions jobs.
+- **CI:** BLOCKED_EXTERNAL (latest checked 2026-10-10). Frontend lint/typecheck/build and backend check/test workflow steps are defined, but GitHub Actions jobs fail before executing any step. No green checks or new runtime proof for open code PRs; see issue #28.
 - **Node baseline:** Node 24 / npm 11 contract is versioned in the repository.
 
 ## 1A. Public website
@@ -53,7 +53,7 @@ Status vocabulary:
 - **Tenant-scoped scan history:** IMPLEMENTED and covered by repository tests.
 - **Routed scan history UI:** IMPLEMENTED.
 - **Routed scan detail UI:** IMPLEMENTED.
-- **Scan route tenant/error/report UX hardening:** CODE UNVERIFIED in the P0-08 `guardai-p0-08-scan-route-tenant-state` branch (pending PR). Scan history uses the current user/Organization scope; Scan Detail also binds to its requested scan ID and discards stale report-create responses before redirect. First-page errors are unavailable rather than empty; same-scope scan poll failures still explicitly identify stale data. Tests and staging two-tenant proof remain outstanding; see `docs/V1_SCAN_ROUTES_UX_REGRESSION.md`. This is not backend RLS validation.
+- **Scan route tenant/error/report UX hardening:** CODE UNVERIFIED in the P0-08 `guardai-p0-08-scan-route-tenant-state` branch ([PR #32](https://github.com/memetreza34-ux/guardai-compliance-scanner01/pull/32), Draft). Six focused pure-function state tests in `tests/scanViewScope.test.mjs` run via `npm run test:ui-state` and are wired into frontend CI, but no job steps have run due to the runner blocker. Scan history uses the current user/Organization scope; Scan Detail also binds to its requested scan ID and discards stale report-create responses before redirect. First-page errors are unavailable rather than empty; same-scope scan poll failures still explicitly identify stale data. Tests and staging two-tenant proof remain outstanding; see `docs/V1_SCAN_ROUTES_UX_REGRESSION.md`. This is not backend RLS validation.
 - **Target → security scan launch:** IMPLEMENTED for verified website targets and authorized roles.
 - **Scan polling:** IMPLEMENTED. Queued/running scans refresh; refresh failures are shown as stale-state warnings rather than silently implying live data.
 
