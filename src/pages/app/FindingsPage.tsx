@@ -117,62 +117,77 @@ export default function FindingsPage() {
   }, [session, currentOrg, orgLoading, status, retry, scopeKey]);
 
   async function loadMore() {
-    if (!session?.access_token || !currentOrg || !nextCursor || loadingMore) return;
+    if (!session?.access_token || !currentOrg || !nextCursor || loadingMore || loadedScope !== scopeKey) return;
+    const epoch = requestEpoch.current;
+    const orgId = currentOrg.id;
+    const cursor = nextCursor;
     setLoadingMore(true);
     setError(null);
     try {
       const api = createFindingApi(async () => session.access_token);
-      const page = await api.listFindings(currentOrg.id, {
+      const page = await api.listFindings(orgId, {
         status: status === 'all' ? undefined : status,
         limit: 50,
-        cursor: nextCursor,
+        cursor,
       });
+      if (requestEpoch.current !== epoch) return;
       setFindings(current => [...current, ...page.findings]);
       setNextCursor(page.nextCursor);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load more findings.');
+      if (requestEpoch.current === epoch) {
+        setError(err instanceof Error ? err.message : 'Failed to load more findings.');
+      }
     } finally {
-      setLoadingMore(false);
+      if (requestEpoch.current === epoch) setLoadingMore(false);
     }
   }
 
   const canMutate = currentOrg?.role === 'owner' || currentOrg?.role === 'admin' || currentOrg?.role === 'member';
 
   async function markFixedUnverified(finding: WorkspaceFindingSummary) {
-    if (!session?.access_token || !currentOrg || !canMutate) return;
+    if (!session?.access_token || !currentOrg || !canMutate || actionBusy || loadedScope !== scopeKey) return;
+    const epoch = requestEpoch.current;
+    const orgId = currentOrg.id;
     setActionBusy(`resolve:${finding.id}`);
     setError(null);
     try {
       const api = createFindingApi(async () => session.access_token);
       await api.updateFindingStatus(
-        currentOrg.id,
+        orgId,
         finding.id,
         'resolved',
         'Marked fixed by user; awaiting technical verification re-test.',
       );
-      setRetry(value => value + 1);
+      if (requestEpoch.current === epoch) setRetry(value => value + 1);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update finding.');
+      if (requestEpoch.current === epoch) {
+        setError(err instanceof Error ? err.message : 'Failed to update finding.');
+      }
     } finally {
-      setActionBusy(null);
+      if (requestEpoch.current === epoch) setActionBusy(null);
     }
   }
 
   async function requestRetest(finding: WorkspaceFindingSummary) {
-    if (!session?.access_token || !currentOrg || !canMutate) return;
+    if (!session?.access_token || !currentOrg || !canMutate || actionBusy || loadedScope !== scopeKey) return;
+    const epoch = requestEpoch.current;
+    const orgId = currentOrg.id;
     setActionBusy(`retest:${finding.id}`);
     setError(null);
     try {
       const api = createFindingApi(async () => session.access_token);
       const submission = await api.requestFindingRetest(
-        currentOrg.id,
+        orgId,
         finding.id,
         createScanIdempotencyKey(),
       );
-      navigate(`/app/scans/${submission.scan.id}`);
+      if (requestEpoch.current === epoch) navigate(`/app/scans/${submission.scan.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to start finding re-test.');
-      setActionBusy(null);
+      if (requestEpoch.current === epoch) {
+        setError(err instanceof Error ? err.message : 'Failed to start finding re-test.');
+      }
+    } finally {
+      if (requestEpoch.current === epoch) setActionBusy(null);
     }
   }
 
