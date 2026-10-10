@@ -19,7 +19,7 @@ Status vocabulary:
 - **Authentication:** VERIFIED. Supabase-backed sign-in/session integration is wired into protected application routes.
 - **Organizations / workspace context:** VERIFIED. The routed app uses one workspace context; backend authorization remains authoritative. Session/token refresh preserves the currently selected authorized Organization, stale in-flight list responses are discarded, missing/failed reads do not display old tenant roles, and callers cannot select unauthorized Organization DTOs.
 - **Backend API:** VERIFIED. Persistent product APIs are mounted under `/api/v1`.
-- **CI:** VERIFIED. Frontend lint/typecheck/build and backend check/test run as non-masked GitHub Actions jobs.
+- **CI:** BLOCKED_EXTERNAL (2026-10-10). Workflow jobs execute zero steps on current PR heads; no new frontend/backend test verdict is available. See issue #28.
 - **Node baseline:** Node 24 / npm 11 contract is versioned in the repository.
 
 ## 1A. Public website
@@ -68,6 +68,7 @@ A completed scan means the requested automated checks executed and their result 
 - **Evidence freshness semantics:** IMPLEMENTED without arbitrary expiry claims. Each Evidence item is classified as current or superseded relative to the same Target + Detector, while absolute age is shown separately.
 - **Evidence collection health:** IMPLEMENTED from the authoritative source Scan state. Completed, pending, failed and cancelled collection states remain distinct; collection uncertainty never becomes a pass.
 - **Standalone routed Findings workspace:** IMPLEMENTED; tenant-scoped and enriched with the newest persisted technical observation.
+- **Finding mutation authorization preflight:** CODE UNVERIFIED in draft [PR #35](https://github.com/memetreza34-ux/guardai-compliance-scanner01/pull/35). The actual `findingService.updateStatus` now validates Member/Admin membership **before** reading any Finding or performing state-dependent checks, and rechecks Admin for transitions out of accepted risk. Eight unexecuted service tests cover two tenants, absent Finding, Viewer/Member/Admin and role revocation. This does not verify Postgres RLS or production authorization. See [security regression contract](docs/V1_FINDING_MUTATION_AUTH_PRECHECK.md).
 - **Remediation / re-test workflow:** IMPLEMENTED on the V1 core path. Members can mark a finding fixed-but-unverified and launch a dedicated re-test through the same persistent security worker. A finding is shown as **Verified Resolved** only when the matching detector assesses the same target and the original fingerprint is absent; the verifying Scan ID is recorded in status history.
 
 No-result messaging explicitly avoids claiming that zero findings means zero vulnerabilities or compliance issues.
