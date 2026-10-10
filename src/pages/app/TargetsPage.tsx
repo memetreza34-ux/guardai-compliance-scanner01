@@ -47,10 +47,12 @@ export default function TargetsPage() {
   const scopeKey = targetListScope(session?.user.id, currentOrg?.id);
   const activeScopeRef = useRef<string | null>(scopeKey);
   const roleRef = useRef(currentOrg?.role);
+  const tokenRef = useRef(session?.access_token ?? null);
   const createRequestRef = useRef(0);
 
   activeScopeRef.current = scopeKey;
   roleRef.current = currentOrg?.role;
+  tokenRef.current = session?.access_token ?? null;
 
   useEffect(() => {
     let cancelled = false;
@@ -138,10 +140,12 @@ export default function TargetsPage() {
     if (!currentOrg || !session || !canCreate || creating) return;
 
     const activeOrgId = currentOrg.id;
+    const issuedToken = session.access_token;
     const requestId = ++createRequestRef.current;
     const isCurrentRequest = () =>
       createRequestRef.current === requestId &&
       activeScopeRef.current === scopeKey &&
+      tokenRef.current === issuedToken &&
       (roleRef.current === 'owner' || roleRef.current === 'admin');
 
     setCreating(true);
