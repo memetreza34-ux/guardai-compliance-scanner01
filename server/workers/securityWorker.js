@@ -56,6 +56,7 @@ async function processOneSecurityJob({
   workerId,
   leaseSeconds = 60,
   executeAssessment = executeSecurityJob,
+  startHeartbeat = startLeaseHeartbeat,
 }) {
   if (!jobRepository) {
     throw new TypeError('Security worker requires a job repository.');
@@ -74,7 +75,7 @@ async function processOneSecurityJob({
     return { state: 'idle' };
   }
 
-  const heartbeat = startLeaseHeartbeat({
+  const heartbeat = startHeartbeat({
     jobRepository,
     jobId: job.id,
     workerId,
