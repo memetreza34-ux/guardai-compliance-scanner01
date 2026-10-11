@@ -1,6 +1,6 @@
 # CURRENT_STATE.md
 
-## Repository truth — 2026-10-07
+## Repository truth — 2026-10-11 (main plus independent unmerged P0-06 branch)
 
 This file records what the current GuardAI product code actually supports. Product plans and market research do not make a capability implemented.
 
@@ -19,7 +19,7 @@ Status vocabulary:
 - **Authentication:** VERIFIED. Supabase-backed sign-in/session integration is wired into protected application routes.
 - **Organizations / workspace context:** VERIFIED. The routed app uses one workspace context; backend authorization remains authoritative. Session/token refresh preserves the currently selected authorized Organization, stale in-flight list responses are discarded, missing/failed reads do not display old tenant roles, and callers cannot select unauthorized Organization DTOs.
 - **Backend API:** VERIFIED. Persistent product APIs are mounted under `/api/v1`.
-- **CI:** VERIFIED. Frontend lint/typecheck/build and backend check/test run as non-masked GitHub Actions jobs.
+- **CI:** BLOCKED_EXTERNAL: recent PR frontend/backend GitHub Actions failed with zero executed steps, and job-log downloads returned BlobNotFound. No current draft code is CI validated. See issue #28.
 - **Node baseline:** Node 24 / npm 11 contract is versioned in the repository.
 
 ## 1A. Public website
@@ -47,6 +47,7 @@ Status vocabulary:
 - **Verified-target requirement:** VERIFIED backend rule.
 - **Role requirement:** backend requires at least `member` to submit; `viewer` is read-only.
 - **Queue / worker model:** VERIFIED foundation. Long-running security work is executed by the worker pipeline rather than the HTTP request.
+- **P0-06 expired final-attempt lease recovery:** SOURCE-PATCHED, CI/STAGING UNVERIFIED in a separate draft branch. A crashed worker on its last allowed attempt previously left a Job/Scan running forever. Worker polling now selects one expired exhausted lease per transaction, sets the job/Scan to failed and cancels other same-org Scan jobs with explicit failure coverage. Six actual test callbacks passed in an isolated V8 transaction double, but real PostgreSQL/RLS/worker-crash/concurrency testing is still open. See [lease regression plan](docs/V1_WORKER_EXHAUSTED_LEASE_REGRESSION.md).
 - **Safe network fetch foundation:** IMPLEMENTED and used by the security worker. This remains a security-critical area and must continue to fail closed.
 - **Idempotent submission:** VERIFIED backend foundation.
 - **Tenant-scoped scan read:** VERIFIED.
