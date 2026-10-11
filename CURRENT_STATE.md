@@ -1,6 +1,6 @@
 # CURRENT_STATE.md
 
-## Repository truth — 2026-10-07
+## Repository truth — 2026-10-11 (source-only draft under review)
 
 This file records what the current GuardAI product code actually supports. Product plans and market research do not make a capability implemented.
 
@@ -19,7 +19,7 @@ Status vocabulary:
 - **Authentication:** VERIFIED. Supabase-backed sign-in/session integration is wired into protected application routes.
 - **Organizations / workspace context:** VERIFIED. The routed app uses one workspace context; backend authorization remains authoritative. Session/token refresh preserves the currently selected authorized Organization, stale in-flight list responses are discarded, missing/failed reads do not display old tenant roles, and callers cannot select unauthorized Organization DTOs.
 - **Backend API:** VERIFIED. Persistent product APIs are mounted under `/api/v1`.
-- **CI:** VERIFIED. Frontend lint/typecheck/build and backend check/test run as non-masked GitHub Actions jobs.
+- **CI:** BLOCKED_EXTERNAL: recent GitHub Actions jobs fail before executing any frontend/backend steps. Existing and new source code must not be described as CI-verified by these runs. Issue #28.
 - **Node baseline:** Node 24 / npm 11 contract is versioned in the repository.
 
 ## 1A. Public website
@@ -34,6 +34,7 @@ Status vocabulary:
 
 - **Website target create/list/detail:** VERIFIED.
 - **DNS TXT ownership verification:** VERIFIED.
+- **DNS P0-06 async-role/type/lock safety:** CODE IN DRAFT / NOT STAGING VERIFIED: after an external DNS TXT lookup the service rechecks Admin membership before recording verification; nonwebsite Target checks are rejected (including stale verified-state shortcut); both Challenge creation and attempt persistence enforce a website type under locked tenant Target rows, consistently acquiring Target before Challenge to avoid lock-order inversion. Ten new test callbacks passed in an isolated JS mock harness, not in Node24 CI or PostgreSQL. See [DNS regression contract](docs/V1_DNS_VERIFICATION_AUTH_RACE_REGRESSION.md).
 - **Ownership semantics:** VERIFIED. A verified domain proves control of the target only; it is not displayed as proof of security or legal compliance.
 - **Workspace-switch safety:** IMPLEMENTED. Target create and DNS verification actions invalidate stale async results when organization/route context changes.
 - **Terminal challenge handling:** IMPLEMENTED. Verified, failed and expired challenge outcomes refresh authoritative target state.
