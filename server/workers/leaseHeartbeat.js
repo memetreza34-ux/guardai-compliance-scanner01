@@ -1,6 +1,6 @@
 const { setTimeout: delay } = require('node:timers/promises');
 
-function startLeaseHeartbeat({ jobRepository, jobId, workerId, leaseSeconds }) {
+function startLeaseHeartbeat({ jobRepository, jobId, workerId, leaseSeconds, sleep = delay }) {
   const controller = new AbortController();
   let heartbeatError = null;
   const intervalMs = Math.max(5000, Math.min(30000, Math.floor((leaseSeconds * 1000) / 3)));
@@ -8,7 +8,7 @@ function startLeaseHeartbeat({ jobRepository, jobId, workerId, leaseSeconds }) {
   const promise = (async () => {
     while (!controller.signal.aborted) {
       try {
-        await delay(intervalMs, undefined, { signal: controller.signal });
+        await sleep(intervalMs, undefined, { signal: controller.signal });
       } catch (error) {
         if (error?.name === 'AbortError') break;
         heartbeatError = error;
