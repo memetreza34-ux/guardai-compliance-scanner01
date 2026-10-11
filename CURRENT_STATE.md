@@ -1,6 +1,6 @@
 # CURRENT_STATE.md
 
-## Repository truth — 2026-10-07
+## Repository truth — 2026-10-11 (current main plus unmerged source patch)
 
 This file records what the current GuardAI product code actually supports. Product plans and market research do not make a capability implemented.
 
@@ -19,7 +19,7 @@ Status vocabulary:
 - **Authentication:** VERIFIED. Supabase-backed sign-in/session integration is wired into protected application routes.
 - **Organizations / workspace context:** VERIFIED. The routed app uses one workspace context; backend authorization remains authoritative. Session/token refresh preserves the currently selected authorized Organization, stale in-flight list responses are discarded, missing/failed reads do not display old tenant roles, and callers cannot select unauthorized Organization DTOs.
 - **Backend API:** VERIFIED. Persistent product APIs are mounted under `/api/v1`.
-- **CI:** VERIFIED. Frontend lint/typecheck/build and backend check/test run as non-masked GitHub Actions jobs.
+- **CI:** BLOCKED_EXTERNAL (2026-10-11). GitHub Actions runs on recent PR commits complete with zero frontend/backend steps, so these runs do not validate source changes; see issue #28.
 - **Node baseline:** Node 24 / npm 11 contract is versioned in the repository.
 
 ## 1A. Public website
@@ -65,6 +65,7 @@ A completed scan means the requested automated checks executed and their result 
 - **Evidence shown inside Scan Detail:** IMPLEMENTED with detector/version/source/hash/timestamp provenance where available.
 - **Findings shown inside Scan Detail:** IMPLEMENTED with severity, lifecycle state, rule provenance, remediation and linked-evidence count.
 - **Standalone routed Evidence library:** IMPLEMENTED; tenant-scoped, paginated and provenance-first.
+- **Finding/Evidence SQL list query bind fix:** SOURCE PATCHED / ISOLATED PROBE PASS / FULL CI+DB UNVERIFIED on `guardai-p0-06-finding-evidence-query-binds` (draft PR, see [QA matrix](docs/V1_FINDING_EVIDENCE_QUERY_BIND_QA.md)). Both list repositories previously used a literal `LIMIT` argument index while passing an extra SQL bind value. They now bind `LIMIT $N` correctly; seven executable backend regression checks added. A four-case source-level mock binder probe passed on actual patched modules. This is not live Postgres, full `npm test` or RLS evidence.
 - **Evidence freshness semantics:** IMPLEMENTED without arbitrary expiry claims. Each Evidence item is classified as current or superseded relative to the same Target + Detector, while absolute age is shown separately.
 - **Evidence collection health:** IMPLEMENTED from the authoritative source Scan state. Completed, pending, failed and cancelled collection states remain distinct; collection uncertainty never becomes a pass.
 - **Standalone routed Findings workspace:** IMPLEMENTED; tenant-scoped and enriched with the newest persisted technical observation.
