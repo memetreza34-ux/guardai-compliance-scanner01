@@ -203,3 +203,74 @@ test('locked createDnsChallenge transaction denies a Target missing from the req
   assert.equal(h.statements.some(entry => entry.sql === 'rollback'), true);
   assert.equal(h.statements.some(entry => entry.sql.includes('insert into public.target_verification_challenges')), false);
 });
+
+function attemptHarness({ type = 'website', found = true, challengeStatus = 'expired' } = {}) {
+  const statements = [];
+  const client = {
+    async query(sql, params) {
+      statements.push({ sql, params });
+      if (sql === 'begin' || sql === 'commit' || sql === 'rollback') return { rowCount: 0, rows: [] };
+      if (sql.includes('from public.targets') && sql.includes('for update')) {
+        return found
+          ? { rowCount: 1, rows: [{ id: 'target-a', type }] }
+          : { rowCount: 0, rows: [] };
+      }
+      if (sql.includes('from public.target_verification_challenges') && sql.includes('for update')) {
+        return { rowCount: 1, rows: [{
+          id: 'challenge-a', organization_id: 'org-a', target_id: 'target-a',
+          status: challengeStatus, type: 'dns_txt', attempt_count: 1, is_expired: true,
+        }] };
+      }
+      throw new Error('Unexpected write while validating an unchanged challenge');
+    },
+    release() { statements.push({ sql: 'release' }); },
+  };
+  return {
+    statements,
+    repo: createTargetVerificationRepository({
+      connect: async () => client,
+      query: async () => { throw new Error('Unexpected nontransactional query'); },
+    }),
+  };
+}
+
+test('recordAttempt locks Target first, Challenge second, matching challenge creation order', async () => {
+  const h = attemptHarness();
+  const result = await h.repo.recordAttempt({
+    organizationId: 'org-a', targetId: 'target-a', challengeId: 'challenge-a', matched: true,
+  });
+  assert.equal(result.status, 'expired');
+  const queries = h.statements.filter(entry => entry.sql.includes('for update'));
+  assert.equal(queries.length, 2);
+  assert.match(queries[0].sql, /from public.targets/);
+  assert.match(queries[1].sql, /from public.target_verification_challenges/);
+  assert.deepEqual(queries[0].params, ['org-a', 'target-a']);
+  assert.deepEqual(queries[1].params, ['challenge-a', 'org-a', 'target-a']);
+  assert.equal(h.statements.some(entry => entry.sql === 'commit'), true);
+});
+
+test('recordAttempt rejects an unsupported Target type under lock before reading Challenge or writing verified state', async () => {
+  for (const type of ['asset', 'repository']) {
+    const h = attemptHarness({ type });
+    await assert.rejects(
+      () => h.repo.recordAttempt({
+        organizationId: 'org-a', targetId: 'target-a', challengeId: 'challenge-a', matched: true,
+      }),
+      error => error.statusCode === 400 && error.code === 'VERIFICATION_METHOD_UNSUPPORTED',
+    );
+    assert.equal(h.statements.some(entry => entry.sql.includes('from public.target_verification_challenges')), false);
+    assert.equal(h.statements.some(entry => entry.sql === 'rollback'), true);
+  }
+});
+
+test('recordAttempt rejects wrong-org Target before touching Challenge', async () => {
+  const h = attemptHarness({ found: false });
+  await assert.rejects(
+    () => h.repo.recordAttempt({
+      organizationId: 'org-b', targetId: 'target-a', challengeId: 'challenge-a', matched: true,
+    }),
+    error => error.statusCode === 404 && error.code === 'TARGET_NOT_FOUND',
+  );
+  assert.equal(h.statements.some(entry => entry.sql.includes('from public.target_verification_challenges')), false);
+  assert.equal(h.statements.some(entry => entry.sql === 'rollback'), true);
+});
