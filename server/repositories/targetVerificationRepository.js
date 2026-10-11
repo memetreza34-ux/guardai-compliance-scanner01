@@ -57,6 +57,11 @@ function createTargetVerificationRepository(pool) {
       if (targetResult.rowCount === 0) {
         throw new HttpError(404, 'Target was not found in this organization.', 'TARGET_NOT_FOUND');
       }
+      // A service-level check alone can become stale before this row lock.
+      // Never issue a website DNS challenge for repository/asset Targets.
+      if (targetResult.rows[0].type !== 'website') {
+        throw new HttpError(400, 'DNS verification is currently available only for website targets.', 'VERIFICATION_METHOD_UNSUPPORTED');
+      }
       if (targetResult.rows[0].verification_state === 'verified') {
         throw new HttpError(409, 'Target is already verified.', 'TARGET_ALREADY_VERIFIED');
       }
