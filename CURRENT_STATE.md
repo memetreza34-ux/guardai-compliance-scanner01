@@ -1,6 +1,6 @@
 # CURRENT_STATE.md
 
-## Repository truth — 2026-10-07
+## Repository truth — 2026-10-11 (main plus unmerged P0-06 source branch)
 
 This file records what the current GuardAI product code actually supports. Product plans and market research do not make a capability implemented.
 
@@ -19,7 +19,7 @@ Status vocabulary:
 - **Authentication:** VERIFIED. Supabase-backed sign-in/session integration is wired into protected application routes.
 - **Organizations / workspace context:** VERIFIED. The routed app uses one workspace context; backend authorization remains authoritative. Session/token refresh preserves the currently selected authorized Organization, stale in-flight list responses are discarded, missing/failed reads do not display old tenant roles, and callers cannot select unauthorized Organization DTOs.
 - **Backend API:** VERIFIED. Persistent product APIs are mounted under `/api/v1`.
-- **CI:** VERIFIED. Frontend lint/typecheck/build and backend check/test run as non-masked GitHub Actions jobs.
+- **CI:** BLOCKED_EXTERNAL. Recent PR backend/frontend GitHub Actions jobs returned failure with zero executed steps; they do not validate any current draft code. Runner cause still unverified; see issue #28.
 - **Node baseline:** Node 24 / npm 11 contract is versioned in the repository.
 
 ## 1A. Public website
@@ -47,6 +47,7 @@ Status vocabulary:
 - **Verified-target requirement:** VERIFIED backend rule.
 - **Role requirement:** backend requires at least `member` to submit; `viewer` is read-only.
 - **Queue / worker model:** VERIFIED foundation. Long-running security work is executed by the worker pipeline rather than the HTTP request.
+- **P0-06 Security worker lease heartbeat:** SOURCE IN DRAFT, **NOT CI/STAGING VERIFIED**. Security Worker now uses the abortable renewal heartbeat shared with Repository Worker, stops it before result/failure writes, and refuses both mutations if renewal reports lost ownership. Nine new regression callbacks **passed in an isolated JS mock harness**, not Node24/real Postgres/long-running HTTP or parallel workers. See [Security heartbeat regression plan](docs/V1_SECURITY_WORKER_HEARTBEAT_REGRESSION.md). The separate expired-final-attempt cleanup is still [draft PR #38](https://github.com/memetreza34-ux/guardai-compliance-scanner01/pull/38), not merged.
 - **Safe network fetch foundation:** IMPLEMENTED and used by the security worker. This remains a security-critical area and must continue to fail closed.
 - **Idempotent submission:** VERIFIED backend foundation.
 - **Tenant-scoped scan read:** VERIFIED.
