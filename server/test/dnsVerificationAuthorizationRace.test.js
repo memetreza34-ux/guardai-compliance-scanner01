@@ -83,10 +83,8 @@ test('verified website reports ownership without reading or reissuing a DNS toke
 });
 
 test('DNS TXT resolution that ends after Admin role revocation cannot record a verification attempt', async () => {
-  const h = verificationHarness();
   // DNS has not been resolved yet. Make the role change during the awaited
   // external operation, not before the first authorization gate.
-  const original = h.service;
   const deferredCalls = [];
   let resolveDns;
   const pendingDns = new Promise(resolve => { resolveDns = resolve; });
@@ -125,7 +123,6 @@ test('DNS TXT resolution that ends after Admin role revocation cannot record a v
   await assert.rejects(result, error => error.statusCode === 403);
   assert.equal(deferredCalls.some(call => call[0] === 'recordAttempt'), false);
   assert.equal(deferredCalls.filter(call => call[0] === 'authorization').length, 2);
-  assert.equal(original !== undefined, true);
 });
 
 test('successful DNS check reauthorizes after TXT lookup, and does not reissue the plaintext token', async () => {
