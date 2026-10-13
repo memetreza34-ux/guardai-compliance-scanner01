@@ -95,6 +95,7 @@ export default function DashboardPage() {
 
   const openFindings = findings;
   const verifiedTargets = targets.filter(t => t.verificationState === 'verified');
+  const criticalCount = findings.filter(f => f.severity === 'critical').length;
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -103,7 +104,7 @@ export default function DashboardPage() {
           <h1 className="text-2xl font-semibold text-slate-100 tracking-tight">Technical Posture</h1>
           <p className="text-sm text-slate-400 mt-1">Evidence coverage and current findings</p>
         </div>
-        {targets.length === 0 && (
+        {targets.length === 0 ? (
           <button
             onClick={() => navigate('/app/targets')}
             className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium transition-colors"
@@ -111,11 +112,21 @@ export default function DashboardPage() {
             <Plus className="w-4 h-4" />
             Add Website Target
           </button>
+        ) : (
+          <button
+            onClick={() => navigate('/app/targets')}
+            className="flex items-center gap-2 border border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-200 px-3.5 py-2 rounded-lg text-sm font-medium transition-colors"
+          >
+            Manage Targets
+          </button>
         )}
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm">
+        <div 
+          onClick={() => navigate('/app/targets')}
+          className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm cursor-pointer hover:border-slate-700 transition-colors"
+        >
           <div className="text-sm font-medium text-slate-400 mb-2 flex items-center gap-2">
             <Target className="w-4 h-4" />
             Verified Targets
@@ -123,7 +134,10 @@ export default function DashboardPage() {
           <div className="text-3xl font-semibold text-slate-100">{verifiedTargets.length} <span className="text-sm text-slate-500 font-normal">/ {targets.length}</span></div>
         </div>
         
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm">
+        <div 
+          onClick={() => navigate('/app/findings')}
+          className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm cursor-pointer hover:border-slate-700 transition-colors"
+        >
           <div className="text-sm font-medium text-slate-400 mb-2 flex items-center gap-2">
             <ShieldCheck className="w-4 h-4" />
             Open Findings
@@ -131,13 +145,16 @@ export default function DashboardPage() {
           {hasNextFindings ? <div className="text-3xl font-semibold text-slate-100">{openFindings.length}+</div> : <div className="text-3xl font-semibold text-slate-100">{openFindings.length}</div>}
         </div>
         
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm">
+        <div 
+          onClick={() => navigate('/app/findings')}
+          className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm cursor-pointer hover:border-slate-700 transition-colors"
+        >
           <div className="text-sm font-medium text-slate-400 mb-2 flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 text-amber-500" />
             Critical Findings
           </div>
-          <div className="text-3xl font-semibold text-slate-100 text-slate-500 text-sm font-normal">
-            Unavailable
+          <div className="text-3xl font-semibold text-slate-100">
+            {criticalCount}{hasNextFindings ? '+' : ''}
           </div>
         </div>
       </div>
@@ -159,17 +176,45 @@ export default function DashboardPage() {
         </div>
       ) : (
         <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden mt-8">
-          <div className="p-4 border-b border-slate-800/60 bg-slate-900/50">
+          <div className="p-4 border-b border-slate-800/60 bg-slate-900/50 flex items-center justify-between">
             <h2 className="text-sm font-semibold text-slate-200">Recent Findings</h2>
+            <button
+              onClick={() => navigate('/app/findings')}
+              className="text-xs text-primary hover:underline font-medium"
+            >
+              View all ({openFindings.length}{hasNextFindings ? '+' : ''})
+            </button>
           </div>
           <div className="divide-y divide-slate-800/60">
             {openFindings.length === 0 ? (
               <div className="p-8 text-center text-slate-500">No open findings detected.</div>
             ) : (
               openFindings.slice(0, 5).map(finding => (
-                <div key={finding.id} className="p-4 flex items-center justify-between hover:bg-slate-800/30 transition-colors">
-                  <div className="text-sm font-mono text-slate-400">{finding.ruleId || finding.id}</div>
-                  <div className="text-sm font-medium capitalize text-slate-300">Status: {finding.status}</div>
+                <div 
+                  key={finding.id} 
+                  onClick={() => navigate('/app/findings')}
+                  className="p-4 flex items-center justify-between hover:bg-slate-800/30 transition-colors cursor-pointer"
+                >
+                  <div className="min-w-0 mr-4">
+                    <div className="text-sm font-medium text-slate-200 truncate">
+                      {finding.ruleTitle || finding.message || finding.ruleId || finding.id}
+                    </div>
+                    <div className="text-xs font-mono text-slate-500 mt-0.5">
+                      {finding.ruleId || finding.id}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {finding.severity && (
+                      <span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${
+                        finding.severity === 'critical' ? 'border-rose-500/20 bg-rose-500/10 text-rose-400' :
+                        finding.severity === 'warning' ? 'border-amber-500/20 bg-amber-500/10 text-amber-400' :
+                        'border-sky-500/20 bg-sky-500/10 text-sky-400'
+                      }`}>
+                        {finding.severity}
+                      </span>
+                    )}
+                    <span className="text-xs text-slate-400 capitalize">{finding.status}</span>
+                  </div>
                 </div>
               ))
             )}
