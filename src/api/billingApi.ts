@@ -92,6 +92,41 @@ export function createBillingApi(getAccessToken: AccessTokenProvider) {
   return { createCheckout, getStatus };
 }
 
+export interface PublicPlan {
+  code: string;
+  name: string;
+  price: string;
+  billingPeriod?: string;
+  caption: string;
+  highlight: boolean;
+  features: string[];
+  ctaText?: string;
+  ctaLink?: string;
+  quotas?: {
+    website_targets?: number | null;
+    seats?: number | null;
+    security_scan?: number | null;
+    monitor_schedules?: number | null;
+  };
+}
+
+export async function fetchPublicPlans(): Promise<PublicPlan[]> {
+  try {
+    const { API_BASE_URL, API_VERSION_PREFIX } = await import('./apiClient');
+    const response = await fetch(`${API_BASE_URL}${API_VERSION_PREFIX}/public/plans`, {
+      headers: { Accept: 'application/json' },
+    });
+    if (!response.ok) return [];
+    const payload: unknown = await response.json();
+    if (isRecord(payload) && Array.isArray(payload.plans)) {
+      return payload.plans as PublicPlan[];
+    }
+  } catch {
+    // Falls offline oder unerreichbar: Fallback im Caller
+  }
+  return [];
+}
+
 export function createBillingIdempotencyKey(): string {
   return crypto.randomUUID();
 }

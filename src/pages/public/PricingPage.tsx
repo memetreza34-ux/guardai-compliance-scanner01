@@ -1,38 +1,65 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, CheckCircle2 } from 'lucide-react';
+import { fetchPublicPlans, type PublicPlan } from '../../api/billingApi';
 
-const plans = [
+const defaultPlans: PublicPlan[] = [
   {
+    code: 'free',
     name: 'Free',
     price: '0 €',
     caption: 'Für den Einstieg',
     highlight: false,
-    features: ['1 Workspace', '1 Website Target', 'Manuelle Security-Scans', 'Scan History', 'Evidence & Findings'],
+    ctaText: 'Kostenlos starten',
+    ctaLink: '/signup',
+    features: ['1 Workspace', '1 verifiziertes Website Target', 'Monatlich 50 manuelle Security-Scans', 'Scan History & Evidence Provenance', 'Findings & Remediation-Anleitungen'],
   },
   {
+    code: 'starter',
     name: 'Starter',
     price: 'Launch-Preis folgt',
     caption: 'Für kleine Teams',
     highlight: true,
-    features: ['Mehr Targets', 'Geplante Monitoring-Läufe', 'Mehr Benutzer', 'Reports', 'Basis-Integrationen'],
+    ctaText: 'Interesse vormerken',
+    ctaLink: '/contact',
+    features: ['Bis zu 5 Website Targets', 'Bis zu 5 Team Seats', 'Monatlich 500 Security-Scans', '3 aktive Monitoring-Schedules', 'Unveränderliche Report-Snapshots'],
   },
   {
+    code: 'growth',
     name: 'Growth',
     price: 'Launch-Preis folgt',
     caption: 'Für wachsende Security/GRC-Teams',
     highlight: false,
-    features: ['Mehrere Frameworks', 'Risk & Controls', 'Drift Detection', 'Trust-Funktionen', 'Erweiterte Integrationen'],
+    ctaText: 'Interesse vormerken',
+    ctaLink: '/contact',
+    features: ['Bis zu 25 Website Targets', 'Bis zu 15 Team Seats', 'Monatlich 2.500 Security-Scans', '15 aktive Monitoring-Schedules', 'Drift Detection & Trust Center Publikationen'],
   },
   {
+    code: 'business',
     name: 'Business',
     price: 'Individuell',
     caption: 'Für komplexere Organisationen',
     highlight: false,
-    features: ['Granulare Rollen', 'Audit Workspace', 'Vendor & Access Reviews', 'Advanced AI Governance', 'API / Webhooks'],
+    ctaText: 'Kontakt aufnehmen',
+    ctaLink: '/contact',
+    features: ['Individuelle Target- & Scan-Kontingente', 'Granulare Rollen & Audit Log Workspace', 'Advanced AI Governance Guided Review', 'Dedizierter Support & Custom SLAs', 'API- & Webhook-Zugriff'],
   },
 ];
 
 export default function PricingPage() {
+  const [plans, setPlans] = useState<PublicPlan[]>(defaultPlans);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetchPublicPlans().then((serverPlans) => {
+      if (!cancelled && serverPlans.length > 0) {
+        setPlans(serverPlans);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   return (
     <main>
       <section className="border-b border-white/10">
@@ -70,14 +97,14 @@ export default function PricingPage() {
                 ))}
               </div>
               <Link
-                to={plan.name === 'Free' ? '/signup' : '/contact'}
+                to={plan.ctaLink || (plan.name === 'Free' ? '/signup' : '/contact')}
                 className={`mt-8 inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold ${
                   plan.highlight
                     ? 'bg-white text-slate-950 hover:bg-slate-200'
                     : 'border border-white/10 text-slate-200 hover:bg-white/[0.04]'
                 }`}
               >
-                {plan.name === 'Free' ? 'Kostenlos starten' : 'Interesse vormerken'}
+                {plan.ctaText || (plan.name === 'Free' ? 'Kostenlos starten' : 'Interesse vormerken')}
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </div>

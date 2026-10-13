@@ -25,9 +25,18 @@ function normalizeBillingStorageError(error) {
   return error;
 }
 
+const { getPublicPlans, CATALOG_VERSION } = require('../domain/planCatalog');
+
 function sendBillingRouteError(res, error, label) {
   sendRouteError(res, normalizeBillingStorageError(error), label);
 }
+
+router.get('/public/plans', (_req, res) => {
+  res.json({
+    catalogVersion: CATALOG_VERSION,
+    plans: getPublicPlans(),
+  });
+});
 
 router.get('/organizations/:organizationId/billing', requireAuth, async (req, res) => {
   try {
