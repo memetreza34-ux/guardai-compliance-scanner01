@@ -3,7 +3,7 @@ const { HttpError } = require('../lib/httpError');
 
 const MAX_SLUG_ATTEMPTS = 3;
 
-function createOrganizationService({ organizationRepository }) {
+function createOrganizationService({ organizationRepository, organizationAuthorization = null }) {
   if (!organizationRepository) {
     throw new TypeError('Organization service requires a repository.');
   }
@@ -43,9 +43,26 @@ function createOrganizationService({ organizationRepository }) {
     return organizationRepository.listOrganizationsForUser(userId);
   }
 
+  async function updateName({ organizationId, userId, name }) {
+    if (!userId) {
+      throw new HttpError(401, 'Authentication is required.', 'UNAUTHORIZED');
+    }
+    if (!organizationId) {
+      throw new HttpError(400, 'Organization identifier is required.', 'INVALID_ORGANIZATION_ID');
+    }
+
+    if (organizationAuthorization && typeof organizationAuthorization.requireRole === 'function') {
+      await organizationAuthorization.requireRole(organizationId, userId, 'admin');
+    }
+
+    const normalizedName = normalizeOrganizationName(name);
+    return organizationRepository.updateOrganizationName(organizationId, normalizedName, userId);
+  }
+
   return {
     create,
     listForUser,
+    updateName,
   };
 }
 

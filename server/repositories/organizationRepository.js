@@ -89,9 +89,49 @@ function createOrganizationRepository(pool) {
     return result.rows.map(mapOrganizationRow);
   }
 
+  async function updateOrganizationName(organizationId, name, userId) {
+    const client = await pool.connect();
+    try {
+      await client.query('begin');
+
+      const result = await client.query(
+        `update public.organizations
+            set name = $2,
+                updated_at = now()
+          where id = $1
+          returning id, name, slug, created_at, updated_at`,
+        [organizationId, name],
+      );
+
+      if (result.rowCount === 0) {
+        throw new HttpError(404, 'Organization was not found.', 'ORGANIZATION_NOT_FOUND');
+      }
+
+      await client.query(
+        `insert into public.audit_events (
+           organization_id, actor_id, action, target_type, target_id, metadata
+         ) values ($1, $2, 'organization.updated', 'organization', $1::text, $3::jsonb)`,
+        [organizationId, userId, JSON.stringify({ name })],
+      );
+
+      await client.query('commit');
+      return mapOrganizationRow(result.rows[0]);
+    } catch (error) {
+      try {
+        await client.query('rollback');
+      } catch (rollbackError) {
+        console.error('[Database] Organization update rollback failed:', rollbackError);
+      }
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
   return {
     createOrganizationWithOwner,
     listOrganizationsForUser,
+    updateOrganizationName,
   };
 }
 

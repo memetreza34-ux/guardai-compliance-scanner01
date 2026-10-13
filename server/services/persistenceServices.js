@@ -84,7 +84,10 @@ function createPersistenceServices() {
     stripeProvider,
   });
   const organizationRepository = createOrganizationRepository(pool);
-  const organizationService = createOrganizationService({ organizationRepository });
+  const organizationService = createOrganizationService({
+    organizationRepository,
+    organizationAuthorization,
+  });
   const scanRepository = createScanRepository(pool, { entitlementRepository });
   const scanReadRepository = createScanReadRepository(pool);
   const reportRepository = createReportRepository(pool);

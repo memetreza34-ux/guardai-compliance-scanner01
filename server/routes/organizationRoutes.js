@@ -35,4 +35,20 @@ router.post('/organizations', requireAuth, async (req, res) => {
   }
 });
 
+router.patch('/organizations/:organizationId', requireAuth, async (req, res) => {
+  try {
+    const body = createOrganizationSchema.parse(req.body);
+    const { organizationService } = getPersistenceServices();
+    const organization = await organizationService.updateName({
+      organizationId: req.params.organizationId,
+      userId: req.auth.userId,
+      name: body.name,
+    });
+
+    res.json({ organization });
+  } catch (error) {
+    sendRouteError(res, error, 'Organization Update');
+  }
+});
+
 module.exports = { organizationRoutes: router };

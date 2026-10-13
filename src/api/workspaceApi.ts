@@ -63,6 +63,21 @@ export function createWorkspaceApi(getAccessToken: AccessTokenProvider) {
     return requireRecord(payload.organization, 'Organization') as unknown as WorkspaceOrganization;
   }
 
+  async function updateOrganization(
+    organizationId: string,
+    name: string,
+  ): Promise<WorkspaceOrganization> {
+    const payload = requireRecord(
+      await client.request(`/organizations/${encodeURIComponent(organizationId)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      }),
+      'Organization update',
+    );
+    return requireRecord(payload.organization, 'Organization') as unknown as WorkspaceOrganization;
+  }
+
   async function listTargets(organizationId: string): Promise<WorkspaceTarget[]> {
     const payload = requireRecord(
       await client.request(`/organizations/${encodeURIComponent(organizationId)}/targets`),
@@ -209,6 +224,7 @@ export function createWorkspaceApi(getAccessToken: AccessTokenProvider) {
     listTargets,
     startTargetVerification,
     submitScan,
+    updateOrganization,
   };
 }
 
