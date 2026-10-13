@@ -9,33 +9,36 @@ const MODULE_CAPABILITIES = Object.freeze({
   asset: 'ai_document_screening',
 });
 
-function capabilityForModule(moduleId) {
+function capabilityForModule(moduleId, { trackSecurityQuota = false } = {}) {
   if (!Object.prototype.hasOwnProperty.call(MODULE_CAPABILITIES, moduleId)) {
     throw new HttpError(400, 'Unknown scan module.', 'INVALID_SCAN_MODULE');
+  }
+  if (moduleId === 'security' && trackSecurityQuota) {
+    return 'security_scan';
   }
   return MODULE_CAPABILITIES[moduleId];
 }
 
-function requiredCapabilitiesForModules(moduleIds) {
+function requiredCapabilitiesForModules(moduleIds, options = {}) {
   if (!Array.isArray(moduleIds)) {
     throw new TypeError('moduleIds must be an array.');
   }
 
   return [...new Set(
     moduleIds
-      .map(capabilityForModule)
+      .map((moduleId) => capabilityForModule(moduleId, options))
       .filter((capability) => capability !== null),
   )];
 }
 
-function usageRequirementsForModules(moduleIds) {
+function usageRequirementsForModules(moduleIds, options = {}) {
   if (!Array.isArray(moduleIds)) {
     throw new TypeError('moduleIds must be an array.');
   }
 
   const requirements = {};
   for (const moduleId of moduleIds) {
-    const capability = capabilityForModule(moduleId);
+    const capability = capabilityForModule(moduleId, options);
     if (capability === null) continue;
     requirements[capability] = (requirements[capability] || 0) + 1;
   }

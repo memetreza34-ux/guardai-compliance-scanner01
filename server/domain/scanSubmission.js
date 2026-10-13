@@ -76,6 +76,7 @@ function createScanSubmissionService({
   scanRepository,
   scannerVersion,
   contractVersion,
+  trackSecurityQuota = false,
 }) {
   if (!organizationAuthorization || typeof organizationAuthorization.requireRole !== 'function') {
     throw new TypeError('Scan submission requires organization authorization.');
@@ -103,7 +104,7 @@ function createScanSubmissionService({
 
     const modules = normalizeRequestedModules(requestedModules);
     const normalizedIdempotencyKey = normalizeIdempotencyKey(idempotencyKey);
-    const usageRequirements = usageRequirementsForModules(modules);
+    const usageRequirements = usageRequirementsForModules(modules, { trackSecurityQuota });
 
     return scanRepository.createQueuedScanWithJobs({
       organizationId,

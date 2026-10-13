@@ -118,3 +118,31 @@ test('scan submission forwards internal module context only when explicitly prov
     security: { purpose: 'finding_retest', findingId: 'finding-1' },
   });
 });
+
+test('scan submission derives security_scan quota reservation when trackSecurityQuota is enabled', async () => {
+  let received = null;
+  const service = createScanSubmissionService({
+    organizationAuthorization,
+    scanRepository: {
+      async createQueuedScanWithJobs(input) {
+        received = input;
+        return { created: true, scan: { id: 'scan-s', status: 'queued' }, jobs: [] };
+      },
+    },
+    scannerVersion: '0.1.0',
+    contractVersion: '0.2.0',
+    trackSecurityQuota: true,
+  });
+
+  await service.submit({
+    organizationId: 'org-a',
+    targetId: 'target-a',
+    requestedBy: 'user-a',
+    requestedModules: ['security'],
+    idempotencyKey: 'quota-test-12345',
+  });
+
+  assert.deepEqual(received.usageRequirements, {
+    security_scan: 1,
+  });
+});
