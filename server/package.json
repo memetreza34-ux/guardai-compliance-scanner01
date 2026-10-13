@@ -17,7 +17,8 @@
     "scheduler:monitor": "node workers/monitorSchedulerProcess.js",
     "scheduler:monitor:once": "node workers/monitorSchedulerProcess.js --once",
     "parser:asset:sandbox": "node workers/parserSandboxProcess.js",
-    "check": "node scripts/checkSource.js",
+    "check": "node scripts/checkSource.js && node scripts/checkDatabaseDrafts.js && node scripts/prepareStagingMigrations.js --check",
+    "prepare-staging": "node scripts/prepareStagingMigrations.js",
     "test": "node --test"
   },
   "engines": {
