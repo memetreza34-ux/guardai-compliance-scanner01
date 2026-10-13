@@ -17,7 +17,7 @@ Status vocabulary:
 
 - **Routing:** VERIFIED. React Router is the routed application source of truth.
 - **Authentication:** VERIFIED. Supabase-backed sign-in/session integration is wired into protected application routes.
-- **Organizations / workspace context:** VERIFIED. The routed app uses one workspace context; backend authorization remains authoritative. Session/token refresh preserves the currently selected authorized Organization, stale in-flight list responses are discarded, missing/failed reads do not display old tenant roles, and callers cannot select unauthorized Organization DTOs.
+- **Organizations / workspace context:** VERIFIED. The routed app uses one workspace context; backend authorization remains authoritative. Session/token refresh preserves the currently selected authorized Organization, stale in-flight list responses are discarded, missing/failed reads do not display old tenant roles, callers cannot select unauthorized Organization DTOs, and `PATCH /organizations/:organizationId` enforces Admin/Owner role with transactional audit logging (`organization.updated`).
 - **Backend API:** VERIFIED. Persistent product APIs are mounted under `/api/v1`.
 - **CI:** VERIFIED. Frontend lint/typecheck/build and backend check/test run as non-masked GitHub Actions jobs.
 - **Node baseline:** Node 24 / npm 11 contract is versioned in the repository.
@@ -140,6 +140,7 @@ AUTOMATED AI ASSESSMENT != LEGAL DETERMINATION
 - **Dependencies & Vulnerability Remediation:** VERIFIED. Backend `axios` upgraded to `^1.20.0` (0 backend CVEs) and frontend lockfile remediated critical/high advisories (`proxy-addr`, `shell-quote`, `undici`).
 - **Auth Token Caching & Performance:** VERIFIED. `server/auth/supabaseAuth.js` implements bounded SHA-256 token hashing with JWT expiration bounding, 60s TTL and LRU eviction.
 - **Staging Migration Bundling:** VERIFIED. `server/scripts/prepareStagingMigrations.js` validates all 33 draft SQL migrations, integrates canonical Rule and Scoring Profile seeds, and generates plan entitlements DDL.
+- **Product Dashboard Posture:** VERIFIED. `DashboardPage.tsx` derives critical finding counts from persisted findings, interactive cards navigate directly to targets and findings, and recent findings list surfaces severity badges and clickable provenance.
 - **EU AI Act 2026 (LEGAL REVIEW BLOCKER):** the current guided review source registry contains only Articles 4/14/50 from the Regulation (EU) 2024/1689 origin; it does **not** automatically incorporate the AI Omnibus consolidated 27 July 2026 legal revisions. Any law applicability, dates, additional duties and marketing claims require source-versioned human/legal review; see `docs/V1_AI_ACT_PRIVACY_SECURITY_PLAYBOOK.md`.
 - **Security and GDPR readiness:** source has multiple controls, but the threat-model/retention/accessibility/operations matrix and real two-tenant staging tests remain release gates, not verified claims.
 
