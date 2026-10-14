@@ -110,14 +110,14 @@ export default function DashboardPage() {
             className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium transition-colors"
           >
             <Plus className="w-4 h-4" />
-            Add Website Target
+            Produkt hinzufügen
           </button>
         ) : (
           <button
             onClick={() => navigate('/app/targets')}
             className="flex items-center gap-2 border border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-200 px-3.5 py-2 rounded-lg text-sm font-medium transition-colors"
           >
-            Manage Targets
+            Online-Produkte verwalten
           </button>
         )}
       </div>
@@ -129,7 +129,7 @@ export default function DashboardPage() {
         >
           <div className="text-sm font-medium text-slate-400 mb-2 flex items-center gap-2">
             <Target className="w-4 h-4" />
-            Verified Targets
+            Verifizierte Produkte
           </div>
           <div className="text-3xl font-semibold text-slate-100">{verifiedTargets.length} <span className="text-sm text-slate-500 font-normal">/ {targets.length}</span></div>
         </div>

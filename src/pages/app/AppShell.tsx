@@ -19,7 +19,6 @@ import {
   ShieldAlert,
   ShieldCheck,
   Globe2,
-  Target,
   Users,
   X,
 } from 'lucide-react';
@@ -37,7 +36,7 @@ const navSections = [
   {
     label: 'Assess',
     items: [
-      { name: 'Targets', path: '/app/targets', icon: Target },
+      { name: 'Online-Produkte', path: '/app/targets', icon: Globe2 },
       { name: 'Scans', path: '/app/scans', icon: Search },
       { name: 'Findings', path: '/app/findings', icon: ShieldCheck },
       { name: 'Evidence', path: '/app/evidence', icon: FileCheck },

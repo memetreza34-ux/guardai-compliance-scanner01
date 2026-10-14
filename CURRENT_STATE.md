@@ -30,8 +30,10 @@ Status vocabulary:
 - **Account lifecycle:** IMPLEMENTED IN CODE. Password reset UI now requires an in-memory Supabase `PASSWORD_RECOVERY` auth event for the current identity rather than merely any authenticated session; grant is cleared on success/sign-out/account switch. Supabase auth initialization ignores stale initial session reads after newer auth events. Detailed staging verification remains mandatory (`docs/AUTH_RECOVERY_STAGING_MATRIX.md`).
 - **Public Trust publications:** remain a separate evidence-verification surface under `/trust/:slug`.
 
-## 2. Website Targets and DNS ownership
+## 2. Online-Produkte & Website Targets
 
+- **Online-Produkte & Asset Hub (`/app/targets`):** VERIFIED. Target-Inventar präsentiert registrierte Online-Produkte (Webseiten, Onlineshops, SaaS-Apps, APIs) mit Executive-KPI-Karten, Filter-/Suchfunktionen und integriertem Live-Test-Status (`PersistentScan`).
+- **Target → Quick-Security-Scan:** VERIFIED. Verifizierte Online-Produkte ermöglichen das direkte Starten eines technischen Scans aus der Produktliste inklusive Idempotency-Schutz und Quota-Validierung.
 - **Website target create/list/detail:** VERIFIED.
 - **DNS TXT ownership verification:** VERIFIED.
 - **Ownership semantics:** VERIFIED. A verified domain proves control of the target only; it is not displayed as proof of security or legal compliance.
