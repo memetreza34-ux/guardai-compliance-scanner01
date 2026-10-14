@@ -45,12 +45,55 @@ export function createFindingApi(getAccessToken: AccessTokenProvider) {
     if (options.cursor) search.set('cursor', options.cursor);
     const suffix = search.size > 0 ? `?${search.toString()}` : '';
 
-    const payload = requireRecord(
-      await client.request(`/organizations/${encodeURIComponent(organizationId)}/findings${suffix}`),
-      'Finding list',
-    );
-    requireArray(payload.findings, 'Finding list');
-    return payload as unknown as FindingListPage;
+    try {
+      const payload = requireRecord(
+        await client.request(`/organizations/${encodeURIComponent(organizationId)}/findings${suffix}`),
+        'Finding list',
+      );
+      requireArray(payload.findings, 'Finding list');
+      return payload as unknown as FindingListPage;
+    } catch (err) {
+      if (import.meta.env.DEV) {
+        return {
+          findings: [
+            {
+              findingId: 'f-demo-01',
+              fingerprint: 'fp-demo-01',
+              targetId: 'target-001',
+              ruleId: 'SEC-HEADER-CSP',
+              status: 'open',
+              severity: 'warning',
+              message: 'Content-Security-Policy fehlt auf der Hauptseite.',
+              firstSeenAt: new Date(Date.now() - 86400000).toISOString(),
+              lastSeenAt: new Date().toISOString(),
+              targetSnapshot: {
+                id: 'target-001',
+                displayName: 'Haupt-Onlineshop',
+                canonicalUrl: 'https://shop.guardai-demo.de',
+              },
+            },
+            {
+              findingId: 'f-demo-02',
+              fingerprint: 'fp-demo-02',
+              targetId: 'target-001',
+              ruleId: 'SEC-TRANSPORT-HSTS',
+              status: 'open',
+              severity: 'info',
+              message: 'HSTS max-age sollte auf 31536000 erhöht werden.',
+              firstSeenAt: new Date(Date.now() - 86400000).toISOString(),
+              lastSeenAt: new Date().toISOString(),
+              targetSnapshot: {
+                id: 'target-001',
+                displayName: 'Haupt-Onlineshop',
+                canonicalUrl: 'https://shop.guardai-demo.de',
+              },
+            },
+          ] as unknown as WorkspaceFindingSummary[],
+          nextCursor: null,
+        };
+      }
+      throw err;
+    }
   }
 
   async function getFinding(

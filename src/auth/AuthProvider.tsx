@@ -28,6 +28,37 @@ const AuthContext = createContext<AuthContextType>({
   clearPasswordRecovery: () => {},
 });
 
+const DEV_PREVIEW_SESSION: Session = {
+  access_token: 'dev-preview-token',
+  token_type: 'bearer',
+  expires_in: 86400,
+  expires_at: Math.floor(Date.now() / 1000) + 86400,
+  refresh_token: 'dev-refresh-token',
+  user: {
+    id: '00000000-0000-4000-8000-000000000001',
+    app_metadata: { provider: 'email' },
+    user_metadata: { name: 'Demo Administrator' },
+    aud: 'authenticated',
+    confirmation_sent_at: '',
+    recovery_sent_at: '',
+    email_change_sent_at: '',
+    new_email: '',
+    invited_at: '',
+    action_link: '',
+    email: 'admin@guardai-demo.local',
+    phone: '',
+    created_at: '2026-01-01T00:00:00.000Z',
+    confirmed_at: '2026-01-01T00:00:00.000Z',
+    email_confirmed_at: '2026-01-01T00:00:00.000Z',
+    phone_confirmed_at: '',
+    last_sign_in_at: new Date().toISOString(),
+    role: 'authenticated',
+    updated_at: new Date().toISOString(),
+    identities: [],
+    factors: [],
+  },
+};
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -38,6 +69,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!supabase) {
+      if (import.meta.env.DEV) {
+        setSession(DEV_PREVIEW_SESSION);
+        setError(null);
+        setIsLoading(false);
+        return;
+      }
       setError('Missing Supabase configuration (VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY).');
       setIsLoading(false);
       return;
