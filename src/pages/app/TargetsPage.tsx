@@ -156,7 +156,7 @@ export default function TargetsPage() {
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Fehler beim Laden der Produkte.');
+          setError(err instanceof Error ? err.message : 'Fehler beim Laden der Websites.');
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -212,8 +212,8 @@ export default function TargetsPage() {
     return (
       <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-100 tracking-tight">Online-Produkte & Assets</h1>
-          <p className="text-sm text-slate-400 mt-1">Erstelle einen Workspace, um deine Webseiten und Online-Produkte zu verwalten.</p>
+          <h1 className="text-2xl font-semibold text-slate-100 tracking-tight">Websites</h1>
+          <p className="text-sm text-slate-400 mt-1">Erstelle einen Workspace, um deine Websites technisch zu prüfen.</p>
         </div>
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-8 shadow-sm">
           {session?.access_token ? <WorkspaceOnboarding api={createWorkspaceApi(async () => session.access_token)} /> : <p className="text-slate-400">Lade Authentifizierung...</p>}
@@ -256,7 +256,7 @@ export default function TargetsPage() {
             : `${err.message} (${err.code})`,
         );
       } else {
-        setCreateError(err instanceof Error ? err.message : 'Fehler beim Anlegen des Produkts.');
+        setCreateError(err instanceof Error ? err.message : 'Fehler beim Anlegen der Website.');
       }
     } finally {
       if (isCurrentRequest()) {
@@ -301,9 +301,9 @@ export default function TargetsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-100 tracking-tight">Online-Produkte & Assets</h1>
+          <h1 className="text-2xl font-semibold text-slate-100 tracking-tight">Websites</h1>
           <p className="text-sm text-slate-400 mt-1">
-            Zentrale Übersicht aller deiner registrierten Web-Anwendungen, Onlineshops und APIs inklusive Compliance-Status, Security-Scans und direktem Test-Trigger.
+            Verwalte deine eigenen Websites, bestätige die Domain-Kontrolle und starte nachvollziehbare technische Security-Scans.
           </p>
         </div>
       </div>
@@ -313,7 +313,7 @@ export default function TargetsPage() {
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm">
           <div className="flex items-center gap-2 text-xs font-medium text-slate-400 mb-1">
             <Globe2 className="w-3.5 h-3.5 text-indigo-400" />
-            Produkte gesamt
+            Websites gesamt
           </div>
           <div className="text-2xl font-bold text-slate-100">{targets.length}</div>
         </div>
@@ -348,8 +348,8 @@ export default function TargetsPage() {
         <section className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-medium text-slate-200">Neues Online-Produkt registrieren</h2>
-              <p className="text-xs text-slate-400 mt-0.5">Füge einen Webshop, eine Web-App oder Landingpage hinzu, um automatische Compliance- und Security-Tests zu aktivieren.</p>
+              <h2 className="text-lg font-medium text-slate-200">Website hinzufügen</h2>
+              <p className="text-xs text-slate-400 mt-0.5">Füge eine eigene Website hinzu. Vor dem ersten Security-Scan musst du die Kontrolle über die Domain per DNS bestätigen.</p>
             </div>
           </div>
 
@@ -374,7 +374,7 @@ export default function TargetsPage() {
                 <input
                   id="target-name"
                   type="text"
-                  placeholder="Produktname (z.B. Haupt-Webshop, Kundenportal, Marketing Website)"
+                  placeholder="Website-Name (z. B. Firmenwebsite)"
                   className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all"
                   value={targetName}
                   onChange={(e) => setTargetName(e.target.value)}
@@ -388,7 +388,7 @@ export default function TargetsPage() {
                 className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 whitespace-nowrap flex items-center justify-center gap-2"
               >
                 <Plus className="w-4 h-4" />
-                {creating ? 'Wird hinzugefügt...' : 'Produkt hinzufügen'}
+                {creating ? 'Wird hinzugefügt...' : 'Website hinzufügen'}
               </button>
             </div>
           </form>
@@ -410,7 +410,7 @@ export default function TargetsPage() {
           <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Nach Produktname oder Domain suchen..."
+            placeholder="Nach Website oder Domain suchen..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-slate-900 border border-slate-800 rounded-lg pl-9 pr-4 py-1.5 text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all"
@@ -447,7 +447,7 @@ export default function TargetsPage() {
 
       {/* Main Product Inventory Grid */}
       {loading ? (
-        <div className="animate-pulse flex items-center justify-center p-12 text-slate-400">Online-Produkte werden geladen...</div>
+        <div className="animate-pulse flex items-center justify-center p-12 text-slate-400">Websites werden geladen...</div>
       ) : error ? (
         <div role="alert" className="rounded-xl border border-destructive/40 bg-destructive/10 p-5 flex items-center justify-between gap-4">
           <p className="text-sm text-destructive-foreground">{error}</p>
@@ -461,10 +461,10 @@ export default function TargetsPage() {
       ) : filteredTargets.length === 0 ? (
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-12 text-center shadow-sm">
           <Globe2 className="w-10 h-10 text-slate-600 mx-auto mb-3" />
-          <h3 className="text-base font-medium text-slate-200 mb-1">Keine Online-Produkte gefunden</h3>
+          <h3 className="text-base font-medium text-slate-200 mb-1">Keine Websites gefunden</h3>
           <p className="text-slate-400 text-sm max-w-md mx-auto mb-4">
             {searchQuery || statusFilter !== 'all'
-              ? 'Keine Produkte stimmen mit deinen aktuellen Such- oder Filterkriterien überein.'
+              ? 'Keine Websites stimmen mit deinen aktuellen Such- oder Filterkriterien überein.'
               : 'Trage oben deine erste Webseite oder Web-App ein, um mit automatisierten Compliance- und Sicherheits-Tests zu starten.'}
           </p>
           {(searchQuery || statusFilter !== 'all') && (
