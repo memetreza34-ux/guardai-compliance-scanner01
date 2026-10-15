@@ -16,7 +16,8 @@
     "typecheck": "tsc -b --pretty false",
     "lint": "oxlint",
     "check": "npm run lint && npm run build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:v1-surface": "node --test scripts/v1Surface.test.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
