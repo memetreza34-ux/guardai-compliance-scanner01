@@ -378,7 +378,7 @@ export default function TargetsPage() {
                 />
               </div>
               <div className="flex-1">
-                <label htmlFor="target-name" className="sr-only">Produktname</label>
+                <label htmlFor="target-name" className="sr-only">Website-Name</label>
                 <input
                   id="target-name"
                   type="text"
@@ -532,7 +532,7 @@ export default function TargetsPage() {
                 {/* Center: Latest Test Status ("mit Test und Co") */}
                 <div className="bg-slate-950/70 border border-slate-800/80 rounded-lg p-3 min-w-[240px] md:max-w-xs flex flex-col justify-center">
                   <div className="text-[11px] uppercase tracking-wider font-semibold text-slate-400 mb-1 flex items-center justify-between">
-                    <span>Sicherheits- & Compliance-Test</span>
+                    <span>Technischer Security-Scan</span>
                     {latestScan && (
                       <span className="text-[10px] text-slate-400 font-normal">
                         {formatRelativeTime(latestScan.createdAt)}
@@ -540,7 +540,9 @@ export default function TargetsPage() {
                     )}
                   </div>
 
-                  {latestScan ? (
+                  {scanHistoryUnavailable ? (
+                    <p className="text-xs text-amber-300">Scan-Status unbekannt – Historie nicht verfügbar.</p>
+                  ) : latestScan ? (
                     <div className="space-y-1">
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-xs font-medium text-slate-200 flex items-center gap-1.5">
@@ -570,7 +572,7 @@ export default function TargetsPage() {
                         }}
                         className="text-xs text-sky-400 hover:text-sky-300 font-medium inline-flex items-center gap-1 mt-1 transition-colors"
                       >
-                        <FileText className="w-3 h-3" /> Testbericht ansehen &rarr;
+                        <FileText className="w-3 h-3" /> Scan-Ergebnis ansehen &rarr;
                       </button>
                     </div>
                   ) : isVerified ? (
@@ -595,7 +597,7 @@ export default function TargetsPage() {
                       onClick={(e) => handleQuickScan(target.id, e)}
                       disabled={isScanningThis}
                       className="bg-primary hover:bg-primary/90 text-primary-foreground px-3.5 py-2 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 disabled:opacity-50 shadow-sm"
-                      title="Technischen Sicherheits- & Compliance-Scan jetzt starten"
+                      title="Technischen Security-Scan jetzt starten"
                     >
                       <Play className="w-3.5 h-3.5" />
                       {isScanningThis ? 'Startet...' : 'Jetzt testen'}
