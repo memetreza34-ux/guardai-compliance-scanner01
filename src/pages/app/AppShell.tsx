@@ -1,25 +1,13 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import {
-  Activity,
-  Bell,
-  BookOpenCheck,
-  Brain,
-  CreditCard,
-  FileCheck,
   FileText,
-  FileClock,
-  GitCompareArrows,
   LayoutDashboard,
-  Link2,
-  ListChecks,
   LogOut,
   Menu,
   Search,
-  ShieldAlert,
   ShieldCheck,
   Globe2,
-  Users,
   X,
 } from 'lucide-react';
 import { useAuth } from '../../auth/AuthProvider';
@@ -28,59 +16,22 @@ import { Button } from '../../components/ui/button';
 
 const navSections = [
   {
-    label: 'Overview',
+    label: 'Übersicht',
     items: [
       { name: 'Dashboard', path: '/app', icon: LayoutDashboard, end: true },
     ],
   },
   {
-    label: 'Assess',
+    label: 'Website-Sicherheit',
     items: [
-      { name: 'Online-Produkte', path: '/app/targets', icon: Globe2 },
+      { name: 'Websites', path: '/app/targets', icon: Globe2 },
       { name: 'Scans', path: '/app/scans', icon: Search },
       { name: 'Findings', path: '/app/findings', icon: ShieldCheck },
-      { name: 'Evidence', path: '/app/evidence', icon: FileCheck },
-    ],
-  },
-  {
-    label: 'Govern',
-    items: [
-      { name: 'Controls', path: '/app/controls', icon: ListChecks },
-      { name: 'Frameworks', path: '/app/frameworks', icon: BookOpenCheck },
-      { name: 'Risks', path: '/app/risks', icon: ShieldAlert },
-      { name: 'AI Governance', path: '/app/ai-governance', icon: Brain },
-    ],
-  },
-  {
-    label: 'Monitor',
-    items: [
-      { name: 'Monitoring', path: '/app/monitoring', icon: Activity },
-      { name: 'Drift', path: '/app/drift', icon: GitCompareArrows },
-      { name: 'Notifications', path: '/app/notifications', icon: Bell },
-    ],
-  },
-  {
-    label: 'Assure',
-    items: [
-      { name: 'Reports', path: '/app/reports', icon: FileText },
-      { name: 'Trust Center', path: '/app/trust-center', icon: Globe2 },
-    ],
-  },
-  {
-    label: 'Connect',
-    items: [
-      { name: 'Integrations', path: '/app/integrations', icon: Link2 },
-    ],
-  },
-  {
-    label: 'Organization',
-    items: [
-      { name: 'Team', path: '/app/team', icon: Users },
-      { name: 'Audit Log', path: '/app/audit-log', icon: FileClock },
-      { name: 'Billing', path: '/app/billing', icon: CreditCard },
+      { name: 'Berichte', path: '/app/reports', icon: FileText },
     ],
   },
 ];
+// Other advanced modules stay in the codebase but are not part of V1 customer navigation.
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const { session, supabase } = useAuth();
@@ -203,7 +154,7 @@ export default function AppShell() {
           {import.meta.env.DEV && (
             <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-2 text-center text-xs text-amber-300 font-medium flex items-center justify-center gap-2">
               <span className="inline-block w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
-              <span>Lokaler Entwicklungs-Vorschaumodus aktiv (Demo-Workspace). Alle Produkt-, Test- und Scan-Funktionen sind interaktiv testbar.</span>
+              <span>Lokale Entwicklungsansicht: Ergebnisse und Integrationen sind hier möglicherweise nicht mit einem echten Backend verbunden.</span>
             </div>
           )}
           <div className="p-4 sm:p-6 lg:p-8">
