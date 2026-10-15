@@ -98,6 +98,7 @@ export default function TargetsPage() {
   const [scans, setScans] = useState<PersistentScan[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [scanHistoryUnavailable, setScanHistoryUnavailable] = useState(false);
 
   const [targetUrl, setTargetUrl] = useState('');
   const [targetName, setTargetName] = useState('');
@@ -123,6 +124,7 @@ export default function TargetsPage() {
     setCreating(false);
     setTargets([]);
     setScans([]);
+    setScanHistoryUnavailable(false);
     setError(null);
     setCreateError(null);
     setScanActionError(null);
@@ -144,14 +146,20 @@ export default function TargetsPage() {
       setError(null);
       try {
         const api = createWorkspaceApi(async () => session!.access_token);
-        const [targetList, scanList] = await Promise.all([
+        const [targetList, scanHistory] = await Promise.all([
           api.listTargets(currentOrg!.id),
-          api.listScans(currentOrg!.id, 100).catch(() => ({ contractVersion: '', scans: [] })),
+          api.listScans(currentOrg!.id, 100)
+            .then(result => ({ ok: true as const, result }))
+            .catch(() => ({ ok: false as const })),
         ]);
 
         if (!cancelled) {
           setTargets(targetList);
-          setScans(scanList.scans);
+          setScans(scanHistory.ok ? scanHistory.result.scans : []);
+          setScanHistoryUnavailable(!scanHistory.ok);
+          if (!scanHistory.ok) {
+            setStatusFilter('all');
+          }
           setError(null);
         }
       } catch (err) {
@@ -329,15 +337,15 @@ export default function TargetsPage() {
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm">
           <div className="flex items-center gap-2 text-xs font-medium text-slate-400 mb-1">
             <Activity className="w-3.5 h-3.5 text-sky-400" />
-            Getestet (Scans)
+            Mit Scan-Historie
           </div>
-          <div className="text-2xl font-bold text-sky-400">{testedTargetsCount}</div>
+          <div className="text-2xl font-bold text-sky-400">{scanHistoryUnavailable ? "Unbekannt" : testedTargetsCount}</div>
         </div>
 
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm">
           <div className="flex items-center gap-2 text-xs font-medium text-slate-400 mb-1">
             <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
-            Handlungsbedarf
+            Noch nicht verifiziert
           </div>
           <div className="text-2xl font-bold text-amber-400">{actionRequiredCount}</div>
         </div>
@@ -404,6 +412,15 @@ export default function TargetsPage() {
         </div>
       )}
 
+      {scanHistoryUnavailable && !loading && !error && (
+        <div role="status" className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-200">
+          Die Scan-Historie konnte nicht geladen werden. Websites bleiben sichtbar, aber Scan-Zähler und Teststatus sind derzeit unbekannt.
+          <button type="button" onClick={() => setRetryCount(c => c + 1)} className="ml-3 font-semibold underline underline-offset-2">
+            Erneut laden
+          </button>
+        </div>
+      )}
+
       {/* Search and Filters */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         <div className="relative flex-1 max-w-md">
@@ -432,9 +449,11 @@ export default function TargetsPage() {
           </button>
           <button
             onClick={() => setStatusFilter('tested')}
+            disabled={scanHistoryUnavailable}
+            title={scanHistoryUnavailable ? 'Scan-Historie derzeit nicht verfügbar' : undefined}
             className={`px-3 py-1.5 rounded-lg font-medium transition-colors ${statusFilter === 'tested' ? 'bg-primary text-primary-foreground' : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'}`}
           >
-            Mit Test ({testedTargetsCount})
+            Mit Scan ({scanHistoryUnavailable ? '?' : testedTargetsCount})
           </button>
           <button
             onClick={() => setStatusFilter('pending')}
@@ -465,7 +484,7 @@ export default function TargetsPage() {
           <p className="text-slate-400 text-sm max-w-md mx-auto mb-4">
             {searchQuery || statusFilter !== 'all'
               ? 'Keine Websites stimmen mit deinen aktuellen Such- oder Filterkriterien überein.'
-              : 'Trage oben deine erste Webseite oder Web-App ein, um mit automatisierten Compliance- und Sicherheits-Tests zu starten.'}
+              : 'Füge oben deine erste eigene Website hinzu, verifiziere sie per DNS und starte eine technische Sicherheitsprüfung.'}
           </p>
           {(searchQuery || statusFilter !== 'all') && (
             <button
