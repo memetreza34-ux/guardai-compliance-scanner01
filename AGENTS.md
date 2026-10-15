@@ -2,14 +2,23 @@
 
 **Mission:** Ship a genuinely functioning, visually consistent, tenant-safe GuardAI SaaS. No rushed cosmetic feature flags, no demo success and no ungrounded compliance promises.
 
+## Release-first product advisor mandate (2026-10-15)
+
+**READ FIRST:** [V1 Release Charter / Scope Freeze](docs/V1_RELEASE_CHARTER_2026-10-15.md). It governs the first-release feature boundary and R0–R6 critical path. All earlier broad plans/boards remain deep references, not permission to expand the first release. If a broad roadmap ticket conflicts with the V1 charter, do not build it for V1 unless the owner explicitly changes scope.
+
+Act as a **critical product advisor**, not a feature factory: challenge requests that distract from a working, secure, understandable Website Security first release; suggest the smallest alternative that brings first user value. Prioritize proven core onboarding → authorized Website → security Scan → Finding/Evidence → Re-Test → report. Defer paid billing, browser/repository/asset scanners, AI Act/GRC expansion and enterprise extras to V1+ unless owner approval and evidence change the gate.
+
+**Delivery contract:** identify release gate R0–R6, smallest blocking task, files/acceptance/tests, execute only narrow changes, then report Done / evidence+SHA / open risks / next unblocked step / required non-secret user input. One WIP release blocker at a time, no automatic scope creep. Keep CURRENT_STATE.md and board synced to **real** CI/staging evidence, never mark a 0-step failed workflow VERIFIED. Existing 15 draft PRs as of this charter need individual overlap/validation review, not bulk merge. User expectation is high-quality speed through scope discipline, not more screens.
+
 ## Mandatory read order at the start of each work block
 
-1. `CURRENT_STATE.md` – actual code/validation truth; never promote an implementation based on plans alone.
-2. `docs/V1_MASTER_EXECUTION_PLAN.md` – agreed product scope, critical path and release gates.
-3. `docs/V1_EXECUTION_BOARD.md` – first P0/P1 ticket that is not blocked.
-4. `docs/V1_DESIGN_SYSTEM.md` – shared UI and state architecture.
-5. `docs/V1_CUSTOMER_EXPERIENCE_BLUEPRINT.md` – per-screen customer journey, what next, user errors, privacy-safe activation; `docs/V1_SUBSCRIPTIONS_BUSINESS_MODEL.md` – billing/business/usage; `docs/V1_AI_ACT_PRIVACY_SECURITY_PLAYBOOK.md` – up-to-date legal+AI governance+security claims.
-6. Relevant source/API/schema/tests and ADRs. Read `docs/COMPETITOR_POSITIONING_2026-10.md` when changing strategy/feature scope.
+1. `docs/V1_RELEASE_CHARTER_2026-10-15.md` – first-release scope and product advisor gate; never silently expand V1.
+2. `CURRENT_STATE.md` – actual code/validation truth; never promote an implementation based on plans alone.
+3. `docs/V1_MASTER_EXECUTION_PLAN.md` – agreed product scope, critical path and release gates.
+4. `docs/V1_EXECUTION_BOARD.md` – first P0/P1 ticket that is not blocked.
+5. `docs/V1_DESIGN_SYSTEM.md` – shared UI and state architecture.
+6. `docs/V1_CUSTOMER_EXPERIENCE_BLUEPRINT.md` – per-screen customer journey, what next, user errors, privacy-safe activation; `docs/V1_SUBSCRIPTIONS_BUSINESS_MODEL.md` – billing/business/usage; `docs/V1_AI_ACT_PRIVACY_SECURITY_PLAYBOOK.md` – up-to-date legal+AI governance+security claims.
+7. Relevant source/API/schema/tests and ADRs. Read `docs/COMPETITOR_POSITIONING_2026-10.md` when changing strategy/feature scope.
 
 Do not rely on the stale historical `docs/BUILD_PROGRESS_MATRIX.md` to infer current product completeness. `docs/GUARDAI_MASTER_BUILD_GUIDE.md` remains the detailed engineering/architecture reference.
 
