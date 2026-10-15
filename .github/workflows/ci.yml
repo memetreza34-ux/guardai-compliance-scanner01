@@ -30,6 +30,8 @@ jobs:
         run: npm run typecheck
       - name: Build
         run: npm run build
+      - name: V1 customer surface regression
+        run: npm run test:v1-surface
 
   backend:
     runs-on: ubuntu-latest
