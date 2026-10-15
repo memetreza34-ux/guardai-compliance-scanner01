@@ -14,26 +14,26 @@ import {
 const currentCapabilities = [
   {
     icon: Fingerprint,
-    title: 'Verified Targets',
+    title: 'Eigene Website verifizieren',
     text: 'Domain-Ownership per DNS-TXT, bevor technische Website-Scans gestartet werden.',
   },
   {
     icon: ScanSearch,
-    title: 'Persistent Security Scans',
+    title: 'Technische Security-Scans',
     text: 'Worker-basierte Security-Checks mit gespeichertem Ausführungsstatus statt flüchtiger Demo-Resultate.',
   },
   {
     icon: FileCheck2,
-    title: 'Evidence & Findings',
+    title: 'Nachweise & Findings',
     text: 'Detector, Version, Quelle, Hash, Zeitpunkt und daraus abgeleitete Findings bleiben nachvollziehbar verknüpft.',
   },
 ];
 
 const nextCapabilities = [
-  'Remediation → Re-Test → Verified Resolved',
-  'Controls & Framework Requirements',
-  'Risk Register & Ownership',
-  'Continuous Monitoring & Drift',
+  'Erststart und Domain-Verifizierung verständlich machen',
+  'Echte Security-Scans stabil ausführen',
+  'Findings beheben und per Re-Test überprüfen',
+  'Technische Berichte nachvollziehbar erstellen',
 ];
 
 export function LandingPage() {
@@ -49,13 +49,13 @@ export function LandingPage() {
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-indigo-400/20 bg-indigo-500/8 px-3 py-1.5 text-xs font-semibold text-indigo-200">
               <Sparkles className="h-3.5 w-3.5" />
-              Evidence-first Technical GRC
+              Technische Website-Sicherheit
             </div>
             <h1 className="mt-6 max-w-4xl text-5xl font-semibold tracking-[-0.04em] text-white sm:text-6xl lg:text-7xl">
-              Aus technischen Checks wird belastbare Evidence.
+              Website-Sicherheit prüfen. Probleme verstehen. Verbesserungen belegen.
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-400">
-              GuardAI verbindet verifizierte Targets, persistente Scans, technische Evidence und Findings in einem nachvollziehbaren Workflow — ohne aus fehlenden Daten automatisch „bestanden“ zu machen.
+              GuardAI soll ausgewählte Sicherheitsprobleme deiner Website erkennen, verständlich erklären und nach einem Re-Test dokumentieren. Es zählt nur, was tatsächlich geprüft wurde.
             </p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -86,7 +86,7 @@ export function LandingPage() {
               <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
                 <div>
                   <div className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">GuardAI Workspace</div>
-                  <div className="mt-1 font-semibold text-white">Technical posture</div>
+                  <div className="mt-1 font-semibold text-white">Beispielansicht – keine Live-Daten</div>
                 </div>
                 <div className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-300">
                   Target verified
@@ -136,7 +136,7 @@ export function LandingPage() {
               </div>
 
               <div className="border-t border-white/10 bg-slate-950/50 px-5 py-3 text-[11px] text-slate-600">
-                UI preview uses illustrative counts. Product results are always derived from the active workspace.
+                Illustrative Beispielwerte, keine echten Prüfresultate. In der App müssen Ergebnisse aus dem aktiven Workspace stammen.
               </div>
             </div>
           </div>
@@ -145,12 +145,12 @@ export function LandingPage() {
 
       <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
         <div className="max-w-3xl">
-          <div className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-300">Heute im Produkt</div>
+          <div className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-300">V1 in Vorbereitung</div>
           <h2 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-            Der Kern ist nicht mehr nur eine Demo.
+            Der technische Kern wird jetzt vollständig geprüft.
           </h2>
           <p className="mt-4 text-base leading-7 text-slate-400">
-            Der aktuelle GuardAI-Core arbeitet bereits mit echten Workspace-Daten, serverseitiger Autorisierung und persistierten Scan-Ergebnissen.
+            Wichtige Funktionen sind im Quellcode vorhanden. Die vollständige Nutzerreise und produktionsnahe Integrationen müssen vor der Freigabe noch erfolgreich getestet werden.
           </p>
         </div>
 
@@ -170,24 +170,24 @@ export function LandingPage() {
       <section className="border-y border-white/10 bg-white/[0.02]">
         <div className="mx-auto grid max-w-7xl gap-12 px-4 py-20 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
           <div>
-            <div className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-300">Ein Datenmodell statt Inseln</div>
+            <div className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-300">Ein klarer Ablauf</div>
             <h2 className="mt-3 text-3xl font-semibold tracking-tight text-white">
-              Von der technischen Realität bis zur Assurance.
+              Von der Website zum überprüfbaren Ergebnis.
             </h2>
             <p className="mt-4 text-sm leading-7 text-slate-400">
-              GuardAI wird entlang eines einzigen Evidence-Graphs ausgebaut. Neue Module sollen dieselben Targets, Evidence, Findings, Controls und Risiken nutzen — nicht separate Wahrheitssysteme erzeugen.
+              Eine verifizierte Domain, ein klar abgegrenzter Security-Scan, verständliche Findings und ein erneuter Test: Diese Schritte sollen zuverlässig ineinandergreifen.
             </p>
             <Link to="/product" className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-indigo-300 hover:text-indigo-200">
-              Architektur ansehen <ArrowRight className="h-4 w-4" />
+              So funktioniert V1 <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
             {[
-              ['1', 'Target / Asset', 'Was wird geprüft und wem gehört es?'],
-              ['2', 'Scan / Observation', 'Was wurde tatsächlich ausgeführt und beobachtet?'],
-              ['3', 'Evidence / Finding', 'Welche Evidence stützt welches technische Finding?'],
-              ['4', 'Control / Risk', 'Welche Governance-Relevanz folgt daraus?'],
+              ['1', 'Website verifizieren', 'Welche Domain gehört dir und darf geprüft werden?'],
+              ['2', 'Security-Scan', 'Welche technischen Prüfungen wurden durchgeführt?'],
+              ['3', 'Finding verstehen', 'Was wurde beobachtet, warum ist es relevant?'],
+              ['4', 'Beheben und erneut prüfen', 'Ist die ursprüngliche Beobachtung nach der Änderung verschwunden?'],
             ].map(([step, title, text]) => (
               <div key={step} className="rounded-xl border border-white/10 bg-slate-950 p-5">
                 <div className="text-xs font-semibold text-indigo-300">0{step}</div>
@@ -203,9 +203,9 @@ export function LandingPage() {
         <div className="grid gap-8 rounded-3xl border border-white/10 bg-gradient-to-br from-indigo-500/10 via-slate-900 to-slate-950 p-8 sm:p-10 lg:grid-cols-[1fr_auto] lg:items-center">
           <div>
             <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-indigo-300">
-              <Radar className="h-4 w-4" /> Als Nächstes
+              <Radar className="h-4 w-4" /> Vor dem Release
             </div>
-            <h2 className="mt-3 text-3xl font-semibold text-white">Der Core wird bis zum echten GRC-Workflow erweitert.</h2>
+            <h2 className="mt-3 text-3xl font-semibold text-white">Weniger Funktionen, dafür ein verlässlicher Start.</h2>
             <div className="mt-5 grid gap-2 sm:grid-cols-2">
               {nextCapabilities.map(item => (
                 <div key={item} className="flex items-start gap-2 text-sm text-slate-400">
@@ -216,7 +216,7 @@ export function LandingPage() {
             </div>
           </div>
           <Link to="/product" className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-semibold text-slate-950 hover:bg-slate-200">
-            Roadmap verstehen <ArrowRight className="h-4 w-4" />
+            V1 kennenlernen <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
 
@@ -231,12 +231,12 @@ export function LandingPage() {
       <section className="border-t border-white/10 bg-white/[0.02]">
         <div className="mx-auto max-w-4xl px-4 py-20 text-center sm:px-6 lg:px-8">
           <ShieldCheck className="mx-auto h-8 w-8 text-indigo-300" />
-          <h2 className="mt-5 text-3xl font-semibold tracking-tight text-white">Baue technische Trust-Evidence auf, die man nachvollziehen kann.</h2>
+          <h2 className="mt-5 text-3xl font-semibold tracking-tight text-white">Erkenne, was bei deiner Website tatsächlich geprüft wurde.</h2>
           <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-slate-400">
-            Starte mit einem Workspace, verifiziere dein erstes Target und führe den verfügbaren Security-Scan aus.
+            Lege einen Workspace an, bestätige deine Website und sieh dir den abgegrenzten Security-Scan an, sobald dein Zugang bereit ist.
           </p>
           <Link to="/signup" className="mt-7 inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-semibold text-slate-950 hover:bg-slate-200">
-            GuardAI öffnen <ArrowRight className="h-4 w-4" />
+            Account erstellen <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
       </section>
