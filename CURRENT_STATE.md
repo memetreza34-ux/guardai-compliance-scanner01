@@ -1,5 +1,15 @@
 # CURRENT_STATE.md
 
+## Release evidence update — 2026-10-16
+
+- **CI / pre-step runner issue P0-01 now resolved for the publicly visible GitHub repository**: real frontend/backend steps passed on [PR #41 SHA `4472443a9e29`](https://github.com/memetreza34-ux/guardai-compliance-scanner01/actions/runs/38848086821) and [new backend integration PR #42 SHA `ef1ed30b8934`](https://github.com/memetreza34-ux/guardai-compliance-scanner01/actions/runs/38851202458). This is code CI evidence, **not** proof of live environment or complete release readiness.
+- **Scope:** [V1 charter](docs/V1_RELEASE_CHARTER_2026-10-15.md) is active; separate front-end surface candidate #41 and integrated backend-security candidate #42 are not in `main`. Only Dashboard, Websites, Scans, Findings, Berichte are intended V1 product modules.
+- **Other CI-tested independent drafts:** #22, #23, #27, #34–#39. No claim of their combined multi-PR build or staging effectiveness. #30–#33 were consolidated in #34 and the redundant PRs closed; #26 already in main.
+- **Operational blockers:** exact dedicated GuardAI Supabase staging project ref not verified; 33 SQL draft sources not established as applied production migrations; no real two-user/two-org RLS/worker/SSRF negative test or full signup→DNS→scan→retest→report journey evidence. Public-repository historical secret review outstanding.
+- **Agent task links:** Codex integration [#43](https://github.com/memetreza34-ux/guardai-compliance-scanner01/issues/43), independent Claude security review [#44](https://github.com/memetreza34-ux/guardai-compliance-scanner01/issues/44). These are work orders, **not automatically active agent sessions**.
+
+### Historical source inventory below (2026-10-07)
+
 ## Repository truth — 2026-10-07
 
 This file records what the current GuardAI product code actually supports. Product plans and market research do not make a capability implemented.

@@ -77,12 +77,6 @@ export default function ReportDetailPage() {
         <button onClick={() => navigate('/app/reports')} className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-slate-200">
           <ArrowLeft className="h-4 w-4" /> Back to reports
         </button>
-        <button
-          onClick={() => navigate('/app/trust-center')}
-          className="rounded-lg border border-indigo-500/20 bg-indigo-500/10 px-4 py-2 text-sm font-medium text-indigo-300 hover:bg-indigo-500/15"
-        >
-          Manage Trust publication
-        </button>
       </div>
 
       <section className="rounded-2xl border border-slate-800 bg-slate-900 p-6 sm:p-8">

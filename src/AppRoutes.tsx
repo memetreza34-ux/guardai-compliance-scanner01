@@ -22,27 +22,11 @@ const TargetDetailPage = lazy(() => import('./pages/app/TargetDetailPage'));
 const ScansPage = lazy(() => import('./pages/app/ScansPage'));
 const ScanDetailPage = lazy(() => import('./pages/app/ScanDetailPage'));
 const FindingsPage = lazy(() => import('./pages/app/FindingsPage'));
-const EvidencePage = lazy(() => import('./pages/app/EvidencePage'));
-const ControlsPage = lazy(() => import('./pages/app/ControlsPage'));
-const ControlDetailPage = lazy(() => import('./pages/app/ControlDetailPage'));
-const FrameworksPage = lazy(() => import('./pages/app/FrameworksPage'));
-const FrameworkDetailPage = lazy(() => import('./pages/app/FrameworkDetailPage'));
-const RisksPage = lazy(() => import('./pages/app/RisksPage'));
-const MonitoringPage = lazy(() => import('./pages/app/MonitoringPage'));
-const NotificationsPage = lazy(() => import('./pages/app/NotificationsPage'));
-const DriftPage = lazy(() => import('./pages/app/DriftPage'));
 const ReportsPage = lazy(() => import('./pages/app/ReportsPage'));
 const ReportDetailPage = lazy(() => import('./pages/app/ReportDetailPage'));
-const TrustCenterPage = lazy(() => import('./pages/app/TrustCenterPage'));
-const IntegrationsPage = lazy(() => import('./pages/app/IntegrationsPage'));
-const AiGovernancePage = lazy(() => import('./pages/app/AiGovernancePage'));
-const AiGovernanceReviewPage = lazy(() => import('./pages/app/AiGovernanceReviewPage'));
-const BillingPage = lazy(() => import('./pages/app/BillingPage'));
-const TeamPage = lazy(() => import('./pages/app/TeamPage'));
 const JoinTeamPage = lazy(() => import('./pages/public/JoinTeamPage'));
 const SignUpPage = lazy(() => import('./pages/public/SignUpPage'));
 const PasswordRecoveryPage = lazy(() => import('./pages/public/PasswordRecoveryPage'));
-const AuditLogPage = lazy(() => import('./pages/app/AuditLogPage'));
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { session, isLoading, error } = useAuth();
@@ -99,24 +83,9 @@ export function AppRoutes() {
               <Route path="scans" element={<ScansPage />} />
               <Route path="scans/:scanId" element={<ScanDetailPage />} />
               <Route path="findings" element={<FindingsPage />} />
-              <Route path="evidence" element={<EvidencePage />} />
-              <Route path="controls" element={<ControlsPage />} />
-              <Route path="controls/:controlId" element={<ControlDetailPage />} />
-              <Route path="frameworks" element={<FrameworksPage />} />
-              <Route path="frameworks/:frameworkId" element={<FrameworkDetailPage />} />
-              <Route path="risks" element={<RisksPage />} />
-              <Route path="monitoring" element={<MonitoringPage />} />
-              <Route path="notifications" element={<NotificationsPage />} />
-              <Route path="drift" element={<DriftPage />} />
               <Route path="reports" element={<ReportsPage />} />
               <Route path="reports/:reportId" element={<ReportDetailPage />} />
-              <Route path="trust-center" element={<TrustCenterPage />} />
-              <Route path="integrations" element={<IntegrationsPage />} />
-              <Route path="ai-governance" element={<AiGovernancePage />} />
-              <Route path="ai-governance/reviews/:reviewId" element={<AiGovernanceReviewPage />} />
-              <Route path="billing" element={<BillingPage />} />
-              <Route path="team" element={<TeamPage />} />
-              <Route path="audit-log" element={<AuditLogPage />} />
+              {/* Advanced V2/V3 module URLs fall through to the safe /app redirect. */}
               <Route path="*" element={<Navigate to="/app" replace />} />
             </Route>
 
