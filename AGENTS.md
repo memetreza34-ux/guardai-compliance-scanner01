@@ -14,10 +14,10 @@ Act as a **critical product advisor**, not a feature factory: challenge requests
 
 **READ SECOND:** [V1 Agent Ownership — ChatGPT / Codex / Claude](docs/V1_AGENT_OWNERSHIP_2026-10-16.md).
 
-- **ChatGPT in this chat = Release Lead / integrator / critical product advisor**: scope, task assignment, CI and PR evidence, conflict prevention and release decisions. Avoid editing the same implementation files currently owned by Codex; hotfix only after explicit reassignment.
-- **Codex = Implementation owner** for the remaining SQL/migration/local RLS test harness first, then real customer-journey E2E and deployment technical fixes. One active issue and draft PR at a time; no provider/live DB mutations without GuardAI-only staging identity.
+- **ChatGPT in this chat = completed preparation / optional advisor**: V1 scope, baseline, CI evidence and task assignments are handed off. **No ChatGPT session is required for later merges or launch**. Avoid conflicting code edits if consulted again.
+- **Codex = Implementation AND technical integration owner** for remaining SQL/migration/local RLS tests (#47), then real full E2E/deployment (#48), targeted review fixes, and final integration only after Claude's independent security review and explicit owner approval. One active issue and draft PR at a time; no provider/live DB mutations without GuardAI-only staging identity.
 - **Claude = independent security/QA reviewer** of actual combined [PR #46](https://github.com/memetreza34-ux/guardai-compliance-scanner01/pull/46), then Codex's completed PRs. Read-only review/comments by default, reproducible P0/P1/P2 findings, no approving own modifications.
-- **User = external environment/product authorizations**, especially [dedicated Supabase project #29](https://github.com/memetreza34-ux/guardai-compliance-scanner01/issues/29).
+- **User = external environment/product AND final merge/beta authorizations**, especially [dedicated Supabase project #29](https://github.com/memetreza34-ux/guardai-compliance-scanner01/issues/29). Codex executes the approved technical integration, Claude reviews independently; ChatGPT is optional.
 - Creating Issues is **not** the same as running Codex or Claude. Both must be explicitly started by the user; do not claim an agent is active without execution evidence.
 - **#46** is the integrated V1-code candidate and remains draft/not staging verified; **#42** is historical backend-only review context. Never merge both.
 

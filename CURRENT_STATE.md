@@ -15,7 +15,7 @@
 1. **Codex:** [#47](https://github.com/memetreza34-ux/guardai-compliance-scanner01/issues/47) reviewed SQL-/lokale PG-RLS-Tests; danach [#48](https://github.com/memetreza34-ux/guardai-compliance-scanner01/issues/48) echter Nutzerpfad/Deployment-Smoketests und bestätigte Fehlerbehebung. Kein paralleler Codex-Code-PR.
 2. **Claude:** [#44](https://github.com/memetreza34-ux/guardai-compliance-scanner01/issues/44), unabhängiger read-only Security-/UX-Review von PR #46 und später Codex-Änderungen; Ergebnisse mit reproduzierbaren P0/P1/P2-Befunden. **Noch keine nachgewiesene Claude-Ausführung/Review.**
 3. **Projektinhaber:** [#29](https://github.com/memetreza34-ux/guardai-compliance-scanner01/issues/29) GuardAI-only Supabase-Staging-Projektreferenz bestätigen; externe Hosting-, Secret-, Legal- und Go/No-Go-Entscheidungen.
-4. **ChatGPT:** Release-Vorbereitung/Zuordnung/Übernahmeprüfung der PR-/CI-Evidence/Projektkommunikation; **keine konkurrierende Codex-Implementierung**. Vorbereitende Koordination ist abgeschlossen; finale Merge-/Release-Freigabe bleibt **abhängig von den noch nicht vorhandenen Beweisen**.
+4. **Übergabe abgeschlossen:** ChatGPT ist für den weiteren Release **nicht notwendig**. Nach #47/#48 integriert Codex den fertigen SHA technisch **nur mit ausdrücklicher Freigabe des Projektinhabers** und nach unabhängiger Security-Abnahme durch Claude. Bis diese Nachweise vorliegen bleibt der Code DRAFT und unveröffentlicht.
 
 **Verbindliches Rollen-/Handoff-Regelwerk:** [Agent Ownership](docs/V1_AGENT_OWNERSHIP_2026-10-16.md), [Release Board](docs/V1_EXECUTION_BOARD.md). Das Anlegen von Issues startet **nicht** selbstständig Codex oder Claude. Im Zweifel gelten die aktuellen Issue- und PR-Evidenzen, nicht alte Abschnittsüberschriften.
 
