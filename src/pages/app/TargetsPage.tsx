@@ -560,8 +560,8 @@ export default function TargetsPage() {
                             : 'Test läuft...'}
                         </span>
                         {typeof latestScan.overallScore === 'number' && (
-                          <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
-                            Score {latestScan.overallScore}/100
+                          <span className="text-xs font-medium text-slate-300 bg-slate-800/70 px-1.5 py-0.5 rounded border border-slate-700" title="Technischer Scan-Score für die ausgeführten Prüfungen; keine Sicherheits- oder Compliance-Garantie">
+                            Scan-Score {latestScan.overallScore}/100
                           </span>
                         )}
                       </div>
