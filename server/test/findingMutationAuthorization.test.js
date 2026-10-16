@@ -152,3 +152,67 @@ test('Role revocation is enforced before a second mutation attempt', async () =>
   );
   assert.deepEqual(h.calls.slice(before).map(call => call[0]), ['membership']);
 });
+
+test('role revoked while Finding is loading prevents the pending status transition', async () => {
+  let role = 'member';
+  let authCalls = 0;
+  let writes = 0;
+  const service = createFindingService({
+    organizationAuthorization: {
+      async requireRole() {
+        authCalls += 1;
+        if (role !== 'member') {
+          const error = new Error('Role revoked');
+          error.statusCode = 403;
+          throw error;
+        }
+      },
+    },
+    findingRepository: {
+      async getFinding() {
+        role = 'viewer';
+        return { id: 'finding-a', organizationId: 'org-a', status: 'open' };
+      },
+      async transitionStatus() { writes += 1; throw new Error('Never mutate after revocation'); },
+    },
+  });
+  await assert.rejects(() => service.updateStatus(request('member-a')), error => error.statusCode === 403);
+  assert.equal(authCalls, 2);
+  assert.equal(writes, 0);
+});
+
+test('role revoked while Finding is loading prevents a pending verification re-test', async () => {
+  let role = 'member';
+  let authCalls = 0;
+  let queued = 0;
+  const service = createFindingService({
+    organizationAuthorization: {
+      async requireRole() {
+        authCalls += 1;
+        if (role !== 'member') {
+          const error = new Error('Role revoked');
+          error.statusCode = 403;
+          throw error;
+        }
+      },
+    },
+    findingRepository: {
+      async getFinding() {
+        role = 'viewer';
+        return {
+          id: 'finding-a', organizationId: 'org-a', targetId: 'target-a',
+          status: 'open', ruleId: 'security.content_security_policy',
+          latestDetectorId: 'security.headers',
+        };
+      },
+    },
+    scanSubmission: {
+      async submit() { queued += 1; throw new Error('Never queue after revocation'); },
+    },
+  });
+  await assert.rejects(() => service.requestRetest({
+    organizationId: 'org-a', userId: 'member-a', findingId: 'finding-a',
+  }), error => error.statusCode === 403);
+  assert.equal(authCalls, 2);
+  assert.equal(queued, 0);
+});
