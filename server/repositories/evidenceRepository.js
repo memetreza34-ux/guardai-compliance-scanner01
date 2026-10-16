@@ -130,7 +130,7 @@ function createEvidenceRepository(pool) {
            on t.id = s.target_id and t.organization_id = s.organization_id
         where ${where.join(' and ')}
         order by e.captured_at desc, e.id desc
-        limit ${limitIndex}`,
+        limit $${limitIndex}`,
       params,
     );
 

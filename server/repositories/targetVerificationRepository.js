@@ -57,6 +57,11 @@ function createTargetVerificationRepository(pool) {
       if (targetResult.rowCount === 0) {
         throw new HttpError(404, 'Target was not found in this organization.', 'TARGET_NOT_FOUND');
       }
+      // A service-level check alone can become stale before this row lock.
+      // Never issue a website DNS challenge for repository/asset Targets.
+      if (targetResult.rows[0].type !== 'website') {
+        throw new HttpError(400, 'DNS verification is currently available only for website targets.', 'VERIFICATION_METHOD_UNSUPPORTED');
+      }
       if (targetResult.rows[0].verification_state === 'verified') {
         throw new HttpError(409, 'Target is already verified.', 'TARGET_ALREADY_VERIFIED');
       }
@@ -130,6 +135,22 @@ function createTargetVerificationRepository(pool) {
     const client = await pool.connect();
     try {
       await client.query('begin');
+
+      // Match createDnsChallenge's lock order: Target first, Challenge second.
+      // This also guards the authoritative write against an unsupported target
+      // type, even if it changed after the service read during DNS resolution.
+      const targetResult = await client.query(
+        `select id, type from public.targets
+          where organization_id = $1 and id = $2
+          for update`,
+        [organizationId, targetId],
+      );
+      if (targetResult.rowCount === 0) {
+        throw new HttpError(404, 'Target was not found in this organization.', 'TARGET_NOT_FOUND');
+      }
+      if (targetResult.rows[0].type !== 'website') {
+        throw new HttpError(400, 'DNS verification is currently available only for website targets.', 'VERIFICATION_METHOD_UNSUPPORTED');
+      }
 
       const locked = await client.query(
         `select id, organization_id, target_id, method, status,

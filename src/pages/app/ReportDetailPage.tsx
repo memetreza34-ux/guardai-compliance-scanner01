@@ -5,6 +5,7 @@ import { useAuth } from '../../auth/AuthProvider';
 import { createReportApi } from '../../api/reportApi';
 import { useWorkspace } from '../../providers/WorkspaceProvider';
 import type { TechnicalReportRecord } from '../../types/report';
+import { isCurrentReportScope, reportBelongsToOrganization, reportDetailScope } from '../../lib/reportViewScope';
 
 function formatDate(value?: string | null) {
   if (!value) return 'Unavailable';
@@ -15,15 +16,20 @@ function formatDate(value?: string | null) {
 export default function ReportDetailPage() {
   const { reportId } = useParams();
   const { session } = useAuth();
-  const { currentOrg, isLoading: orgLoading } = useWorkspace();
+  const { currentOrg, isLoading: orgLoading, error: orgError } = useWorkspace();
   const navigate = useNavigate();
   const [report, setReport] = useState<TechnicalReportRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [loadedScope, setLoadedScope] = useState<string | null>(null);
+  const [failedScope, setFailedScope] = useState<string | null>(null);
+  const scopeKey = reportDetailScope(session?.user.id, currentOrg?.id, reportId);
 
   useEffect(() => {
     let cancelled = false;
     setReport(null);
+    setLoadedScope(null);
+    setFailedScope(null);
     setError(null);
 
     if (orgLoading) {
@@ -40,9 +46,18 @@ export default function ReportDetailPage() {
       try {
         const api = createReportApi(async () => session!.access_token);
         const next = await api.getReport(currentOrg!.id, reportId!);
-        if (!cancelled) setReport(next);
+        if (!reportBelongsToOrganization(next, currentOrg!.id) || next.id !== reportId) {
+          throw new Error('Dieser Bericht gehört nicht zur angeforderten Organisation oder Berichts-ID.');
+        }
+        if (!cancelled) {
+          setReport(next);
+          setLoadedScope(scopeKey);
+        }
       } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Failed to load report.');
+        if (!cancelled) {
+          setFailedScope(scopeKey);
+          setError(err instanceof Error ? err.message : 'Bericht konnte nicht geladen werden.');
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -50,11 +65,17 @@ export default function ReportDetailPage() {
 
     void load();
     return () => { cancelled = true; };
-  }, [session, currentOrg, reportId, orgLoading]);
+  }, [session, currentOrg, reportId, orgLoading, scopeKey]);
 
-  if (orgLoading || loading) {
-    return <div className="flex items-center justify-center p-12 text-slate-400">Loading report...</div>;
+  const hasCurrentData = isCurrentReportScope(scopeKey, loadedScope);
+  const initialFailed = !!scopeKey && !hasCurrentData && failedScope === scopeKey;
+  if (orgLoading || loading || (scopeKey && !hasCurrentData && !initialFailed)) {
+    return <div role="status" className="flex items-center justify-center p-12 text-slate-400">Bericht wird geladen…</div>;
   }
+  if (orgError) {
+    return <div role="alert" className="mx-auto max-w-3xl rounded-xl border border-rose-500/20 bg-rose-500/10 p-6 text-sm text-rose-300">Workspace-Berechtigungen sind nicht überprüfbar: {orgError}</div>;
+  }
+  if (!currentOrg) return null;
 
   if (!report) {
     return (
@@ -76,12 +97,6 @@ export default function ReportDetailPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <button onClick={() => navigate('/app/reports')} className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-slate-200">
           <ArrowLeft className="h-4 w-4" /> Back to reports
-        </button>
-        <button
-          onClick={() => navigate('/app/trust-center')}
-          className="rounded-lg border border-indigo-500/20 bg-indigo-500/10 px-4 py-2 text-sm font-medium text-indigo-300 hover:bg-indigo-500/15"
-        >
-          Manage Trust publication
         </button>
       </div>
 

@@ -24,7 +24,7 @@ import {
   Activity,
 } from 'lucide-react';
 import { GuardApiError } from '../../api/apiClient';
-import WorkspaceOnboarding from '../../components/WorkspaceOnboarding';
+import { targetListScope, targetsBelongToOrganization } from '../../lib/targetViewScope';
 
 function TargetStatusBadge({ state }: { state: WorkspaceTarget['verificationState'] }) {
   switch (state) {
@@ -98,6 +98,7 @@ export default function TargetsPage() {
   const [scans, setScans] = useState<PersistentScan[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [scanHistoryUnavailable, setScanHistoryUnavailable] = useState(false);
 
   const [targetUrl, setTargetUrl] = useState('');
   const [targetName, setTargetName] = useState('');
@@ -111,18 +112,27 @@ export default function TargetsPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'verified' | 'pending' | 'tested'>('all');
 
   const [retryCount, setRetryCount] = useState(0);
-  const activeOrgIdRef = useRef<string | null>(currentOrg?.id ?? null);
+  const scopeKey = targetListScope(session?.user.id, currentOrg?.id);
+  const activeScopeRef = useRef(scopeKey);
+  const activeRoleRef = useRef(currentOrg?.role);
+  const activeTokenRef = useRef(session?.access_token ?? null);
   const createRequestRef = useRef(0);
+  const scanRequestRef = useRef(0);
 
-  activeOrgIdRef.current = currentOrg?.id ?? null;
+  activeScopeRef.current = scopeKey;
+  activeRoleRef.current = currentOrg?.role;
+  activeTokenRef.current = session?.access_token ?? null;
 
   useEffect(() => {
     let cancelled = false;
 
     createRequestRef.current += 1;
+    scanRequestRef.current += 1;
     setCreating(false);
+    setScanningTargetId(null);
     setTargets([]);
     setScans([]);
+    setScanHistoryUnavailable(false);
     setError(null);
     setCreateError(null);
     setScanActionError(null);
@@ -144,19 +154,28 @@ export default function TargetsPage() {
       setError(null);
       try {
         const api = createWorkspaceApi(async () => session!.access_token);
-        const [targetList, scanList] = await Promise.all([
+        const [targetList, scanHistory] = await Promise.all([
           api.listTargets(currentOrg!.id),
-          api.listScans(currentOrg!.id, 100).catch(() => ({ contractVersion: '', scans: [] })),
+          api.listScans(currentOrg!.id, 100)
+            .then(result => ({ ok: true as const, result }))
+            .catch(() => ({ ok: false as const })),
         ]);
 
+        if (!targetsBelongToOrganization(targetList, currentOrg!.id)) {
+          throw new Error('Website-Antwort gehört nicht vollständig zum aktiven Workspace.');
+        }
+        const trustedScans = scanHistory.ok
+          && scanHistory.result.scans.every(scan => scan.organizationId === currentOrg!.id);
         if (!cancelled) {
           setTargets(targetList);
-          setScans(scanList.scans);
+          setScans(trustedScans ? scanHistory.result.scans : []);
+          setScanHistoryUnavailable(!trustedScans);
+          if (!trustedScans) setStatusFilter('all');
           setError(null);
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Fehler beim Laden der Produkte.');
+          setError(err instanceof Error ? err.message : 'Fehler beim Laden der Websites.');
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -208,30 +227,24 @@ export default function TargetsPage() {
     return <div className="animate-pulse flex items-center justify-center p-12 text-slate-400">Workspace wird geladen...</div>;
   }
 
-  if (!currentOrg) {
-    return (
-      <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500">
-        <div>
-          <h1 className="text-2xl font-semibold text-slate-100 tracking-tight">Online-Produkte & Assets</h1>
-          <p className="text-sm text-slate-400 mt-1">Erstelle einen Workspace, um deine Webseiten und Online-Produkte zu verwalten.</p>
-        </div>
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-8 shadow-sm">
-          {session?.access_token ? <WorkspaceOnboarding api={createWorkspaceApi(async () => session.access_token)} /> : <p className="text-slate-400">Lade Authentifizierung...</p>}
-        </div>
-      </div>
-    );
-  }
+  // The AppWorkspaceGate owns the only organization onboarding screen.
+  if (!currentOrg) return null;
 
   const canCreate = currentOrg.role === 'owner' || currentOrg.role === 'admin';
   const canRunScans = currentOrg.role === 'owner' || currentOrg.role === 'admin' || currentOrg.role === 'member';
 
   async function handleCreateTarget(e: React.FormEvent) {
     e.preventDefault();
-    if (!currentOrg || !session) return;
+    if (!currentOrg || !session || !canCreate || creating) return;
 
     const activeOrgId = currentOrg.id;
+    const issuedToken = session.access_token;
     const requestId = ++createRequestRef.current;
-    const isCurrentRequest = () => createRequestRef.current === requestId && activeOrgIdRef.current === activeOrgId;
+    const isCurrentRequest = () =>
+      createRequestRef.current === requestId &&
+      activeScopeRef.current === scopeKey &&
+      activeTokenRef.current === issuedToken &&
+      (activeRoleRef.current === 'owner' || activeRoleRef.current === 'admin');
 
     setCreating(true);
     setCreateError(null);
@@ -243,7 +256,7 @@ export default function TargetsPage() {
         displayName: targetName || undefined,
       });
 
-      if (isCurrentRequest()) {
+      if (isCurrentRequest() && newTarget.organizationId === activeOrgId) {
         navigate(`/app/targets/${newTarget.id}`);
       }
     } catch (err) {
@@ -256,7 +269,7 @@ export default function TargetsPage() {
             : `${err.message} (${err.code})`,
         );
       } else {
-        setCreateError(err instanceof Error ? err.message : 'Fehler beim Anlegen des Produkts.');
+        setCreateError(err instanceof Error ? err.message : 'Fehler beim Anlegen der Website.');
       }
     } finally {
       if (isCurrentRequest()) {
@@ -267,32 +280,45 @@ export default function TargetsPage() {
 
   async function handleQuickScan(targetId: string, e: React.MouseEvent) {
     e.stopPropagation();
-    if (!currentOrg || !session || scanningTargetId) return;
+    if (!currentOrg || !session || !canRunScans || scanningTargetId) return;
+    if (!targets.some(target => target.id === targetId && target.type === 'website' && target.verificationState === 'verified')) return;
+
+    const issuedToken = session.access_token;
+    const issuedOrgId = currentOrg.id;
+    const requestId = ++scanRequestRef.current;
+    const isCurrentRequest = () =>
+      scanRequestRef.current === requestId &&
+      activeScopeRef.current === scopeKey &&
+      activeTokenRef.current === issuedToken &&
+      ['owner', 'admin', 'member'].includes(activeRoleRef.current ?? '');
 
     setScanningTargetId(targetId);
     setScanActionError(null);
 
     try {
-      const api = createWorkspaceApi(async () => session.access_token);
+      const api = createWorkspaceApi(async () => issuedToken);
       const submission = await api.submitScan(
-        currentOrg.id,
+        issuedOrgId,
         targetId,
         ['security'],
         createScanIdempotencyKey(),
       );
-      navigate(`/app/scans/${submission.scan.id}`);
+      if (isCurrentRequest() && submission.scan.organizationId === issuedOrgId && submission.scan.targetId === targetId) {
+        navigate(`/app/scans/${submission.scan.id}`);
+      }
     } catch (err) {
+      if (!isCurrentRequest()) return;
       if (err instanceof GuardApiError) {
         setScanActionError(
           err.status === 429
-            ? 'Scan-Limit oder Kontingent erreicht. Bitte warte kurz oder prüfe dein Abonnement.'
+            ? 'Anfragenlimit erreicht. Bitte warte vor dem nächsten Versuch.'
             : `${err.message} (${err.code})`,
         );
       } else {
         setScanActionError(err instanceof Error ? err.message : 'Scan konnte nicht gestartet werden.');
       }
     } finally {
-      setScanningTargetId(null);
+      if (isCurrentRequest()) setScanningTargetId(null);
     }
   }
 
@@ -301,9 +327,9 @@ export default function TargetsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-100 tracking-tight">Online-Produkte & Assets</h1>
+          <h1 className="text-2xl font-semibold text-slate-100 tracking-tight">Websites</h1>
           <p className="text-sm text-slate-400 mt-1">
-            Zentrale Übersicht aller deiner registrierten Web-Anwendungen, Onlineshops und APIs inklusive Compliance-Status, Security-Scans und direktem Test-Trigger.
+            Verwalte deine eigenen Websites, bestätige die Domain-Kontrolle und starte nachvollziehbare technische Security-Scans.
           </p>
         </div>
       </div>
@@ -313,9 +339,9 @@ export default function TargetsPage() {
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm">
           <div className="flex items-center gap-2 text-xs font-medium text-slate-400 mb-1">
             <Globe2 className="w-3.5 h-3.5 text-indigo-400" />
-            Produkte gesamt
+            Websites gesamt
           </div>
-          <div className="text-2xl font-bold text-slate-100">{targets.length}</div>
+          <div className="text-2xl font-bold text-slate-100">{error ? 'Unbekannt' : targets.length}</div>
         </div>
 
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm">
@@ -323,23 +349,23 @@ export default function TargetsPage() {
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
             Aktiv & verifiziert
           </div>
-          <div className="text-2xl font-bold text-emerald-400">{verifiedTargetsCount}</div>
+          <div className="text-2xl font-bold text-emerald-400">{error ? 'Unbekannt' : verifiedTargetsCount}</div>
         </div>
 
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm">
           <div className="flex items-center gap-2 text-xs font-medium text-slate-400 mb-1">
             <Activity className="w-3.5 h-3.5 text-sky-400" />
-            Getestet (Scans)
+            Mit Scan-Historie
           </div>
-          <div className="text-2xl font-bold text-sky-400">{testedTargetsCount}</div>
+          <div className="text-2xl font-bold text-sky-400">{scanHistoryUnavailable ? "Unbekannt" : testedTargetsCount}</div>
         </div>
 
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm">
           <div className="flex items-center gap-2 text-xs font-medium text-slate-400 mb-1">
             <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
-            Handlungsbedarf
+            Noch nicht verifiziert
           </div>
-          <div className="text-2xl font-bold text-amber-400">{actionRequiredCount}</div>
+          <div className="text-2xl font-bold text-amber-400">{error ? 'Unbekannt' : actionRequiredCount}</div>
         </div>
       </div>
 
@@ -348,8 +374,8 @@ export default function TargetsPage() {
         <section className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-medium text-slate-200">Neues Online-Produkt registrieren</h2>
-              <p className="text-xs text-slate-400 mt-0.5">Füge einen Webshop, eine Web-App oder Landingpage hinzu, um automatische Compliance- und Security-Tests zu aktivieren.</p>
+              <h2 className="text-lg font-medium text-slate-200">Website hinzufügen</h2>
+              <p className="text-xs text-slate-400 mt-0.5">Füge eine eigene Website hinzu. Vor dem ersten Security-Scan musst du die Kontrolle über die Domain per DNS bestätigen.</p>
             </div>
           </div>
 
@@ -370,11 +396,11 @@ export default function TargetsPage() {
                 />
               </div>
               <div className="flex-1">
-                <label htmlFor="target-name" className="sr-only">Produktname</label>
+                <label htmlFor="target-name" className="sr-only">Website-Name</label>
                 <input
                   id="target-name"
                   type="text"
-                  placeholder="Produktname (z.B. Haupt-Webshop, Kundenportal, Marketing Website)"
+                  placeholder="Website-Name (z. B. Firmenwebsite)"
                   className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all"
                   value={targetName}
                   onChange={(e) => setTargetName(e.target.value)}
@@ -388,7 +414,7 @@ export default function TargetsPage() {
                 className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 whitespace-nowrap flex items-center justify-center gap-2"
               >
                 <Plus className="w-4 h-4" />
-                {creating ? 'Wird hinzugefügt...' : 'Produkt hinzufügen'}
+                {creating ? 'Wird hinzugefügt...' : 'Website hinzufügen'}
               </button>
             </div>
           </form>
@@ -404,13 +430,22 @@ export default function TargetsPage() {
         </div>
       )}
 
+      {scanHistoryUnavailable && !loading && !error && (
+        <div role="status" className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-200">
+          Die Scan-Historie konnte nicht geladen werden. Websites bleiben sichtbar, aber Scan-Zähler und Teststatus sind derzeit unbekannt.
+          <button type="button" onClick={() => setRetryCount(c => c + 1)} className="ml-3 font-semibold underline underline-offset-2">
+            Erneut laden
+          </button>
+        </div>
+      )}
+
       {/* Search and Filters */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         <div className="relative flex-1 max-w-md">
           <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Nach Produktname oder Domain suchen..."
+            placeholder="Nach Website oder Domain suchen..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-slate-900 border border-slate-800 rounded-lg pl-9 pr-4 py-1.5 text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all"
@@ -432,9 +467,11 @@ export default function TargetsPage() {
           </button>
           <button
             onClick={() => setStatusFilter('tested')}
+            disabled={scanHistoryUnavailable}
+            title={scanHistoryUnavailable ? 'Scan-Historie derzeit nicht verfügbar' : undefined}
             className={`px-3 py-1.5 rounded-lg font-medium transition-colors ${statusFilter === 'tested' ? 'bg-primary text-primary-foreground' : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'}`}
           >
-            Mit Test ({testedTargetsCount})
+            Mit Scan ({scanHistoryUnavailable ? '?' : testedTargetsCount})
           </button>
           <button
             onClick={() => setStatusFilter('pending')}
@@ -447,7 +484,7 @@ export default function TargetsPage() {
 
       {/* Main Product Inventory Grid */}
       {loading ? (
-        <div className="animate-pulse flex items-center justify-center p-12 text-slate-400">Online-Produkte werden geladen...</div>
+        <div className="animate-pulse flex items-center justify-center p-12 text-slate-400">Websites werden geladen...</div>
       ) : error ? (
         <div role="alert" className="rounded-xl border border-destructive/40 bg-destructive/10 p-5 flex items-center justify-between gap-4">
           <p className="text-sm text-destructive-foreground">{error}</p>
@@ -461,11 +498,11 @@ export default function TargetsPage() {
       ) : filteredTargets.length === 0 ? (
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-12 text-center shadow-sm">
           <Globe2 className="w-10 h-10 text-slate-600 mx-auto mb-3" />
-          <h3 className="text-base font-medium text-slate-200 mb-1">Keine Online-Produkte gefunden</h3>
+          <h3 className="text-base font-medium text-slate-200 mb-1">Keine Websites gefunden</h3>
           <p className="text-slate-400 text-sm max-w-md mx-auto mb-4">
             {searchQuery || statusFilter !== 'all'
-              ? 'Keine Produkte stimmen mit deinen aktuellen Such- oder Filterkriterien überein.'
-              : 'Trage oben deine erste Webseite oder Web-App ein, um mit automatisierten Compliance- und Sicherheits-Tests zu starten.'}
+              ? 'Keine Websites stimmen mit deinen aktuellen Such- oder Filterkriterien überein.'
+              : 'Füge oben deine erste eigene Website hinzu, verifiziere sie per DNS und starte eine technische Sicherheitsprüfung.'}
           </p>
           {(searchQuery || statusFilter !== 'all') && (
             <button
@@ -513,7 +550,7 @@ export default function TargetsPage() {
                 {/* Center: Latest Test Status ("mit Test und Co") */}
                 <div className="bg-slate-950/70 border border-slate-800/80 rounded-lg p-3 min-w-[240px] md:max-w-xs flex flex-col justify-center">
                   <div className="text-[11px] uppercase tracking-wider font-semibold text-slate-400 mb-1 flex items-center justify-between">
-                    <span>Sicherheits- & Compliance-Test</span>
+                    <span>Technischer Security-Scan</span>
                     {latestScan && (
                       <span className="text-[10px] text-slate-400 font-normal">
                         {formatRelativeTime(latestScan.createdAt)}
@@ -521,7 +558,9 @@ export default function TargetsPage() {
                     )}
                   </div>
 
-                  {latestScan ? (
+                  {scanHistoryUnavailable ? (
+                    <p className="text-xs text-amber-300">Scan-Status unbekannt – Historie nicht verfügbar.</p>
+                  ) : latestScan ? (
                     <div className="space-y-1">
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-xs font-medium text-slate-200 flex items-center gap-1.5">
@@ -539,8 +578,8 @@ export default function TargetsPage() {
                             : 'Test läuft...'}
                         </span>
                         {typeof latestScan.overallScore === 'number' && (
-                          <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
-                            Score {latestScan.overallScore}/100
+                          <span className="text-xs font-medium text-slate-300 bg-slate-800/70 px-1.5 py-0.5 rounded border border-slate-700" title="Technischer Scan-Score für die ausgeführten Prüfungen; keine Sicherheits- oder Compliance-Garantie">
+                            Scan-Score {latestScan.overallScore}/100
                           </span>
                         )}
                       </div>
@@ -551,7 +590,7 @@ export default function TargetsPage() {
                         }}
                         className="text-xs text-sky-400 hover:text-sky-300 font-medium inline-flex items-center gap-1 mt-1 transition-colors"
                       >
-                        <FileText className="w-3 h-3" /> Testbericht ansehen &rarr;
+                        <FileText className="w-3 h-3" /> Scan-Ergebnis ansehen &rarr;
                       </button>
                     </div>
                   ) : isVerified ? (
@@ -571,12 +610,12 @@ export default function TargetsPage() {
 
                 {/* Right: Direct Actions */}
                 <div className="flex items-center gap-2.5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                  {isVerified && canRunScans && (
+                  {target.type === 'website' && isVerified && canRunScans && (
                     <button
                       onClick={(e) => handleQuickScan(target.id, e)}
                       disabled={isScanningThis}
                       className="bg-primary hover:bg-primary/90 text-primary-foreground px-3.5 py-2 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 disabled:opacity-50 shadow-sm"
-                      title="Technischen Sicherheits- & Compliance-Scan jetzt starten"
+                      title="Technischen Security-Scan jetzt starten"
                     >
                       <Play className="w-3.5 h-3.5" />
                       {isScanningThis ? 'Startet...' : 'Jetzt testen'}

@@ -53,6 +53,95 @@ async function rollbackQuietly(client, label) {
   }
 }
 
+// Repair only one expired, exhausted lease per claim attempt. An exhausted
+// running job cannot pass the normal claim predicate (attempt_count < max_attempts);
+// without this terminalization it can leave its Scan running indefinitely.
+// This is an availability recovery, not a license to run another assessment.
+async function finalizeOneExhaustedLease(client, jobTypes) {
+  const expired = await client.query(
+    `select j.id, j.organization_id, j.scan_id, j.job_type,
+            j.attempt_count, j.max_attempts
+       from public.scan_jobs j
+       join public.scans s
+         on s.id = j.scan_id and s.organization_id = j.organization_id
+      where j.job_type = any($1::text[])
+        and j.status = 'running'
+        and j.lease_expires_at is not null
+        and j.lease_expires_at <= now()
+        and j.attempt_count >= j.max_attempts
+        and s.status in ('queued', 'running')
+      order by j.lease_expires_at asc, j.created_at asc, j.id asc
+      for update of j, s skip locked
+      limit 1`,
+    [jobTypes],
+  );
+
+  if (expired.rowCount === 0) return false;
+  const row = expired.rows[0];
+  const errorCode = 'JOB_LEASE_EXHAUSTED';
+  const message = 'Worker lease expired after the maximum permitted attempts.';
+  const summary = {
+    state: 'error',
+    errorCode,
+    attemptCount: row.attempt_count,
+    maxAttempts: row.max_attempts,
+    retryable: false,
+  };
+
+  await client.query(
+    `update public.scan_jobs
+        set status = 'failed',
+            result_summary = $3::jsonb,
+            failed_at = now(),
+            leased_at = null,
+            lease_expires_at = null,
+            error_code = $4,
+            error_message = $5,
+            updated_at = now()
+      where id = $1
+        and organization_id = $2
+        and status = 'running'`,
+    [row.id, row.organization_id, JSON.stringify(summary), errorCode, message],
+  );
+
+  await client.query(
+    `update public.scan_jobs
+        set status = 'cancelled',
+            leased_at = null,
+            lease_expires_at = null,
+            error_code = 'SCAN_ABORTED_AFTER_JOB_FAILURE',
+            error_message = 'Cancelled because another requested scan module exhausted its lease.',
+            updated_at = now()
+      where scan_id = $1
+        and organization_id = $2
+        and id <> $3
+        and status in ('queued', 'running')`,
+    [row.scan_id, row.organization_id, row.id],
+  );
+
+  await client.query(
+    `update public.scans
+        set status = 'failed',
+            overall_score = null,
+            failed_at = now(),
+            error_code = $3,
+            error_message = $4,
+            coverage = jsonb_set(
+              coalesce(coverage, '{}'::jsonb),
+              array[$5]::text[],
+              $6::jsonb,
+              true
+            ),
+            updated_at = now()
+      where id = $1
+        and organization_id = $2
+        and status in ('queued', 'running')`,
+    [row.scan_id, row.organization_id, errorCode, message, row.job_type, JSON.stringify(summary)],
+  );
+
+  return true;
+}
+
 function createJobRepository(pool) {
   if (!pool || typeof pool.connect !== 'function') {
     throw new TypeError('Job repository requires a PostgreSQL pool.');
@@ -66,6 +155,14 @@ function createJobRepository(pool) {
     const client = await pool.connect();
     try {
       await client.query('begin');
+
+      // A crashed worker on its final attempt will never be reclaimable.
+      // Bound recovery work to one abandoned job per poll, and return idle so
+      // the next claim starts with a fresh transaction.
+      if (await finalizeOneExhaustedLease(client, normalizedJobTypes)) {
+        await client.query('commit');
+        return null;
+      }
 
       const candidate = await client.query(
         `select j.id, j.organization_id, j.scan_id, j.job_type, j.status,

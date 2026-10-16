@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FileText, RefreshCw, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../auth/AuthProvider';
 import { createReportApi } from '../../api/reportApi';
 import { useWorkspace } from '../../providers/WorkspaceProvider';
 import type { TechnicalReportRecord } from '../../types/report';
+import { isCurrentReportScope, reportListScope, reportsBelongToOrganization } from '../../lib/reportViewScope';
 
 function formatDate(value?: string | null) {
   if (!value) return 'Unavailable';
@@ -14,7 +15,7 @@ function formatDate(value?: string | null) {
 
 export default function ReportsPage() {
   const { session } = useAuth();
-  const { currentOrg, isLoading: orgLoading } = useWorkspace();
+  const { currentOrg, isLoading: orgLoading, error: orgError } = useWorkspace();
   const navigate = useNavigate();
   const [reports, setReports] = useState<TechnicalReportRecord[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
@@ -22,11 +23,19 @@ export default function ReportsPage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [retry, setRetry] = useState(0);
+  const [loadedScope, setLoadedScope] = useState<string | null>(null);
+  const [failedScope, setFailedScope] = useState<string | null>(null);
+  const scopeKey = reportListScope(session?.user.id, currentOrg?.id);
+  const activeContext = useRef({ scopeKey, token: session?.access_token ?? null });
+  activeContext.current = { scopeKey, token: session?.access_token ?? null };
 
   useEffect(() => {
     let cancelled = false;
     setReports([]);
     setNextCursor(null);
+    setLoadedScope(null);
+    setFailedScope(null);
+    setLoadingMore(false);
     setError(null);
 
     if (orgLoading) {
@@ -43,12 +52,19 @@ export default function ReportsPage() {
       try {
         const api = createReportApi(async () => session!.access_token);
         const page = await api.listReports(currentOrg!.id, { limit: 50 });
+        if (!reportsBelongToOrganization(page.reports, currentOrg!.id)) {
+          throw new Error('Die Bericht-Antwort enthält Daten eines anderen Workspaces.');
+        }
         if (!cancelled) {
           setReports(page.reports);
           setNextCursor(page.nextCursor);
+          setLoadedScope(scopeKey);
         }
       } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Failed to load reports.');
+        if (!cancelled) {
+          setFailedScope(scopeKey);
+          setError(err instanceof Error ? err.message : 'Berichte konnten nicht geladen werden.');
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -56,27 +72,47 @@ export default function ReportsPage() {
 
     void load();
     return () => { cancelled = true; };
-  }, [session, currentOrg, orgLoading, retry]);
+  }, [session, currentOrg, orgLoading, retry, scopeKey]);
 
   async function loadMore() {
-    if (!session?.access_token || !currentOrg || !nextCursor || loadingMore) return;
+    if (!session?.access_token || !currentOrg || !nextCursor || loadingMore
+      || !isCurrentReportScope(scopeKey, loadedScope)) return;
+    const issuedToken = session.access_token;
+    const issuedScope = scopeKey;
+    const issuedOrgId = currentOrg.id;
     setLoadingMore(true);
     setError(null);
     try {
-      const api = createReportApi(async () => session.access_token);
-      const page = await api.listReports(currentOrg.id, { limit: 50, cursor: nextCursor });
+      const api = createReportApi(async () => issuedToken);
+      const page = await api.listReports(issuedOrgId, { limit: 50, cursor: nextCursor });
+      if (!reportsBelongToOrganization(page.reports, issuedOrgId)) {
+        throw new Error('Die zusätzliche Berichtsseite enthält Daten eines anderen Workspaces.');
+      }
+      if (activeContext.current.scopeKey !== issuedScope || activeContext.current.token !== issuedToken) return;
       setReports(current => [...current, ...page.reports]);
       setNextCursor(page.nextCursor);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load more reports.');
+      if (activeContext.current.scopeKey === issuedScope && activeContext.current.token === issuedToken) {
+        setError(err instanceof Error ? err.message : 'Weitere Berichte konnten nicht geladen werden.');
+      }
     } finally {
-      setLoadingMore(false);
+      if (activeContext.current.scopeKey === issuedScope && activeContext.current.token === issuedToken) setLoadingMore(false);
     }
   }
 
-  if (orgLoading || loading) {
-    return <div className="flex items-center justify-center p-12 text-slate-400">Loading reports...</div>;
+  const hasCurrentData = isCurrentReportScope(scopeKey, loadedScope);
+  const initialFailed = !!scopeKey && !hasCurrentData && failedScope === scopeKey;
+
+  if (orgLoading || loading || (scopeKey && !hasCurrentData && !initialFailed)) {
+    return <div role="status" className="flex items-center justify-center p-12 text-slate-400">Berichte werden geladen…</div>;
   }
+  if (orgError || initialFailed) {
+    return <div role="alert" className="mx-auto max-w-3xl rounded-xl border border-rose-500/20 bg-rose-500/10 p-6 text-sm text-rose-300">
+      <p>Berichte konnten für diesen Workspace nicht überprüft werden: {orgError || error || 'Unbekannter Ladefehler.'}</p>
+      <button type="button" onClick={() => setRetry(value => value + 1)} className="mt-4 rounded-lg border border-rose-500/30 px-3 py-2">Erneut versuchen</button>
+    </div>;
+  }
+  if (!currentOrg) return null;
 
   return (
     <div className="mx-auto max-w-6xl space-y-7 animate-in fade-in duration-500">

@@ -196,7 +196,7 @@ function createFindingRepository(pool) {
          ) latest_status on true
         where ${where.join(' and ')}
         order by f.status_updated_at desc, f.id desc
-        limit ${limitIndex}`,
+        limit $${limitIndex}`,
       params,
     );
 

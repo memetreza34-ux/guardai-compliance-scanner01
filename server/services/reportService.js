@@ -27,6 +27,9 @@ function createReportService({
       throw new HttpError(404, 'Scan was not found in this organization.', 'SCAN_NOT_FOUND');
     }
 
+    // Revalidate after the awaited Scan read: a membership or role may have
+    // been revoked while the Scan was being loaded.
+    await organizationAuthorization.requireRole(organizationId, userId, 'member');
     const { snapshot, snapshotHash } = buildTechnicalReportSnapshot(scanResult);
     const result = await reportRepository.createSnapshot({
       organizationId,
@@ -47,6 +50,8 @@ function createReportService({
     if (!report) {
       throw new HttpError(404, 'Report snapshot was not found in this organization.', 'REPORT_NOT_FOUND');
     }
+    // Never return sensitive report content if access was revoked mid-read.
+    await organizationAuthorization.requireRole(organizationId, userId, 'viewer');
     return assertReportSnapshotIntegrity(report);
   }
 
@@ -58,6 +63,8 @@ function createReportService({
       limit,
       cursor,
     });
+    // The paginated DB read may have outlived the caller's membership.
+    await organizationAuthorization.requireRole(organizationId, userId, 'viewer');
     return {
       ...page,
       reports: page.reports.map(assertReportSnapshotIntegrity),

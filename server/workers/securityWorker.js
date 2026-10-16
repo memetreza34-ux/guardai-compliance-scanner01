@@ -2,6 +2,7 @@ const { HttpError } = require('../lib/httpError');
 const { buildSecurityAssessment } = require('../scanners/securityHeaders');
 const { getSecurityRuleForFinding } = require('../scanners/securityRuleRegistry');
 const { safeGetWithMetadata } = require('../services/safeFetch');
+const { startLeaseHeartbeat } = require('./leaseHeartbeat');
 
 const SECURITY_JOB_TYPE = 'security';
 
@@ -54,6 +55,8 @@ async function processOneSecurityJob({
   jobFailureService,
   workerId,
   leaseSeconds = 60,
+  executeAssessment = executeSecurityJob,
+  startHeartbeat = startLeaseHeartbeat,
 }) {
   if (!jobRepository) {
     throw new TypeError('Security worker requires a job repository.');
@@ -72,12 +75,33 @@ async function processOneSecurityJob({
     return { state: 'idle' };
   }
 
+  const heartbeat = startHeartbeat({
+    jobRepository,
+    jobId: job.id,
+    workerId,
+    leaseSeconds,
+  });
+  let heartbeatStopped = false;
+
+  async function stopHeartbeat() {
+    if (heartbeatStopped) return heartbeat.getError();
+    heartbeatStopped = true;
+    return heartbeat.stop();
+  }
+
   try {
     const context = await jobRepository.getExecutionContext({
       jobId: job.id,
       workerId,
     });
-    const assessment = await executeSecurityJob(context);
+    const assessment = await executeAssessment(context);
+
+    // Stop and await any in-flight renewal before attempting the result write.
+    // If renewal failed, ownership is uncertain: another worker may have
+    // reclaimed this job, so do not commit or mutate its failure status.
+    const heartbeatError = await stopHeartbeat();
+    if (heartbeatError) throw heartbeatError;
+
     const completion = await jobRepository.completeJob({
       jobId: job.id,
       workerId,
@@ -91,6 +115,13 @@ async function processOneSecurityJob({
       completion,
     };
   } catch (error) {
+    const heartbeatError = await stopHeartbeat();
+    if (heartbeatError) {
+      // Leave the lease to expire and be safely reclaimed or terminalized.
+      // Never record a failure for a job that might belong to another worker.
+      throw heartbeatError;
+    }
+
     const failure = await jobFailureService.fail({
       jobId: job.id,
       workerId,
@@ -103,6 +134,8 @@ async function processOneSecurityJob({
       scanId: job.scanId,
       failure,
     };
+  } finally {
+    await stopHeartbeat();
   }
 }
 

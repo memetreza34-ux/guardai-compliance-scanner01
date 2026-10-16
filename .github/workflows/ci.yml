@@ -30,6 +30,10 @@ jobs:
         run: npm run typecheck
       - name: Build
         run: npm run build
+      - name: V1 customer surface regression
+        run: npm run test:v1-surface
+      - name: Cross-workspace UI state regression
+        run: npm run test:ui-state
 
   backend:
     runs-on: ubuntu-latest

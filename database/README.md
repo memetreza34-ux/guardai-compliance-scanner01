@@ -32,7 +32,7 @@ All files below are **design sources, not applied migrations**. Before first sta
 9. `009_finding_lifecycle_draft.sql` — remediation/finding lifecycle state.
 10. `010_finding_rediscovery_trigger_draft.sql` — deterministic finding rediscovery behavior.
 11. `011_scoring_profile_provenance_draft.sql` — historical scoring-profile provenance/seed design; **not canonical scoring seed source after Phase 16**.
-12. `012_immutable_scan_provenance_draft.sql` — historical provenance immutability constraints.
+12. `012_immutable_provenance_draft.sql` — historical provenance immutability constraints.
 13. `013_report_snapshots_draft.sql` — immutable technical report snapshots + snapshot hash.
 14. `014_scan_target_snapshot_draft.sql` — Target identity frozen at Scan submission time.
 15. `015_public_trust_publications_draft.sql` — report-backed public Trust publications, revocation actor and audit triggers.
@@ -53,6 +53,7 @@ All files below are **design sources, not applied migrations**. Before first sta
 30. `030_rule_definition_hash_provenance_draft.sql` — immutable Rule definition SHA-256, Finding-instance triple provenance and Rule-version rewrite prevention.
 31. `031_scoring_definition_hash_provenance_draft.sql` — immutable scoring-profile SHA-256, Scan triple provenance and scoring-version rewrite prevention.
 32. `032_risk_register_draft.sql` — tenant-safe Risk Register, Target/Finding/Control relations, treatment, review and ownership fields.
+33. `033_team_invitations_draft.sql` — verified-email team invitations, token expiry/replay protection and tenant-scoped membership audit (deferred from V1 customer UI).
 
 ## Canonical generated seed sources
 

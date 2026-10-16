@@ -63,6 +63,9 @@ function createTargetVerificationService({
     if (!target) {
       throw new HttpError(404, 'Target was not found in this organization.', 'TARGET_NOT_FOUND');
     }
+    if (target.type !== 'website') {
+      throw new HttpError(400, 'DNS verification is currently available only for website targets.', 'VERIFICATION_METHOD_UNSUPPORTED');
+    }
     if (target.verification_state === 'verified') {
       return { status: 'verified', verified: true, alreadyVerified: true };
     }
@@ -84,6 +87,11 @@ function createTargetVerificationService({
         );
       }
     }
+
+    // The DNS resolution is an external asynchronous operation. Recheck the
+    // current membership before persisting its result: a role may have been
+    // revoked while the DNS lookup was in flight.
+    await requireAdmin(organizationId, userId);
 
     const matched = txtRecordsMatchTokenHash(records, challenge.tokenHash);
     const updated = await targetVerificationRepository.recordAttempt({
