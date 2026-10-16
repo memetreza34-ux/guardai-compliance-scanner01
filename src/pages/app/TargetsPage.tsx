@@ -24,7 +24,7 @@ import {
   Activity,
 } from 'lucide-react';
 import { GuardApiError } from '../../api/apiClient';
-import WorkspaceOnboarding from '../../components/WorkspaceOnboarding';
+import { targetListScope, targetsBelongToOrganization } from '../../lib/targetViewScope';
 
 function TargetStatusBadge({ state }: { state: WorkspaceTarget['verificationState'] }) {
   switch (state) {
@@ -112,16 +112,24 @@ export default function TargetsPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'verified' | 'pending' | 'tested'>('all');
 
   const [retryCount, setRetryCount] = useState(0);
-  const activeOrgIdRef = useRef<string | null>(currentOrg?.id ?? null);
+  const scopeKey = targetListScope(session?.user.id, currentOrg?.id);
+  const activeScopeRef = useRef(scopeKey);
+  const activeRoleRef = useRef(currentOrg?.role);
+  const activeTokenRef = useRef(session?.access_token ?? null);
   const createRequestRef = useRef(0);
+  const scanRequestRef = useRef(0);
 
-  activeOrgIdRef.current = currentOrg?.id ?? null;
+  activeScopeRef.current = scopeKey;
+  activeRoleRef.current = currentOrg?.role;
+  activeTokenRef.current = session?.access_token ?? null;
 
   useEffect(() => {
     let cancelled = false;
 
     createRequestRef.current += 1;
+    scanRequestRef.current += 1;
     setCreating(false);
+    setScanningTargetId(null);
     setTargets([]);
     setScans([]);
     setScanHistoryUnavailable(false);
@@ -153,13 +161,16 @@ export default function TargetsPage() {
             .catch(() => ({ ok: false as const })),
         ]);
 
+        if (!targetsBelongToOrganization(targetList, currentOrg!.id)) {
+          throw new Error('Website-Antwort gehört nicht vollständig zum aktiven Workspace.');
+        }
+        const trustedScans = scanHistory.ok
+          && scanHistory.result.scans.every(scan => scan.organizationId === currentOrg!.id);
         if (!cancelled) {
           setTargets(targetList);
-          setScans(scanHistory.ok ? scanHistory.result.scans : []);
-          setScanHistoryUnavailable(!scanHistory.ok);
-          if (!scanHistory.ok) {
-            setStatusFilter('all');
-          }
+          setScans(trustedScans ? scanHistory.result.scans : []);
+          setScanHistoryUnavailable(!trustedScans);
+          if (!trustedScans) setStatusFilter('all');
           setError(null);
         }
       } catch (err) {
@@ -216,30 +227,24 @@ export default function TargetsPage() {
     return <div className="animate-pulse flex items-center justify-center p-12 text-slate-400">Workspace wird geladen...</div>;
   }
 
-  if (!currentOrg) {
-    return (
-      <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500">
-        <div>
-          <h1 className="text-2xl font-semibold text-slate-100 tracking-tight">Websites</h1>
-          <p className="text-sm text-slate-400 mt-1">Erstelle einen Workspace, um deine Websites technisch zu prüfen.</p>
-        </div>
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-8 shadow-sm">
-          {session?.access_token ? <WorkspaceOnboarding api={createWorkspaceApi(async () => session.access_token)} /> : <p className="text-slate-400">Lade Authentifizierung...</p>}
-        </div>
-      </div>
-    );
-  }
+  // The AppWorkspaceGate owns the only organization onboarding screen.
+  if (!currentOrg) return null;
 
   const canCreate = currentOrg.role === 'owner' || currentOrg.role === 'admin';
   const canRunScans = currentOrg.role === 'owner' || currentOrg.role === 'admin' || currentOrg.role === 'member';
 
   async function handleCreateTarget(e: React.FormEvent) {
     e.preventDefault();
-    if (!currentOrg || !session) return;
+    if (!currentOrg || !session || !canCreate || creating) return;
 
     const activeOrgId = currentOrg.id;
+    const issuedToken = session.access_token;
     const requestId = ++createRequestRef.current;
-    const isCurrentRequest = () => createRequestRef.current === requestId && activeOrgIdRef.current === activeOrgId;
+    const isCurrentRequest = () =>
+      createRequestRef.current === requestId &&
+      activeScopeRef.current === scopeKey &&
+      activeTokenRef.current === issuedToken &&
+      (activeRoleRef.current === 'owner' || activeRoleRef.current === 'admin');
 
     setCreating(true);
     setCreateError(null);
@@ -251,7 +256,7 @@ export default function TargetsPage() {
         displayName: targetName || undefined,
       });
 
-      if (isCurrentRequest()) {
+      if (isCurrentRequest() && newTarget.organizationId === activeOrgId) {
         navigate(`/app/targets/${newTarget.id}`);
       }
     } catch (err) {
@@ -275,32 +280,45 @@ export default function TargetsPage() {
 
   async function handleQuickScan(targetId: string, e: React.MouseEvent) {
     e.stopPropagation();
-    if (!currentOrg || !session || scanningTargetId) return;
+    if (!currentOrg || !session || !canRunScans || scanningTargetId) return;
+    if (!targets.some(target => target.id === targetId && target.type === 'website' && target.verificationState === 'verified')) return;
+
+    const issuedToken = session.access_token;
+    const issuedOrgId = currentOrg.id;
+    const requestId = ++scanRequestRef.current;
+    const isCurrentRequest = () =>
+      scanRequestRef.current === requestId &&
+      activeScopeRef.current === scopeKey &&
+      activeTokenRef.current === issuedToken &&
+      ['owner', 'admin', 'member'].includes(activeRoleRef.current ?? '');
 
     setScanningTargetId(targetId);
     setScanActionError(null);
 
     try {
-      const api = createWorkspaceApi(async () => session.access_token);
+      const api = createWorkspaceApi(async () => issuedToken);
       const submission = await api.submitScan(
-        currentOrg.id,
+        issuedOrgId,
         targetId,
         ['security'],
         createScanIdempotencyKey(),
       );
-      navigate(`/app/scans/${submission.scan.id}`);
+      if (isCurrentRequest() && submission.scan.organizationId === issuedOrgId && submission.scan.targetId === targetId) {
+        navigate(`/app/scans/${submission.scan.id}`);
+      }
     } catch (err) {
+      if (!isCurrentRequest()) return;
       if (err instanceof GuardApiError) {
         setScanActionError(
           err.status === 429
-            ? 'Scan-Limit oder Kontingent erreicht. Bitte warte kurz oder prüfe dein Abonnement.'
+            ? 'Anfragenlimit erreicht. Bitte warte vor dem nächsten Versuch.'
             : `${err.message} (${err.code})`,
         );
       } else {
         setScanActionError(err instanceof Error ? err.message : 'Scan konnte nicht gestartet werden.');
       }
     } finally {
-      setScanningTargetId(null);
+      if (isCurrentRequest()) setScanningTargetId(null);
     }
   }
 
@@ -323,7 +341,7 @@ export default function TargetsPage() {
             <Globe2 className="w-3.5 h-3.5 text-indigo-400" />
             Websites gesamt
           </div>
-          <div className="text-2xl font-bold text-slate-100">{targets.length}</div>
+          <div className="text-2xl font-bold text-slate-100">{error ? 'Unbekannt' : targets.length}</div>
         </div>
 
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm">
@@ -331,7 +349,7 @@ export default function TargetsPage() {
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
             Aktiv & verifiziert
           </div>
-          <div className="text-2xl font-bold text-emerald-400">{verifiedTargetsCount}</div>
+          <div className="text-2xl font-bold text-emerald-400">{error ? 'Unbekannt' : verifiedTargetsCount}</div>
         </div>
 
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm">
@@ -347,7 +365,7 @@ export default function TargetsPage() {
             <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
             Noch nicht verifiziert
           </div>
-          <div className="text-2xl font-bold text-amber-400">{actionRequiredCount}</div>
+          <div className="text-2xl font-bold text-amber-400">{error ? 'Unbekannt' : actionRequiredCount}</div>
         </div>
       </div>
 
@@ -592,7 +610,7 @@ export default function TargetsPage() {
 
                 {/* Right: Direct Actions */}
                 <div className="flex items-center gap-2.5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                  {isVerified && canRunScans && (
+                  {target.type === 'website' && isVerified && canRunScans && (
                     <button
                       onClick={(e) => handleQuickScan(target.id, e)}
                       disabled={isScanningThis}
