@@ -44,7 +44,7 @@ test('reports do not offer an inaccessible V2 Trust Center action', () => {
 
 test('scan history failure cannot silently appear as zero tested websites', () => {
   const targets = source('src/pages/app/TargetsPage.tsx');
-  assert.match(targets, /setScanHistoryUnavailable\(!scanHistory.ok\)/);
+  assert.match(targets, /setScanHistoryUnavailable\(!trustedScans\)/);
   assert.match(targets, /scanHistoryUnavailable \? "Unbekannt" : testedTargetsCount/);
   assert.doesNotMatch(targets, /listScans\([^\n]+\.catch\(\(\) => \(\{ contractVersion: '', scans: \[\] \}\)\)/);
 });
