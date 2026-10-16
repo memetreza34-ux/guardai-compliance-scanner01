@@ -55,3 +55,29 @@ test('technical scores are not shown as an all-green security guarantee', () => 
   assert.match(targets, /keine Sicherheits- oder Compliance-Garantie/);
   assert.doesNotMatch(targets, /text-emerald-400 bg-emerald-500\/10 px-1\.5 py-0\.5 rounded border border-emerald-500\/20/);
 });
+
+
+test('first-run workspace gate controls every authenticated customer route', () => {
+  const app = source('src/pages/app/AppShell.tsx');
+  assert.match(app, /function AppWorkspaceGate\(\)/);
+  assert.match(app, /if \(isLoading\)/);
+  assert.match(app, /if \(error\)/);
+  assert.match(app, /if \(!currentOrg\)/);
+  assert.match(app, /<AppWorkspaceGate \/>/);
+  assert.doesNotMatch(app, /<Outlet \/>/);
+  assert.match(app, /<Outlet key=\{\x60\$\{session\?\.user\.id/);
+  assert.equal((app.match(/<WorkspaceOnboarding /g) || []).length, 1, 'only one first-run workspace creation UI');
+  assert.equal((app.match(/path: '\/app[^']*'/g) || []).length, 5);
+});
+
+test('dashboard has independent API failures, truthful counts and tenant-scoped projections', () => {
+  const dashboard = source('src/pages/app/DashboardPage.tsx');
+  assert.match(dashboard, /Promise\.allSettled\(/);
+  assert.match(dashboard, /target\.organizationId === orgId/);
+  assert.match(dashboard, /finding\.organizationId === orgId/);
+  assert.match(dashboard, /scan\.organizationId === orgId/);
+  assert.match(dashboard, /targetsError \? 'Unbekannt'/);
+  assert.match(dashboard, /findingsError \? 'Unbekannt'/);
+  assert.match(dashboard, /scansError \? 'unknown'/);
+  assert.doesNotMatch(dashboard, /<WorkspaceOnboarding/);
+});
