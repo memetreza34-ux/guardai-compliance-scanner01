@@ -8,17 +8,29 @@
 
 Act as a **critical product advisor**, not a feature factory: challenge requests that distract from a working, secure, understandable Website Security first release; suggest the smallest alternative that brings first user value. Prioritize proven core onboarding → authorized Website → security Scan → Finding/Evidence → Re-Test → report. Defer paid billing, browser/repository/asset scanners, AI Act/GRC expansion and enterprise extras to V1+ unless owner approval and evidence change the gate.
 
-**Delivery contract:** identify release gate R0–R6, smallest blocking task, files/acceptance/tests, execute only narrow changes, then report Done / evidence+SHA / open risks / next unblocked step / required non-secret user input. One WIP release blocker at a time, no automatic scope creep. Keep CURRENT_STATE.md and board synced to **real** CI/staging evidence, never mark a 0-step failed workflow VERIFIED. Existing 15 draft PRs as of this charter need individual overlap/validation review, not bulk merge. User expectation is high-quality speed through scope discipline, not more screens.
+**Delivery contract:** identify release gate R0–R6, smallest blocking task, files/acceptance/tests, execute only narrow changes, then report Done / evidence+SHA / open risks / next unblocked step / required non-secret user input. One WIP release blocker at a time, no automatic scope creep. Keep CURRENT_STATE.md and board synced to **real** CI/staging evidence, never mark a 0-step failed workflow VERIFIED. Historical PRs must not be bulk-merged; source branches already integrated in #46 must not be independently merged again. User expectation is high-quality speed through scope discipline, not more screens.
+
+## Three-agent handoff and exclusive ownership (2026-10-16)
+
+**READ SECOND:** [V1 Agent Ownership — ChatGPT / Codex / Claude](docs/V1_AGENT_OWNERSHIP_2026-10-16.md).
+
+- **ChatGPT in this chat = Release Lead / integrator / critical product advisor**: scope, task assignment, CI and PR evidence, conflict prevention and release decisions. Avoid editing the same implementation files currently owned by Codex; hotfix only after explicit reassignment.
+- **Codex = Implementation owner** for the remaining SQL/migration/local RLS test harness first, then real customer-journey E2E and deployment technical fixes. One active issue and draft PR at a time; no provider/live DB mutations without GuardAI-only staging identity.
+- **Claude = independent security/QA reviewer** of actual combined [PR #46](https://github.com/memetreza34-ux/guardai-compliance-scanner01/pull/46), then Codex's completed PRs. Read-only review/comments by default, reproducible P0/P1/P2 findings, no approving own modifications.
+- **User = external environment/product authorizations**, especially [dedicated Supabase project #29](https://github.com/memetreza34-ux/guardai-compliance-scanner01/issues/29).
+- Creating Issues is **not** the same as running Codex or Claude. Both must be explicitly started by the user; do not claim an agent is active without execution evidence.
+- **#46** is the integrated V1-code candidate and remains draft/not staging verified; **#42** is historical backend-only review context. Never merge both.
 
 ## Mandatory read order at the start of each work block
 
 1. `docs/V1_RELEASE_CHARTER_2026-10-15.md` – first-release scope and product advisor gate; never silently expand V1.
-2. `CURRENT_STATE.md` – actual code/validation truth; never promote an implementation based on plans alone.
-3. `docs/V1_MASTER_EXECUTION_PLAN.md` – agreed product scope, critical path and release gates.
-4. `docs/V1_EXECUTION_BOARD.md` – first P0/P1 ticket that is not blocked.
-5. `docs/V1_DESIGN_SYSTEM.md` – shared UI and state architecture.
-6. `docs/V1_CUSTOMER_EXPERIENCE_BLUEPRINT.md` – per-screen customer journey, what next, user errors, privacy-safe activation; `docs/V1_SUBSCRIPTIONS_BUSINESS_MODEL.md` – billing/business/usage; `docs/V1_AI_ACT_PRIVACY_SECURITY_PLAYBOOK.md` – up-to-date legal+AI governance+security claims.
-7. Relevant source/API/schema/tests and ADRs. Read `docs/COMPETITOR_POSITIONING_2026-10.md` when changing strategy/feature scope.
+2. `docs/V1_AGENT_OWNERSHIP_2026-10-16.md` – sole owner of each active task and handoff contract; prevent cross-agent overlapping file changes.
+3. `CURRENT_STATE.md` – actual code/validation truth; never promote an implementation based on plans alone.
+4. `docs/V1_MASTER_EXECUTION_PLAN.md` – agreed product scope, critical path and release gates.
+5. `docs/V1_EXECUTION_BOARD.md` – first P0/P1 ticket that is not blocked.
+6. `docs/V1_DESIGN_SYSTEM.md` – shared UI and state architecture.
+7. `docs/V1_CUSTOMER_EXPERIENCE_BLUEPRINT.md` – per-screen customer journey, what next, user errors, privacy-safe activation; `docs/V1_SUBSCRIPTIONS_BUSINESS_MODEL.md` – billing/business/usage; `docs/V1_AI_ACT_PRIVACY_SECURITY_PLAYBOOK.md` – up-to-date legal+AI governance+security claims.
+8. Relevant source/API/schema/tests and ADRs. Read `docs/COMPETITOR_POSITIONING_2026-10.md` when changing strategy/feature scope.
 
 Do not rely on the stale historical `docs/BUILD_PROGRESS_MATRIX.md` to infer current product completeness. `docs/GUARDAI_MASTER_BUILD_GUIDE.md` remains the detailed engineering/architecture reference.
 
@@ -44,7 +56,7 @@ Do not rely on the stale historical `docs/BUILD_PROGRESS_MATRIX.md` to infer cur
 - Dedicated GuardAI Supabase project. User has said one exists, **but the exact project reference is not yet identified in connected Supabase data**; never guess or mutate other databases.
 - SQL files under `database/*_draft.sql` are **drafts**, not applied migrations. No bulk SQL execution without reviewed dependencies/backup/staging proof.
 - Sensitive secrets never go to git, stdout, UI client state when avoidable, documentation, or chat.
-- PR #22 (global First Run) and #23 (Dashboard) are open Draft Code PRs as of 2026-10-09. Review/rebase and validate them rather than duplicate effort.
+- Historical PRs #22/#23/#34/#41/#45 are closed as superseded by integrated draft #46. Review current #46 HEAD and handoffs, not obsolete PR statuses.
 
 ## Visual engineering rules
 
