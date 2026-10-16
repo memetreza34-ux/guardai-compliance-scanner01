@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, CheckCircle2, ExternalLink, RefreshCw, RotateCcw, ShieldAlert } from 'lucide-react';
 import { useAuth } from '../../auth/AuthProvider';
@@ -29,7 +29,7 @@ function statusLabel(finding: WorkspaceFindingSummary) {
 
 export default function FindingsPage() {
   const { session } = useAuth();
-  const { currentOrg, isLoading: orgLoading } = useWorkspace();
+  const { currentOrg, isLoading: orgLoading, error: orgError } = useWorkspace();
   const navigate = useNavigate();
 
   const [findings, setFindings] = useState<WorkspaceFindingSummary[]>([]);
@@ -41,11 +41,31 @@ export default function FindingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [actionBusy, setActionBusy] = useState<string | null>(null);
   const [retry, setRetry] = useState(0);
+  const [targetNameLookupFailed, setTargetNameLookupFailed] = useState(false);
+
+  // Each page/cursor belongs to the authenticated user, Organization and status filter.
+  const scopeKey = session?.user.id && currentOrg?.id
+    ? `${session.user.id}:${currentOrg.id}:${status}`
+    : null;
+  const [loadedScope, setLoadedScope] = useState<string | null>(null);
+  const [failedScope, setFailedScope] = useState<string | null>(null);
+  const requestEpoch = useRef(0);
+
+  // Invalidate pagination and mutations before a changed workspace/filter is painted.
+  useLayoutEffect(() => {
+    requestEpoch.current += 1;
+    setLoadingMore(false);
+    setActionBusy(null);
+  }, [session, currentOrg, orgLoading, status, retry]);
 
   useEffect(() => {
     let cancelled = false;
     setFindings([]);
+    setTargetNames({});
+    setTargetNameLookupFailed(false);
     setNextCursor(null);
+    setLoadedScope(null);
+    setFailedScope(null);
     setError(null);
 
     if (orgLoading) {
@@ -59,22 +79,34 @@ export default function FindingsPage() {
 
     async function load() {
       setLoading(true);
+      const token = session!.access_token;
+      const orgId = currentOrg!.id;
+      const workspaceApi = createWorkspaceApi(async () => token);
+
+      // Target names are supplemental. Failure here must not hide real Findings.
+      void workspaceApi.listTargets(orgId).then(targets => {
+        if (!cancelled) {
+          setTargetNames(Object.fromEntries(targets.map(target => [target.id, target.displayName])));
+        }
+      }).catch(() => {
+        if (!cancelled) setTargetNameLookupFailed(true);
+      });
+
       try {
-        const findingApi = createFindingApi(async () => session!.access_token);
-        const workspaceApi = createWorkspaceApi(async () => session!.access_token);
-        const [page, targets] = await Promise.all([
-          findingApi.listFindings(currentOrg!.id, {
-            status: status === 'all' ? undefined : status,
-            limit: 50,
-          }),
-          workspaceApi.listTargets(currentOrg!.id),
-        ]);
+        const findingApi = createFindingApi(async () => token);
+        const page = await findingApi.listFindings(orgId, {
+          status: status === 'all' ? undefined : status,
+          limit: 50,
+        });
         if (cancelled) return;
         setFindings(page.findings);
         setNextCursor(page.nextCursor);
-        setTargetNames(Object.fromEntries(targets.map(target => [target.id, target.displayName])));
+        setLoadedScope(scopeKey);
       } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Failed to load findings.');
+        if (!cancelled) {
+          setFailedScope(scopeKey);
+          setError(err instanceof Error ? err.message : 'Failed to load findings.');
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -82,65 +114,80 @@ export default function FindingsPage() {
 
     void load();
     return () => { cancelled = true; };
-  }, [session, currentOrg, orgLoading, status, retry]);
+  }, [session, currentOrg, orgLoading, status, retry, scopeKey]);
 
   async function loadMore() {
-    if (!session?.access_token || !currentOrg || !nextCursor || loadingMore) return;
+    if (!session?.access_token || !currentOrg || !nextCursor || loadingMore || loadedScope !== scopeKey) return;
+    const epoch = requestEpoch.current;
+    const orgId = currentOrg.id;
+    const cursor = nextCursor;
     setLoadingMore(true);
     setError(null);
     try {
       const api = createFindingApi(async () => session.access_token);
-      const page = await api.listFindings(currentOrg.id, {
+      const page = await api.listFindings(orgId, {
         status: status === 'all' ? undefined : status,
         limit: 50,
-        cursor: nextCursor,
+        cursor,
       });
+      if (requestEpoch.current !== epoch) return;
       setFindings(current => [...current, ...page.findings]);
       setNextCursor(page.nextCursor);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load more findings.');
+      if (requestEpoch.current === epoch) {
+        setError(err instanceof Error ? err.message : 'Failed to load more findings.');
+      }
     } finally {
-      setLoadingMore(false);
+      if (requestEpoch.current === epoch) setLoadingMore(false);
     }
   }
 
   const canMutate = currentOrg?.role === 'owner' || currentOrg?.role === 'admin' || currentOrg?.role === 'member';
 
   async function markFixedUnverified(finding: WorkspaceFindingSummary) {
-    if (!session?.access_token || !currentOrg || !canMutate) return;
+    if (!session?.access_token || !currentOrg || !canMutate || actionBusy || loadedScope !== scopeKey) return;
+    const epoch = requestEpoch.current;
+    const orgId = currentOrg.id;
     setActionBusy(`resolve:${finding.id}`);
     setError(null);
     try {
       const api = createFindingApi(async () => session.access_token);
       await api.updateFindingStatus(
-        currentOrg.id,
+        orgId,
         finding.id,
         'resolved',
         'Marked fixed by user; awaiting technical verification re-test.',
       );
-      setRetry(value => value + 1);
+      if (requestEpoch.current === epoch) setRetry(value => value + 1);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update finding.');
+      if (requestEpoch.current === epoch) {
+        setError(err instanceof Error ? err.message : 'Failed to update finding.');
+      }
     } finally {
-      setActionBusy(null);
+      if (requestEpoch.current === epoch) setActionBusy(null);
     }
   }
 
   async function requestRetest(finding: WorkspaceFindingSummary) {
-    if (!session?.access_token || !currentOrg || !canMutate) return;
+    if (!session?.access_token || !currentOrg || !canMutate || actionBusy || loadedScope !== scopeKey) return;
+    const epoch = requestEpoch.current;
+    const orgId = currentOrg.id;
     setActionBusy(`retest:${finding.id}`);
     setError(null);
     try {
       const api = createFindingApi(async () => session.access_token);
       const submission = await api.requestFindingRetest(
-        currentOrg.id,
+        orgId,
         finding.id,
         createScanIdempotencyKey(),
       );
-      navigate(`/app/scans/${submission.scan.id}`);
+      if (requestEpoch.current === epoch) navigate(`/app/scans/${submission.scan.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to start finding re-test.');
-      setActionBusy(null);
+      if (requestEpoch.current === epoch) {
+        setError(err instanceof Error ? err.message : 'Failed to start finding re-test.');
+      }
+    } finally {
+      if (requestEpoch.current === epoch) setActionBusy(null);
     }
   }
 
@@ -155,8 +202,36 @@ export default function FindingsPage() {
     return result;
   }, [findings]);
 
-  if (orgLoading || loading) {
-    return <div className="flex items-center justify-center p-12 text-slate-400">Loading findings...</div>;
+  const hasCurrentData = !!scopeKey && loadedScope === scopeKey;
+  const initialFailed = !!scopeKey && failedScope === scopeKey && !hasCurrentData;
+
+  if (orgLoading || loading || (scopeKey && !hasCurrentData && !initialFailed)) {
+    return <div role="status" className="flex items-center justify-center p-12 text-slate-400">Loading findings...</div>;
+  }
+
+  if (orgError) {
+    return <div role="alert" className="rounded-xl border border-rose-500/20 bg-rose-500/10 p-5 text-sm text-rose-300">Workspace access could not be verified: {orgError}</div>;
+  }
+
+  if (!scopeKey) {
+    return (
+      <div className="rounded-xl border border-slate-800 bg-slate-900 p-6 text-slate-300">
+        Select or create a workspace before browsing findings.
+        <button type="button" onClick={() => navigate('/app')} className="ml-3 rounded-lg border border-slate-700 px-3 py-2 text-sm hover:bg-slate-800">Go to dashboard</button>
+      </div>
+    );
+  }
+
+  if (initialFailed) {
+    return (
+      <div role="alert" className="rounded-xl border border-rose-500/20 bg-rose-500/10 p-5 text-sm text-rose-300">
+        <p className="font-medium">Findings could not be loaded for this workspace.</p>
+        <p className="mt-2">{error || 'The Findings API did not return a usable result.'}</p>
+        <button type="button" onClick={() => setRetry(value => value + 1)} className="mt-4 inline-flex items-center gap-2 rounded-lg border border-rose-500/30 px-3 py-2 hover:bg-rose-500/10">
+          <RefreshCw className="h-4 w-4" /> Retry
+        </button>
+      </div>
+    );
   }
 
   return (
@@ -167,6 +242,8 @@ export default function FindingsPage() {
           Technical issues derived from persisted scan evidence. A manual resolved state is not the same as a scan-verified fix.
         </p>
       </div>
+
+      <p className="text-xs text-slate-500">Severity counts cover loaded findings for the selected filter only, not all vulnerabilities or risks.</p>
 
       <div className="grid gap-3 sm:grid-cols-4">
         {[
@@ -191,6 +268,8 @@ export default function FindingsPage() {
         ] as const).map(([value, label]) => (
           <button
             key={value}
+            type="button"
+            aria-pressed={status === value}
             onClick={() => setStatus(value)}
             className={`rounded-lg border px-3 py-2 text-sm transition-colors ${
               status === value
@@ -202,6 +281,10 @@ export default function FindingsPage() {
           </button>
         ))}
       </div>
+
+      {targetNameLookupFailed && (
+        <p role="status" className="text-xs text-amber-300">Target names are temporarily unavailable. Findings remain accessible using Target IDs.</p>
+      )}
 
       {error && (
         <div role="alert" className="flex items-center justify-between gap-4 rounded-xl border border-rose-500/20 bg-rose-500/10 p-4 text-sm text-rose-300">

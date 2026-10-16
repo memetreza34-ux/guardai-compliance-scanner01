@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Clock3, FileCheck2, FileText, RefreshCw, ShieldAlert, ShieldCheck, XCircle } from 'lucide-react';
 import { useAuth } from '../../auth/AuthProvider';
@@ -10,6 +10,7 @@ import type {
   PersistentScanResult,
   PersistentScanStatus,
 } from '../../types/workspace';
+import { isInitialLoadFailedForActiveScope, isLoadedForActiveScope, scanDetailScope } from '../../lib/scanViewScope';
 
 function formatDate(value?: string | null) {
   if (!value) return 'Unavailable';
@@ -34,7 +35,7 @@ function severityClass(severity: PersistentFindingSeverity) {
 export default function ScanDetailPage() {
   const { scanId } = useParams();
   const { session } = useAuth();
-  const { currentOrg, isLoading: orgLoading } = useWorkspace();
+  const { currentOrg, isLoading: orgLoading, error: orgError } = useWorkspace();
   const navigate = useNavigate();
 
   const [result, setResult] = useState<PersistentScanResult | null>(null);
@@ -44,12 +45,26 @@ export default function ScanDetailPage() {
   const [manualRefresh, setManualRefresh] = useState(0);
   const [reportBusy, setReportBusy] = useState(false);
   const [reportError, setReportError] = useState<string | null>(null);
+  const [resultScope, setResultScope] = useState<string | null>(null);
+  const [failedScope, setFailedScope] = useState<string | null>(null);
+  const scopeKey = scanDetailScope(session?.user.id, currentOrg?.id, scanId);
+  const mutationEpoch = useRef(0);
+
+  // A completed report request may only redirect within its original scan scope.
+  useLayoutEffect(() => {
+    mutationEpoch.current += 1;
+    setReportBusy(false);
+    setReportError(null);
+    return () => { mutationEpoch.current += 1; };
+  }, [session, currentOrg, scanId, orgLoading]);
 
   useEffect(() => {
     let cancelled = false;
     let timer: number | undefined;
 
     setResult(null);
+    setResultScope(null);
+    setFailedScope(null);
     setError(null);
 
     if (orgLoading) {
@@ -72,6 +87,8 @@ export default function ScanDetailPage() {
         if (cancelled) return;
 
         setResult(next);
+        setResultScope(scopeKey);
+        setFailedScope(null);
         setError(null);
 
         if (next.scan.status === 'queued' || next.scan.status === 'running') {
@@ -79,6 +96,7 @@ export default function ScanDetailPage() {
         }
       } catch (err) {
         if (!cancelled) {
+          setFailedScope(scopeKey);
           setError(err instanceof Error ? err.message : 'Failed to load scan.');
         }
       } finally {
@@ -95,24 +113,43 @@ export default function ScanDetailPage() {
       cancelled = true;
       if (timer !== undefined) window.clearTimeout(timer);
     };
-  }, [session, currentOrg, scanId, orgLoading, manualRefresh]);
+  }, [session, currentOrg, scanId, orgLoading, manualRefresh, scopeKey]);
 
-  if (orgLoading || loading) {
-    return <div className="flex items-center justify-center p-12 text-slate-400">Loading scan...</div>;
+  const hasCurrentData = isLoadedForActiveScope(scopeKey, resultScope);
+  const initialFailed = isInitialLoadFailedForActiveScope(scopeKey, resultScope, failedScope);
+
+  if (orgLoading || loading || (scopeKey && !hasCurrentData && !initialFailed)) {
+    return <div role="status" className="flex items-center justify-center p-12 text-slate-400">Loading scan...</div>;
   }
 
-  if (!result) {
+  if (orgError) {
+    return <div role="alert" className="rounded-xl border border-rose-500/20 bg-rose-500/10 p-5 text-sm text-rose-300">Workspace access could not be verified: {orgError}</div>;
+  }
+
+  if (!scopeKey) {
+    return (
+      <div className="rounded-xl border border-slate-800 bg-slate-900 p-6 text-slate-300">
+        Select a workspace and scan to view technical results.
+        <button type="button" onClick={() => navigate('/app/scans')} className="ml-3 rounded-lg border border-slate-700 px-3 py-2 text-sm hover:bg-slate-800">Back to scans</button>
+      </div>
+    );
+  }
+
+  if (!result || !hasCurrentData) {
     return (
       <div className="max-w-5xl mx-auto space-y-6">
         <button onClick={() => navigate('/app/scans')} className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-slate-200">
           <ArrowLeft className="h-4 w-4" /> Back to scans
         </button>
-        <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 p-8 text-rose-300">
+        <div role="alert" className="rounded-2xl border border-rose-500/20 bg-rose-500/10 p-8 text-rose-300">
           <div className="flex items-start gap-3">
             <ShieldAlert className="mt-0.5 h-5 w-5" />
             <div>
               <h1 className="font-semibold">Scan unavailable</h1>
               <p className="mt-1 text-sm">{error || 'The scan could not be loaded in this workspace.'}</p>
+              <button type="button" onClick={() => setManualRefresh(value => value + 1)} className="mt-4 inline-flex items-center gap-2 rounded-lg border border-rose-500/30 px-3 py-2 text-sm hover:bg-rose-500/10">
+                <RefreshCw className="h-4 w-4" /> Retry
+              </button>
             </div>
           </div>
         </div>
@@ -125,17 +162,22 @@ export default function ScanDetailPage() {
   const canCreateReport = currentOrg?.role === 'owner' || currentOrg?.role === 'admin' || currentOrg?.role === 'member';
 
   async function createImmutableReport() {
-    if (!session?.access_token || !currentOrg || scan.status !== 'completed' || !canCreateReport || reportBusy) return;
+    if (!session?.access_token || !currentOrg || scan.status !== 'completed' || !canCreateReport || reportBusy || !hasCurrentData) return;
+    const epoch = mutationEpoch.current;
+    const orgId = currentOrg.id;
+    const scanIdForReport = scan.id;
     setReportBusy(true);
     setReportError(null);
     try {
       const api = createReportApi(async () => session.access_token);
-      const created = await api.createReport(currentOrg.id, scan.id);
-      navigate(`/app/reports/${created.report.id}`);
+      const created = await api.createReport(orgId, scanIdForReport);
+      if (mutationEpoch.current === epoch) navigate(`/app/reports/${created.report.id}`);
     } catch (err) {
-      setReportError(err instanceof Error ? err.message : 'Failed to create report snapshot.');
+      if (mutationEpoch.current === epoch) {
+        setReportError(err instanceof Error ? err.message : 'Failed to create report snapshot.');
+      }
     } finally {
-      setReportBusy(false);
+      if (mutationEpoch.current === epoch) setReportBusy(false);
     }
   }
 

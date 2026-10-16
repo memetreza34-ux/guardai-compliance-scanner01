@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthProvider';
 import { useWorkspace } from '../../providers/WorkspaceProvider';
@@ -6,6 +6,7 @@ import { createScanIdempotencyKey, createWorkspaceApi } from '../../api/workspac
 import type { WorkspaceTarget } from '../../types/workspace';
 import { CheckCircle2, Clock, XCircle, ArrowLeft, Copy, Check, ShieldAlert, Play } from 'lucide-react';
 import { GuardApiError } from '../../api/apiClient';
+import { isCurrentTargetScope, isTargetInitialFailure, targetDetailScope } from '../../lib/targetViewScope';
 
 interface ChallengeDetails {
   dnsRecordName: string;
@@ -39,12 +40,18 @@ function verificationErrorMessage(error: unknown, fallback: string) {
 export default function TargetDetailPage() {
   const { targetId } = useParams();
   const { session } = useAuth();
-  const { currentOrg, isLoading: orgLoading } = useWorkspace();
+  const { currentOrg, isLoading: orgLoading, error: orgError } = useWorkspace();
   const navigate = useNavigate();
 
   const [target, setTarget] = useState<WorkspaceTarget | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [loadedScope, setLoadedScope] = useState<string | null>(null);
+  const [failedScope, setFailedScope] = useState<string | null>(null);
+  const [loadRetry, setLoadRetry] = useState(0);
+  const scopeKey = targetDetailScope(session?.user.id, currentOrg?.id, targetId);
+  const hasCurrentData = isCurrentTargetScope(scopeKey, loadedScope);
+  const initialFailed = isTargetInitialFailure(scopeKey, loadedScope, failedScope);
 
   const [challenge, setChallenge] = useState<ChallengeDetails | null>(null);
   const [checkResult, setCheckResult] = useState<VerificationCheckResult | null>(null);
@@ -57,17 +64,24 @@ export default function TargetDetailPage() {
   const [scanBusy, setScanBusy] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
 
-  const contextRef = useRef<{ organizationId: string | null; targetId: string | null }>({
-    organizationId: currentOrg?.id ?? null,
-    targetId: targetId ?? null,
-  });
+  const contextRef = useRef({ scopeKey, role: currentOrg?.role });
   const actionRequestRef = useRef(0);
   const scanRequestRef = useRef(0);
+  const copyRequestRef = useRef(0);
 
-  contextRef.current = {
-    organizationId: currentOrg?.id ?? null,
-    targetId: targetId ?? null,
-  };
+  contextRef.current = { scopeKey, role: currentOrg?.role };
+
+  // Invalidate actions before a changed user, role or target can render stale results.
+  useLayoutEffect(() => {
+    actionRequestRef.current += 1;
+    scanRequestRef.current += 1;
+    copyRequestRef.current += 1;
+    return () => {
+      actionRequestRef.current += 1;
+      scanRequestRef.current += 1;
+      copyRequestRef.current += 1;
+    };
+  }, [scopeKey, currentOrg?.role, session?.access_token]);
 
   useEffect(() => {
     let cancelled = false;
@@ -78,6 +92,8 @@ export default function TargetDetailPage() {
     setScanBusy(false);
     setScanError(null);
     setTarget(null);
+    setLoadedScope(null);
+    setFailedScope(null);
     setChallenge(null);
     setCheckResult(null);
     setError(null);
@@ -102,9 +118,16 @@ export default function TargetDetailPage() {
       try {
         const api = createWorkspaceApi(async () => session!.access_token);
         const fetched = await api.getTarget(currentOrg!.id, targetId!);
-        if (!cancelled) setTarget(fetched);
+        if (fetched.organizationId !== currentOrg!.id || fetched.id !== targetId) {
+          throw new Error('Target API returned an unexpected organization or target ID.');
+        }
+        if (!cancelled) {
+          setTarget(fetched);
+          setLoadedScope(scopeKey);
+        }
       } catch (err) {
         if (!cancelled) {
+          setFailedScope(scopeKey);
           setError(err instanceof Error ? err.message : 'Failed to load target.');
         }
       } finally {
@@ -117,25 +140,25 @@ export default function TargetDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [session, currentOrg, targetId, orgLoading]);
+  }, [session, currentOrg, targetId, orgLoading, scopeKey, loadRetry]);
 
   const isAdmin = currentOrg?.role === 'owner' || currentOrg?.role === 'admin';
   const canRunScans = currentOrg?.role === 'owner' || currentOrg?.role === 'admin' || currentOrg?.role === 'member';
 
-  function createActionGuard(organizationId: string, targetIdValue: string) {
+  function createActionGuard(activeScope: string) {
     const requestId = ++actionRequestRef.current;
     return () =>
       actionRequestRef.current === requestId &&
-      contextRef.current.organizationId === organizationId &&
-      contextRef.current.targetId === targetIdValue;
+      contextRef.current.scopeKey === activeScope &&
+      (contextRef.current.role === 'owner' || contextRef.current.role === 'admin');
   }
 
   async function handleStartVerification() {
-    if (!currentOrg || !session || !target) return;
+    if (!currentOrg || !session || !target || !scopeKey || !hasCurrentData || !isAdmin || actionBusy || target.type !== 'website') return;
 
     const organizationId = currentOrg.id;
     const targetIdValue = target.id;
-    const isCurrentAction = createActionGuard(organizationId, targetIdValue);
+    const isCurrentAction = createActionGuard(scopeKey);
 
     setActionBusy('start');
     setActionError(null);
@@ -166,11 +189,11 @@ export default function TargetDetailPage() {
   }
 
   async function handleCheckVerification() {
-    if (!currentOrg || !session || !target) return;
+    if (!currentOrg || !session || !target || !scopeKey || !hasCurrentData || !isAdmin || actionBusy || target.type !== 'website') return;
 
     const organizationId = currentOrg.id;
     const targetIdValue = target.id;
-    const isCurrentAction = createActionGuard(organizationId, targetIdValue);
+    const isCurrentAction = createActionGuard(scopeKey);
 
     setActionBusy('check');
     setActionError(null);
@@ -193,6 +216,9 @@ export default function TargetDetailPage() {
       if (terminal) {
         const refreshed = await api.getTarget(organizationId, targetIdValue);
         if (!isCurrentAction()) return;
+        if (refreshed.organizationId !== organizationId || refreshed.id !== targetIdValue) {
+          throw new Error('Verification returned an unexpected target identity.');
+        }
 
         setTarget(refreshed);
         setChallenge(null);
@@ -215,15 +241,16 @@ export default function TargetDetailPage() {
   }
 
   async function handleRunSecurityScan() {
-    if (!currentOrg || !session || !target || target.verificationState !== 'verified' || !canRunScans) return;
+    if (!currentOrg || !session || !target || !scopeKey || !hasCurrentData ||
+        target.type !== 'website' || target.verificationState !== 'verified' || !canRunScans || scanBusy || actionBusy) return;
 
     const organizationId = currentOrg.id;
     const targetIdValue = target.id;
     const requestId = ++scanRequestRef.current;
     const isCurrentScanRequest = () =>
       scanRequestRef.current === requestId &&
-      contextRef.current.organizationId === organizationId &&
-      contextRef.current.targetId === targetIdValue;
+      contextRef.current.scopeKey === scopeKey &&
+      (contextRef.current.role === 'owner' || contextRef.current.role === 'admin' || contextRef.current.role === 'member');
 
     setScanBusy(true);
     setScanError(null);
@@ -260,36 +287,54 @@ export default function TargetDetailPage() {
   }
 
   async function copyToClipboard(text: string, type: 'name' | 'value') {
+    if (!hasCurrentData || !scopeKey || !challenge || !isAdmin) return;
+    const requestId = ++copyRequestRef.current;
+    const isCurrentCopy = () => copyRequestRef.current === requestId && contextRef.current.scopeKey === scopeKey;
     setCopyError(null);
     try {
       await navigator.clipboard.writeText(text);
+      if (!isCurrentCopy()) return;
       if (type === 'name') {
         setCopiedName(true);
-        window.setTimeout(() => setCopiedName(false), 2000);
+        window.setTimeout(() => { if (isCurrentCopy()) setCopiedName(false); }, 2000);
       } else {
         setCopiedValue(true);
-        window.setTimeout(() => setCopiedValue(false), 2000);
+        window.setTimeout(() => { if (isCurrentCopy()) setCopiedValue(false); }, 2000);
       }
     } catch {
-      setCopyError('Failed to copy to clipboard. Please select and copy manually.');
+      if (isCurrentCopy()) setCopyError('Failed to copy to clipboard. Please select and copy manually.');
     }
   }
 
-  if (loading || orgLoading) {
-    return <div className="animate-pulse flex items-center justify-center p-12 text-slate-400">Loading target details...</div>;
+  if (loading || orgLoading || (scopeKey && !hasCurrentData && !initialFailed)) {
+    return <div role="status" className="animate-pulse flex items-center justify-center p-12 text-slate-400">Loading target details...</div>;
   }
 
-  if (!target) {
+  if (orgError) {
+    return <div role="alert" className="rounded-xl border border-rose-500/20 bg-rose-500/10 p-5 text-sm text-rose-300">Workspace access could not be verified: {orgError}</div>;
+  }
+
+  if (!scopeKey) {
+    return (
+      <div className="rounded-xl border border-slate-800 bg-slate-900 p-6 text-slate-300">
+        Select a workspace and target before viewing ownership verification.
+        <button type="button" onClick={() => navigate('/app/targets')} className="ml-3 rounded-lg border border-slate-700 px-3 py-2 text-sm hover:bg-slate-800">Back to targets</button>
+      </div>
+    );
+  }
+
+  if (!target || !hasCurrentData) {
     return (
       <div className="max-w-4xl mx-auto space-y-6">
         <button onClick={() => navigate('/app/targets')} className="flex items-center gap-2 text-sm text-slate-400 hover:text-slate-300 transition-colors">
           <ArrowLeft className="w-4 h-4" /> Back to Targets
         </button>
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-12 text-center flex flex-col items-center gap-4">
+        <div role="alert" className="bg-slate-900 border border-slate-800 rounded-xl p-12 text-center flex flex-col items-center gap-4">
           <ShieldAlert className="w-8 h-8" />
           <div>
             <h2 className="text-lg font-semibold text-rose-500">Error</h2>
-            <p>{error || 'Target not found'}</p>
+            <p>{error || 'Target not found or unavailable to this workspace.'}</p>
+            <button type="button" onClick={() => setLoadRetry(value => value + 1)} className="mt-3 rounded-lg border border-slate-700 px-3 py-2 text-sm hover:bg-slate-800">Retry target request</button>
           </div>
         </div>
       </div>
@@ -346,8 +391,9 @@ export default function TargetDetailPage() {
         </div>
       )}
 
-      <section className="bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
-        <h2 className="text-lg font-medium text-slate-200">DNS Ownership Verification</h2>
+      {target.type === 'website' ? (
+        <section className="bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
+          <h2 className="text-lg font-medium text-slate-200">DNS Ownership Verification</h2>
 
         {target.verificationState === 'verified' ? (
           <div className="text-sm text-slate-400">
@@ -366,7 +412,7 @@ export default function TargetDetailPage() {
               </div>
             )}
 
-            {challenge && (
+            {challenge && isAdmin && (
               <div className="bg-slate-950 border border-slate-800 rounded-xl p-5 space-y-4">
                 <div className="text-sm font-medium text-slate-200">Publish this TXT Record</div>
 
@@ -436,7 +482,7 @@ export default function TargetDetailPage() {
                 {(target.verificationState === 'unverified' || target.verificationState === 'failed' || (target.verificationState === 'pending' && !challenge)) && (
                   <button
                     onClick={handleStartVerification}
-                    disabled={actionBusy !== null}
+                    disabled={actionBusy !== null || scanBusy}
                     className="bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-2 rounded-lg text-sm font-medium transition-colors border border-slate-700 disabled:opacity-50"
                   >
                     {actionBusy === 'start' ? 'Starting...' : target.verificationState === 'unverified' ? 'Start Verification' : 'Start New Challenge'}
@@ -446,7 +492,7 @@ export default function TargetDetailPage() {
                 {target.verificationState === 'pending' && (
                   <button
                     onClick={handleCheckVerification}
-                    disabled={actionBusy !== null}
+                    disabled={actionBusy !== null || scanBusy}
                     className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
                   >
                     {actionBusy === 'check' ? 'Checking DNS...' : 'Check DNS Verification'}
@@ -456,9 +502,15 @@ export default function TargetDetailPage() {
             )}
           </div>
         )}
-      </section>
+        </section>
+      ) : (
+        <div role="status" className="rounded-xl border border-slate-800 bg-slate-900 p-5 text-sm text-slate-400">
+          DNS ownership challenges and the website security baseline apply only to website targets.
+          This {target.type} target cannot use the website scanner from this page.
+        </div>
+      )}
 
-      {target.verificationState === 'verified' && (
+      {target.type === 'website' && target.verificationState === 'verified' && (
         <section className="bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-sm space-y-5">
           <div>
             <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Available scanner</div>
@@ -483,7 +535,7 @@ export default function TargetDetailPage() {
           {canRunScans ? (
             <button
               onClick={handleRunSecurityScan}
-              disabled={scanBusy}
+              disabled={scanBusy || actionBusy !== null}
               className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
             >
               <Play className="h-4 w-4" />
