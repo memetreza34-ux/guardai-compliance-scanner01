@@ -48,3 +48,10 @@ test('scan history failure cannot silently appear as zero tested websites', () =
   assert.match(targets, /scanHistoryUnavailable \? "Unbekannt" : testedTargetsCount/);
   assert.doesNotMatch(targets, /listScans\([^\n]+\.catch\(\(\) => \(\{ contractVersion: '', scans: \[\] \}\)\)/);
 });
+
+test('technical scores are not shown as an all-green security guarantee', () => {
+  const targets = source('src/pages/app/TargetsPage.tsx');
+  assert.match(targets, /Scan-Score \{latestScan\.overallScore\}\/100/);
+  assert.match(targets, /keine Sicherheits- oder Compliance-Garantie/);
+  assert.doesNotMatch(targets, /text-emerald-400 bg-emerald-500\/10 px-1\.5 py-0\.5 rounded border border-emerald-500\/20/);
+});
