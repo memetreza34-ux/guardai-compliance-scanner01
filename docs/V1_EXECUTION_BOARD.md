@@ -12,7 +12,7 @@ Dies ist die **priorisierte, maschinen- und menschenlesbare Arbeitsliste**. Sie 
 **Arbeitsbesitz/Startreihenfolge:**
 - **Codex jetzt:** [#47](https://github.com/memetreza34-ux/guardai-compliance-scanner01/issues/47), reviewed SQL-Migration-/lokales PostgreSQL-/RLS-Setup und Tests. **Danach erst** [#48](https://github.com/memetreza34-ux/guardai-compliance-scanner01/issues/48), echte E2E-Journey und Deployment-/Backup-Smoketests.
 - **Claude gleichzeitig read-only:** [#44](https://github.com/memetreza34-ux/guardai-compliance-scanner01/issues/44), unabhängiger adversarial Security-/UX-Review von **#46**, dann fertige Codex-PRs, Findings mit Reproduktion.
-- **ChatGPT (dieser Chat):** Koordination, CI-/PR-/Review-Abnahme, Entscheiden über Integration, keine parallele Codex-Implementierung.
+- **Technischer Release-Integrator: Codex:** nach #47/#48 alle P0-Defekte beheben und den finalen SHA/CI/Staging-Report zusammenführen; Claude prüft unabhängig, der Projektinhaber autorisiert den Merge und die Beta. **ChatGPT wird nach abgeschlossener Übergabe nicht benötigt.**
 - **Nutzer:** [#29](https://github.com/memetreza34-ux/guardai-compliance-scanner01/issues/29), exakte **GuardAI-only** Supabase-Projektreferenz/Umgebungsfreigabe, danach Hosting/Legal/Go-No-Go.
 
 **Harte Grenzen:** 33 Draft SQL ≠ angewandte Migrationen; Repo CI ≠ Browser-/Staging-/RLS-Beweis. Keine Stripe-, AI-Act-, Monitoring-, Risiko- oder anderen V2-Module vor Beta. Kein externes Supabase-Projekt ohne sichere Zuordnung. Issue-Erstellung startet keinen KI-Agenten. [Verbindliches Agenten-Regelwerk](V1_AGENT_OWNERSHIP_2026-10-16.md).
