@@ -1,6 +1,6 @@
 # GuardAI V1 Release Charter — Scope Freeze & Product Advisor Contract
 
-**Date:** 2026-10-15. **Status:** PROPOSED, documentation-only; no production approval.
+**Date:** 2026-10-15. **Status:** ACTIVE FIRST-RELEASE SCOPE, documentation-only; no production or code approval. The product owner authorized execution of this V1 direction on 2026-10-16.
 **Owner decision to pursue:** deliver the smallest credible technical Website Security V1 with high-quality UX and independently verified backend behavior.
 **Change authority:** Owner may explicitly revise scope. No agent may expand scope by inference.
 **Evidence rule:** This charter is a PRODUCT DECISION, not evidence that the product works.
@@ -116,12 +116,12 @@ Before any work:
 
 These reflect provider positioning, not independently proven feature quality, market share or demand. After reliable pilot functionality, interview at least five target operators/agencies and test whether remediation/re-test/reporting justify adoption or payment.
 
-## 8. Decisions pending owner review
+## 8. Launch decisions still pending owner review
 
-- Confirm **bounded website-security-first V1** and that additional modules are deferred, not deleted.
+- **Scope decision in effect:** bounded website-security-first V1; additional modules are deferred, not deleted.
 - Choose private-beta audience: SaaS founders/developers first; small web agencies as secondary hypothesis.
 - Confirm German-first UI, with the exact target customer language to test.
 - Decide whether first beta is free. **Suggested: free, no paid checkout** until product + quotas + operations are proven.
 - Supply **non-secret** GuardAI Supabase project reference and GitHub Actions failure banner only when needed.
 
-**First action after accepting scope:** address R1 (runner 0-step issue), then R2 limited PR triage and R3 staging in parallel only where dependencies make it safe. Do not add another feature.
+**First executable priority after accepting scope:** address R1 (runner 0-step issue), then R2 limited PR triage and R3 staging in parallel only where dependencies make it safe. Do not add another feature.
