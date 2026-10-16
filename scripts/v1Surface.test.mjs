@@ -78,6 +78,6 @@ test('dashboard has independent API failures, truthful counts and tenant-scoped 
   assert.match(dashboard, /scan\.organizationId === orgId/);
   assert.match(dashboard, /targetsError \? 'Unbekannt'/);
   assert.match(dashboard, /findingsError \? 'Unbekannt'/);
-  assert.match(dashboard, /scansError \? 'unknown'/);
+  assert.match(dashboard, /targetsError \|\| scansError \? 'unknown'/);
   assert.doesNotMatch(dashboard, /<WorkspaceOnboarding/);
 });
