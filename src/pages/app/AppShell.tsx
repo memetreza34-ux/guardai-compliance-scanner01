@@ -5,12 +5,17 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  RefreshCw,
+  ShieldAlert,
   Search,
   ShieldCheck,
   Globe2,
   X,
 } from 'lucide-react';
 import { useAuth } from '../../auth/AuthProvider';
+import { useWorkspace } from '../../providers/WorkspaceProvider';
+import { createWorkspaceApi } from '../../api/workspaceApi';
+import WorkspaceOnboarding from '../../components/WorkspaceOnboarding';
 import { WorkspaceSwitcher } from '../../components/WorkspaceSwitcher';
 import { Button } from '../../components/ui/button';
 
@@ -91,11 +96,74 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           onClick={handleSignOut}
         >
           <LogOut className="mr-2 h-4 w-4" />
-          Sign out
+          Abmelden
         </Button>
       </div>
     </div>
   );
+}
+
+function AppWorkspaceGate() {
+  const { session } = useAuth();
+  const { currentOrg, isLoading, error, refreshOrganizations } = useWorkspace();
+
+  if (isLoading) {
+    return <div role="status" className="flex min-h-[22rem] items-center justify-center text-sm text-slate-400">
+      Workspace-Berechtigungen werden geladen…
+    </div>;
+  }
+
+  if (error) {
+    return <section className="mx-auto max-w-2xl rounded-2xl border border-rose-500/20 bg-rose-500/[0.06] p-6 sm:p-8">
+      <ShieldAlert className="h-7 w-7 text-rose-300" />
+      <h1 className="mt-4 text-xl font-semibold text-slate-100">Workspace derzeit nicht verfügbar</h1>
+      <p role="alert" className="mt-2 text-sm leading-6 text-slate-400">{error}</p>
+      <p className="mt-3 text-xs leading-5 text-slate-500">
+        GuardAI zeigt keine zuvor geladenen Workspace-Daten an, wenn die aktuellen Zugriffsrechte nicht geprüft werden konnten.
+      </p>
+      <button type="button" onClick={() => void refreshOrganizations().catch(() => {})}
+        className="mt-6 inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900 px-4 py-2.5 text-sm font-medium text-slate-300 hover:bg-slate-800">
+        <RefreshCw className="h-4 w-4" /> Erneut prüfen
+      </button>
+    </section>;
+  }
+
+  if (!currentOrg) {
+    if (!session) return null;
+    return <section className="mx-auto max-w-5xl space-y-8 py-4 sm:py-8">
+      <header className="max-w-2xl">
+        <div className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-300">Dein erster GuardAI Workspace</div>
+        <h1 className="mt-3 text-3xl font-semibold tracking-tight text-slate-100 sm:text-4xl">Starte mit deiner Organisation.</h1>
+        <p className="mt-4 text-sm leading-7 text-slate-400">
+          Lege einen eigenen Workspace an. Danach kannst du eine Website hinzufügen, den Domainbesitz per DNS bestätigen
+          und deinen ersten technischen Security-Scan ausführen.
+        </p>
+      </header>
+      <div className="grid gap-3 md:grid-cols-3">
+        {[
+          ['01', 'Organisation', 'Website- und Scan-Ergebnisse bleiben deinem Workspace zugeordnet.'],
+          ['02', 'Domain verifizieren', 'Du bestätigst die Kontrolle über das Ziel durch einen DNS-TXT-Eintrag.'],
+          ['03', 'Scan ausführen', 'Evidence und Findings stammen aus einem tatsächlich ausgeführten Scan.'],
+        ].map(([number, title, description]) => <div key={number}
+          className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
+          <span className="font-mono text-xs font-semibold text-indigo-300">{number}</span>
+          <h2 className="mt-4 text-sm font-semibold text-slate-100">{title}</h2>
+          <p className="mt-2 text-xs leading-6 text-slate-500">{description}</p>
+        </div>)}
+      </div>
+      <div className="max-w-2xl">
+        <WorkspaceOnboarding api={createWorkspaceApi(async () => session.access_token)} />
+      </div>
+      <p className="max-w-2xl text-xs leading-5 text-slate-600">
+        Eine verifizierte Domain und ein abgeschlossener Scan sind keine Zertifizierung oder Garantie,
+        dass das Ziel frei von Sicherheitslücken ist.
+      </p>
+    </section>;
+  }
+
+  // Remount routed modules after an organization switch so the previous
+  // tenant's local component state cannot flash before new reads complete.
+  return <Outlet key={`${session?.user.id ?? "unbekannt"}:${currentOrg.id}`} />;
 }
 
 export default function AppShell() {
@@ -158,7 +226,7 @@ export default function AppShell() {
             </div>
           )}
           <div className="p-4 sm:p-6 lg:p-8">
-            <Outlet />
+            <AppWorkspaceGate />
           </div>
         </main>
       </div>
