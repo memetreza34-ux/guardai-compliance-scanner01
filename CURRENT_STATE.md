@@ -1,5 +1,12 @@
 # CURRENT_STATE.md
 
+## Full V1 integration checkpoint — 2026-10-16
+
+- [Draft PR #46](https://github.com/memetreza34-ux/guardai-compliance-scanner01/pull/46) is the **single integration review candidate** combining the five-section Website Security V1 UI, gated organization first-run, independent Dashboard API truth/unknown states, guarded Target/Scan/Finding pages, backend DNS/Finding/Evidence/worker security fixes and 33-source SQL *read-only* inventory. It is **not merged in main**.
+- [Actual combined CI successful on source commit `9cb069b901c06c87fc20921c99266b6c79595802`](https://github.com/memetreza34-ux/guardai-compliance-scanner01/actions/runs/38856430473): frontend lint/typecheck/build/V1 surface/UI-state tests and backend check/draft preflight/test. Later documentation commits require their own green CI; this citation is scoped to the exact tested commit.
+- No isolated GuardAI Supabase staging identity or applied migrations verified; production scanner + DNS + auth E2E, two-Org RLS/SSRF/worker concurrency, browser responsive/keyboard, restore, secrets/history/security audit and legal review remain **OPEN**. Replacing `CURRENT_STATE.md` or checklist labels is never staging proof.
+- Codex implementation [#43](https://github.com/memetreza34-ux/guardai-compliance-scanner01/issues/43) was completed by the release lead directly in the combined code candidate, **not by an automatically launched Codex session**. Independent Claude review [#44](https://github.com/memetreza34-ux/guardai-compliance-scanner01/issues/44) remains **not started** until that agent is explicitly launched.
+
 ## Release evidence update — 2026-10-16
 
 - **CI / pre-step runner issue P0-01 now resolved for the publicly visible GitHub repository**: real frontend/backend steps passed on [PR #41 SHA `4472443a9e29`](https://github.com/memetreza34-ux/guardai-compliance-scanner01/actions/runs/38848086821) and [new backend integration PR #42 SHA `ef1ed30b8934`](https://github.com/memetreza34-ux/guardai-compliance-scanner01/actions/runs/38851202458). This is code CI evidence, **not** proof of live environment or complete release readiness.
