@@ -54,9 +54,9 @@ function createFindingService({ findingRepository, organizationAuthorization, sc
     const requiredRole = transition.minimumRole === 'viewer' ? 'member' : transition.minimumRole;
     // Leaving an accepted-risk state needs Admin authorization too. Keep this
     // check independent of frontend button visibility or supplied role claims.
-    if (requiredRole !== initialRole) {
-      await organizationAuthorization.requireRole(organizationId, userId, requiredRole);
-    }
+    // Revalidate the current role even when it matches the initial role:
+    // membership may have been revoked while getFinding() was awaiting IO.
+    await organizationAuthorization.requireRole(organizationId, userId, requiredRole);
 
     return findingRepository.transitionStatus({
       organizationId,
@@ -101,6 +101,10 @@ function createFindingService({ findingRepository, organizationAuthorization, sc
         'FINDING_RETEST_SERVICE_UNAVAILABLE',
       );
     }
+
+    // A membership downgrade during the awaited Finding read must not queue
+    // a verification scan using an earlier permission result.
+    await organizationAuthorization.requireRole(organizationId, userId, 'member');
 
     return scanSubmission.submit({
       organizationId,
