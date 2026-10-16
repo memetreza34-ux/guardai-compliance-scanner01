@@ -95,3 +95,17 @@ test('website list rejects cross-org payloads and stale scan or create responses
   assert.match(targets, /target\.type === 'website' && target\.verificationState === 'verified'/);
   assert.doesNotMatch(targets, /<WorkspaceOnboarding/);
 });
+
+
+test('report list and detail never render mixed-organization response payloads', () => {
+  const list = source('src/pages/app/ReportsPage.tsx');
+  const detail = source('src/pages/app/ReportDetailPage.tsx');
+  assert.match(list, /reportsBelongToOrganization\(page\.reports, currentOrg!\.id\)/);
+  assert.match(list, /reportsBelongToOrganization\(page\.reports, issuedOrgId\)/);
+  assert.match(list, /activeContext\.current\.scopeKey !== issuedScope/);
+  assert.match(list, /initialFailed/);
+  assert.match(detail, /reportBelongsToOrganization\(next, currentOrg!\.id\)/);
+  assert.match(detail, /next\.id !== reportId/);
+  assert.match(detail, /reportDetailScope\(session\?\.user\.id, currentOrg\?\.id, reportId\)/);
+  assert.match(detail, /!hasCurrentData && !initialFailed/);
+});
