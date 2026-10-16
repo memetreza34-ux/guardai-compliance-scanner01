@@ -81,3 +81,17 @@ test('dashboard has independent API failures, truthful counts and tenant-scoped 
   assert.match(dashboard, /targetsError \|\| scansError \? 'unknown'/);
   assert.doesNotMatch(dashboard, /<WorkspaceOnboarding/);
 });
+
+
+test('website list rejects cross-org payloads and stale scan or create responses', () => {
+  const targets = source('src/pages/app/TargetsPage.tsx');
+  assert.match(targets, /targetsBelongToOrganization\(targetList, currentOrg!\.id\)/);
+  assert.match(targets, /scan\.organizationId === currentOrg!\.id/);
+  assert.match(targets, /activeScopeRef\.current === scopeKey/);
+  assert.match(targets, /activeTokenRef\.current === issuedToken/);
+  assert.match(targets, /activeRoleRef\.current === 'owner'/);
+  assert.match(targets, /activeRoleRef\.current === 'admin'/);
+  assert.match(targets, /submission\.scan\.organizationId === issuedOrgId/);
+  assert.match(targets, /target\.type === 'website' && target\.verificationState === 'verified'/);
+  assert.doesNotMatch(targets, /<WorkspaceOnboarding/);
+});
