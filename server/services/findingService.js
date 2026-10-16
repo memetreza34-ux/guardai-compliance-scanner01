@@ -35,10 +35,14 @@ function createFindingService({ findingRepository, organizationAuthorization, sc
   }
 
   async function updateStatus({ organizationId, userId, findingId, status, reason }) {
+    // Do not read a Finding or run status-dependent validation before proving
+    // the caller can mutate within this organization. Accepting risk always
+    // requires an Admin; all other changes require at least a Member.
+    const initialRole = status === 'accepted_risk' ? 'admin' : 'member';
+    await organizationAuthorization.requireRole(organizationId, userId, initialRole);
+
     const current = await findingRepository.getFinding(organizationId, findingId);
     if (!current) {
-      // Still authorize the tenant before revealing whether a Finding exists.
-      await organizationAuthorization.requireRole(organizationId, userId, 'viewer');
       throw new HttpError(404, 'Finding was not found in this organization.', 'FINDING_NOT_FOUND');
     }
 
@@ -48,7 +52,11 @@ function createFindingService({ findingRepository, organizationAuthorization, sc
       reason,
     });
     const requiredRole = transition.minimumRole === 'viewer' ? 'member' : transition.minimumRole;
-    await organizationAuthorization.requireRole(organizationId, userId, requiredRole);
+    // Leaving an accepted-risk state needs Admin authorization too. Keep this
+    // check independent of frontend button visibility or supplied role claims.
+    if (requiredRole !== initialRole) {
+      await organizationAuthorization.requireRole(organizationId, userId, requiredRole);
+    }
 
     return findingRepository.transitionStatus({
       organizationId,
