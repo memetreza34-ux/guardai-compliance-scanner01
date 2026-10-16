@@ -1,21 +1,27 @@
 # CURRENT_STATE.md
 
-## Full V1 integration checkpoint — 2026-10-16
+## AKTUELLER V1-RELEASE-STATUS — 2026-10-16 (maßgeblich)
 
-- [Draft PR #46](https://github.com/memetreza34-ux/guardai-compliance-scanner01/pull/46) is the **single integration review candidate** combining the five-section Website Security V1 UI, gated organization first-run, independent Dashboard API truth/unknown states, guarded Target/Scan/Finding pages, backend DNS/Finding/Evidence/worker security fixes and 33-source SQL *read-only* inventory. It is **not merged in main**.
-- [Actual combined CI successful on source commit `9cb069b901c06c87fc20921c99266b6c79595802`](https://github.com/memetreza34-ux/guardai-compliance-scanner01/actions/runs/38856430473): frontend lint/typecheck/build/V1 surface/UI-state tests and backend check/draft preflight/test. Later documentation commits require their own green CI; this citation is scoped to the exact tested commit.
-- No isolated GuardAI Supabase staging identity or applied migrations verified; production scanner + DNS + auth E2E, two-Org RLS/SSRF/worker concurrency, browser responsive/keyboard, restore, secrets/history/security audit and legal review remain **OPEN**. Replacing `CURRENT_STATE.md` or checklist labels is never staging proof.
-- Codex implementation [#43](https://github.com/memetreza34-ux/guardai-compliance-scanner01/issues/43) was completed by the release lead directly in the combined code candidate, **not by an automatically launched Codex session**. Independent Claude review [#44](https://github.com/memetreza34-ux/guardai-compliance-scanner01/issues/44) remains **not started** until that agent is explicitly launched.
+**Produktziel:** Eine sichere, eingeschränkte Website-Security-Beta mit Anmeldung → Organisation → DNS-verifizierte eigene Website → technischer Scan → Finding und Evidence → Re-Test → nachvollziehbarer Bericht. Keine neuen V1-Funktionen, keine rechtliche Zertifizierung, keine Bezahlpläne. [Release-Charta](docs/V1_RELEASE_CHARTER_2026-10-15.md).
 
-## Release evidence update — 2026-10-16
+**Code-Wahrheit:**
+- **`main`:** Arbeitsregeln und technische Foundations, aber **NICHT die neue fünfteilige V1-App**. Der einzelne vollständige Code-Kandidat ist [Draft PR #46](https://github.com/memetreza34-ux/guardai-compliance-scanner01/pull/46), **HEAD `b6e565b5818857a5648335bf6ea8302e3a878274`**.
+- **CI:** [Run #38881481408](https://github.com/memetreza34-ux/guardai-compliance-scanner01/actions/runs/38881481408) auf genau diesem HEAD, **frontend = SUCCESS, backend = SUCCESS** (Lint, Typprüfung, Build, V1/UI-State-Tests, Backend-Checks/-Tests, SQL-Quellprüfung). **Keine echte Datenbank- oder Browserabnahme damit nachgewiesen.**
+- **Sicherheit in Code:** Rollenprüfungen, DNS-/Worker-Lease-Korrekturen, Scoping der Berichte und Testfälle für Mid-Request-Berechtigungswechsel sind im **unveröffentlichten Draft PR #46**. Das historische Backend-Sammel-PR #42 ist darin enthalten und darf nicht noch einmal separat gemergt werden.
+- **Datenbank:** 33 `database/*_draft.sql` sind **Quellen, keine tatsächlich angewandten Migrationen**. Es gibt keine verifizierte dedizierte GuardAI-Staging-Projektreferenz und keine echten RLS-/Zwei-Org-/Worker-/SSRF-/Recovery-/E2E-Nachweise.
+- **Freigabe:** `CODE_CI_VERIFIED`, **NICHT `STAGING_VERIFIED`**, nicht öffentlich produktionsbereit. Das GitHub-Repository ist öffentlich; Git-Historie/Secrets müssen unabhängig geprüft werden.
 
-- **CI / pre-step runner issue P0-01 now resolved for the publicly visible GitHub repository**: real frontend/backend steps passed on [PR #41 SHA `4472443a9e29`](https://github.com/memetreza34-ux/guardai-compliance-scanner01/actions/runs/38848086821) and [new backend integration PR #42 SHA `ef1ed30b8934`](https://github.com/memetreza34-ux/guardai-compliance-scanner01/actions/runs/38851202458). This is code CI evidence, **not** proof of live environment or complete release readiness.
-- **Scope:** [V1 charter](docs/V1_RELEASE_CHARTER_2026-10-15.md) is active; separate front-end surface candidate #41 and integrated backend-security candidate #42 are not in `main`. Only Dashboard, Websites, Scans, Findings, Berichte are intended V1 product modules.
-- **Other CI-tested independent drafts:** #22, #23, #27, #34–#39. No claim of their combined multi-PR build or staging effectiveness. #30–#33 were consolidated in #34 and the redundant PRs closed; #26 already in main.
-- **Operational blockers:** exact dedicated GuardAI Supabase staging project ref not verified; 33 SQL draft sources not established as applied production migrations; no real two-user/two-org RLS/worker/SSRF negative test or full signup→DNS→scan→retest→report journey evidence. Public-repository historical secret review outstanding.
-- **Agent task links:** Codex integration [#43](https://github.com/memetreza34-ux/guardai-compliance-scanner01/issues/43), independent Claude security review [#44](https://github.com/memetreza34-ux/guardai-compliance-scanner01/issues/44). These are work orders, **not automatically active agent sessions**.
+**Übergabe und nur noch verbleibende V1-Aufgaben:**
+1. **Codex:** [#47](https://github.com/memetreza34-ux/guardai-compliance-scanner01/issues/47) reviewed SQL-/lokale PG-RLS-Tests; danach [#48](https://github.com/memetreza34-ux/guardai-compliance-scanner01/issues/48) echter Nutzerpfad/Deployment-Smoketests und bestätigte Fehlerbehebung. Kein paralleler Codex-Code-PR.
+2. **Claude:** [#44](https://github.com/memetreza34-ux/guardai-compliance-scanner01/issues/44), unabhängiger read-only Security-/UX-Review von PR #46 und später Codex-Änderungen; Ergebnisse mit reproduzierbaren P0/P1/P2-Befunden. **Noch keine nachgewiesene Claude-Ausführung/Review.**
+3. **Projektinhaber:** [#29](https://github.com/memetreza34-ux/guardai-compliance-scanner01/issues/29) GuardAI-only Supabase-Staging-Projektreferenz bestätigen; externe Hosting-, Secret-, Legal- und Go/No-Go-Entscheidungen.
+4. **Übergabe abgeschlossen:** ChatGPT ist für den weiteren Release **nicht notwendig**. Nach #47/#48 integriert Codex den fertigen SHA technisch **nur mit ausdrücklicher Freigabe des Projektinhabers** und nach unabhängiger Security-Abnahme durch Claude. Bis diese Nachweise vorliegen bleibt der Code DRAFT und unveröffentlicht.
 
-### Historical source inventory below (2026-10-07)
+**Verbindliches Rollen-/Handoff-Regelwerk:** [Agent Ownership](docs/V1_AGENT_OWNERSHIP_2026-10-16.md), [Release Board](docs/V1_EXECUTION_BOARD.md). Das Anlegen von Issues startet **nicht** selbstständig Codex oder Claude. Im Zweifel gelten die aktuellen Issue- und PR-Evidenzen, nicht alte Abschnittsüberschriften.
+
+---
+
+## Historischer Quellstand — 2026-10-07 (nur Referenz, nicht aktueller V1-Release-Status)
 
 ## Repository truth — 2026-10-07
 
