@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Activity, AlertTriangle, ArrowRight, CheckCircle2, Clock3,
-  Plus, AktualisierenCw, ShieldAlert, ShieldCheck, Target,
+  Plus, RefreshCw, ShieldAlert, ShieldCheck, Target,
 } from 'lucide-react';
 import { useAuth } from '../../auth/AuthProvider';
 import { useWorkspace } from '../../providers/WorkspaceProvider';
