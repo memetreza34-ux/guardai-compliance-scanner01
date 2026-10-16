@@ -23,6 +23,18 @@
 | **Claude — unabhängiger Security- & QA-Reviewer** | Adversarial Review **des aktuellen #46-Gesamtstands**, insbesondere RLS/Mehrmandantensicherheit, Auth-Races, DNS/SSRF/Redirects, SQL-/Schema-Abhängigkeiten, Scanner-Leases, Ergebnisprovenienz, Reports, Secrets/öffentliches Repo; später CodeX-PRs *nach* Implementierung lesen | Standardmäßig **read-only**. Prüfkommentare, reproduzierbare P0/P1/P2-Findings und vorgeschlagene Tests in Issue #44 / PR #46. Nur bei explizit separat zugewiesenem Hotfix eigener Branch. | Reproduzierbarer Befund je Problem: Pfad/Zeile, Angriffsszenario, Auswirkung, Minimalfix, Regressionstest. Auch bei keinen Funden Einschränkungen dokumentieren. | Keine stillen Implementierungen, kein eigenes Sicherheits-Selbstabzeichnen, kein Merge, keine DB- oder Provider-Änderungen |
 | **Projektinhaber (Nutzer)** | GuardAI-only Supabase-Projektreferenz und Zugang in geeigneter Verbindung freigeben, Staging/Domain/Hosting bestimmen, externe Kosten und gesetzliche Pflichtangaben bestätigen, Go/No-Go entscheiden | Provider-Einstellungen außerhalb des Codes nach eigener Prüfung | Eindeutige Projekt- und Deployment-Identität, keine Geheimnisse in Issues oder Chat | Nicht manuell Quellcode-Patches oder SQL-Dateien zusammenführen müssen |
 
+## ChatGPT-Vorbereitung abgeschlossen — Übergabe an die zwei ausführenden Agenten
+
+**Stand 2026-10-16:** Die Code-Integration und Release-Scope-Entscheidungen sind in [PR #46](https://github.com/memetreza34-ux/guardai-compliance-scanner01/pull/46) mit [CI erfolgreich auf `b6e565b5818857a5648335bf6ea8302e3a878274`](https://github.com/memetreza34-ux/guardai-compliance-scanner01/actions/runs/38881481408) belegt. ChatGPT hat die agentenspezifischen P0-Aufträge bereitgestellt und die veraltete Plan-/Statusmatrix abgeglichen. **Diese Vorbereitungsphase ist abgeschlossen**, nicht die technische Release-Freigabe.
+
+**Jetzt aktivierbare Übergaben:**
+- **Codex:** [Issue #47](https://github.com/memetreza34-ux/guardai-compliance-scanner01/issues/47) starten. Danach [Issue #48](https://github.com/memetreza34-ux/guardai-compliance-scanner01/issues/48). Beide nutzen den *jeweils aktuellen* Codekandidaten #46 als Basis und erstellen eigene Draft-PRs. Keine parallele Code-Implementierung durch ChatGPT.
+- **Claude:** [Issue #44](https://github.com/memetreza34-ux/guardai-compliance-scanner01/issues/44) sofort read-only starten, aktuellen PR #46 mit SHA im Review fixieren; reale Risiken und reproduzierbare Befunde melden, keine pauschale Zustimmung.
+- **Nutzer:** [Issue #29](https://github.com/memetreza34-ux/guardai-compliance-scanner01/issues/29) durch eindeutige GuardAI-Supabase-Staging-Projektreferenz freigeben. Keine DB-Zugangsdaten in Chat, PR oder Issue.
+- **ChatGPT:** *nur nach Übergabe/Review* offene P0-Funde priorisieren, Codex-Fix-PR und Claude-Review abgleichen, finalen kombinierten SHA und CI prüfen, Staging-Evidence kontrollieren und Freigabeempfehlung an den Nutzer geben. Diese Aufgaben können nicht seriös als `DONE` gelten, solange Codex/Claude/Staging noch ausstehen.
+
+**Kein künstlicher Zeitplan:** GitHub-Issues sind keine selbständig laufenden Agenten und künftige Arbeit passiert nicht im Hintergrund. Eine Beta kann erst nach belegten Datenbank-/E2E-/Betriebs- und Security-Gates freigegeben werden.
+
 ## Tatsächliche nächste Reihenfolge (kritischer Pfad)
 
 1. **Codex als Nächstes:** [P0-MIGRATION-BLOCK](https://github.com/memetreza34-ux/guardai-compliance-scanner01/issues/47) — 33 Drafts: statisches Dependency/Audit-Inventar + sichere, reproduzierbare lokale migrationsfähige Basis und Negativtests, ohne fremde Supabase-Projekte anzufassen. V1-Minimum vor Legacy-Modulen. **Ein aktiver Codex-Code-PR zur Zeit.**
